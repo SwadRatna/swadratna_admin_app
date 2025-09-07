@@ -3,7 +3,6 @@ package com.swadratna.swadratna_admin.ui.dashboard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -18,6 +17,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBarsPadding
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,20 +43,23 @@ fun DashboardScreen(
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
                     )
-                }
+                },
+                windowInsets =  TopAppBarDefaults.windowInsets
             )
-        }
+        },
+        contentWindowInsets = WindowInsets(0.dp)
     ) { paddingValues ->
         LazyColumn(
             modifier = modifier
                 .fillMaxSize()
+                .consumeWindowInsets(paddingValues)
                 .padding(paddingValues),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item { SearchBar(uiState.searchQuery, viewModel) }
             item { StatisticsSection(uiState) }
             item { RecentActivitySection(uiState.recentActivities) }
-            item { TopPerformingFranchisesSection(uiState.topFranchises) }
+            item { TopPerformingStoreSection(uiState.topStore) }
         }
     }
 }
@@ -69,7 +73,7 @@ fun SearchBar(query: String, viewModel: DashboardViewModel) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        placeholder = { Text("Search franchises, campaigns...") },
+        placeholder = { Text("Search store, campaigns...") },
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
         singleLine = true,
         shape = RoundedCornerShape(12.dp)
@@ -90,9 +94,9 @@ fun StatisticsSection(uiState: DashboardUiState) {
                 modifier = Modifier.weight(1f)
             )
             StatCard(
-                title = "Active Franchises",
-                value = uiState.activeFranchises.toString(),
-                change = uiState.franchisesChange,
+                title = "Active Store",
+                value = uiState.activeStore.toString(),
+                change = uiState.storeChange,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -194,17 +198,17 @@ fun ActivityItem(activity: ActivityItem) {
 }
 
 @Composable
-fun TopPerformingFranchisesSection(franchises: List<FranchiseItem>) {
+fun TopPerformingStoreSection(storeItem: List<StoreItem>) {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         Text(
-            text = "Top Performing Franchises",
+            text = "Top Performing Store",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(16.dp))
-        franchises.forEachIndexed { index, franchise ->
-            FranchiseItem(
-                franchise = franchise,
+        storeItem.forEachIndexed { index, store ->
+            StoreItem(
+                store = store,
                 color = when (index) {
                     0 -> Color(0xFFE8F5E9)
                     1 -> Color(0xFFFFEBEE)
@@ -219,7 +223,7 @@ fun TopPerformingFranchisesSection(franchises: List<FranchiseItem>) {
 }
 
 @Composable
-fun FranchiseItem(franchise: FranchiseItem, color: Color) {
+fun StoreItem(store: StoreItem, color: Color) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -234,12 +238,12 @@ fun FranchiseItem(franchise: FranchiseItem, color: Color) {
         )
         Spacer(modifier = Modifier.width(16.dp))
         Text(
-            text = franchise.name,
+            text = store.name,
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.weight(1f)
         )
         Text(
-            text = franchise.revenue,
+            text = store.revenue,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Bold
         )
