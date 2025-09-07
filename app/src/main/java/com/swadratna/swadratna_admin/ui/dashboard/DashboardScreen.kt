@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBarsPadding
+import com.swadratna.swadratna_admin.ui.components.AppSearchField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,20 +32,24 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Restaurant OS") },
+                title = { Text("Admin Panel") },
                 actions = {
-                    IconButton(onClick = { /* TODO */ }) {
-                        Icon(Icons.Default.Notifications, contentDescription = "Notifications")
+                    Row(
+                        modifier = Modifier.padding(end = 16.dp) // match start padding visually
+                    ) {
+                        IconButton(onClick = { /* TODO */ }) {
+                            Icon(Icons.Default.Notifications, contentDescription = "Notifications")
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .align(Alignment.CenterVertically)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                        )
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                    )
                 },
-                windowInsets =  TopAppBarDefaults.windowInsets
             )
         },
         contentWindowInsets = WindowInsets(0.dp)
@@ -67,16 +72,14 @@ fun DashboardScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchBar(query: String, viewModel: DashboardViewModel) {
-    OutlinedTextField(
+    AppSearchField(
         value = query,
         onValueChange = { viewModel.handleEvent(DashboardEvent.SearchQueryChanged(it)) },
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        placeholder = { Text("Search store, campaigns...") },
-        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-        singleLine = true,
-        shape = RoundedCornerShape(12.dp)
+        placeholder = "Search store, campaigns…",
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }
     )
 }
 
