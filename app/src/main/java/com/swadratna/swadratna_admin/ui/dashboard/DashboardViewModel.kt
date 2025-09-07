@@ -18,8 +18,8 @@ class DashboardViewModel @Inject constructor() : ViewModel() {
             searchQuery = "",
             totalCampaigns = 124,
             campaignsChange = "+12% since last month",
-            activeFranchises = 89,
-            franchisesChange = "+5% last 3 months",
+            activeStore = 89,
+            storeChange = "+5% last 3 months",
             topSeller = "Burger King",
             topSellerMetric = "30% of total sales",
             newUsers = 450,
@@ -30,7 +30,7 @@ class DashboardViewModel @Inject constructor() : ViewModel() {
                     time = "2 hours ago"
                 ),
                 ActivityItem(
-                    title = "Franchise \"Downtown Deli\" updated menu",
+                    title = "Store \"Downtown Deli\" updated menu",
                     time = "1 day ago"
                 ),
                 ActivityItem(
@@ -38,16 +38,16 @@ class DashboardViewModel @Inject constructor() : ViewModel() {
                     time = "3 days ago"
                 )
             ),
-            topFranchises = listOf(
-                FranchiseItem(
+            topStore = listOf(
+                StoreItem(
                     name = "Coastal Grill",
                     revenue = "$125,000"
                 ),
-                FranchiseItem(
+                StoreItem(
                     name = "Urban Eatery",
                     revenue = "$110,500"
                 ),
-                FranchiseItem(
+                StoreItem(
                     name = "Parkside Bistro",
                     revenue = "$98,200"
                 )
@@ -71,14 +71,14 @@ data class DashboardUiState(
     val searchQuery: String = "",
     val totalCampaigns: Int = 0,
     val campaignsChange: String = "",
-    val activeFranchises: Int = 0,
-    val franchisesChange: String = "",
+    val activeStore: Int = 0,
+    val storeChange: String = "",
     val topSeller: String = "",
     val topSellerMetric: String = "",
     val newUsers: Int = 0,
     val newUsersChange: String = "",
     val recentActivities: List<ActivityItem> = emptyList(),
-    val topFranchises: List<FranchiseItem> = emptyList()
+    val topStore: List<StoreItem> = emptyList()
 )
 
 data class ActivityItem(
@@ -86,7 +86,7 @@ data class ActivityItem(
     val time: String
 )
 
-data class FranchiseItem(
+data class StoreItem(
     val name: String,
     val revenue: String
 )

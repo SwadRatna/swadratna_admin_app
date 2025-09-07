@@ -29,8 +29,8 @@ fun NavGraph(
             // TODO: Add Campaigns screen
             HomeScreen()
         }
-        composable(NavRoute.Franchises.route) {
-            // TODO: Add Franchises screen
+        composable(NavRoute.Store.route) {
+            // TODO: Add Store screen
             HomeScreen()
         }
         composable(NavRoute.Analytics.route) {
@@ -44,6 +44,6 @@ sealed class NavRoute(val route: String) {
     object Dashboard : NavRoute("dashboard")
     object Home : NavRoute("home")
     object Campaigns : NavRoute("campaigns")
-    object Franchises : NavRoute("franchises")
+    object Store : NavRoute("store")
     object Analytics : NavRoute("analytics")
 }
