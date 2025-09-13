@@ -111,7 +111,7 @@ fun CreateCampaignScreen(
                 .padding(horizontal = 16.dp)
                 .padding(top = 16.dp, bottom = 24.dp)
         ) {
-            Text("Campaign Title", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text("Campaign Title*", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(
                 value = campaignTitle,
@@ -119,13 +119,19 @@ fun CreateCampaignScreen(
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text("Diwali Mega Offer") },
                 singleLine = true,
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(8.dp),
+                isError = campaignTitle.isEmpty() && campaignTitle.isNotBlank(),
+                supportingText = { 
+                    if (campaignTitle.isEmpty() && campaignTitle.isNotBlank()) {
+                        Text("Title is required")
+                    }
+                }
             )
 
             Spacer(Modifier.height(16.dp))
 
 
-            Text("Campaign Duration", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text("Campaign Duration*", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -154,17 +160,20 @@ fun CreateCampaignScreen(
                     onValueChange = {},
                     modifier = Modifier
                         .weight(1f)
-                        .clickable { showEndDatePicker = true },
+                        .clickable { if (startDate != null) showEndDatePicker = true },
                     placeholder = { Text("End Date") },
-                    trailingIcon = { IconButton(onClick = { showEndDatePicker = true }) {
-                        Icon(Icons.Default.Home, contentDescription = "Select Date")
+                    trailingIcon = { IconButton(onClick = { if (startDate != null) showEndDatePicker = true }) {
+                        Icon(Icons.Default.Home, contentDescription = "Select Date", 
+                             tint = if (startDate == null) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f) 
+                                   else MaterialTheme.colorScheme.onSurfaceVariant)
                     } },
                     readOnly = true,
                     singleLine = true,
                     textStyle = MaterialTheme.typography.bodyMedium.copy(
                         fontSize = MaterialTheme.typography.bodyMedium.fontSize
                     ),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    enabled = startDate != null
                 )
             }
 
@@ -193,9 +202,9 @@ fun CreateCampaignScreen(
                 }
             }
 
-            if (showEndDatePicker) {
-                val initial = startDate?.toEpochDay()?.times(24 * 60 * 60 * 1000)
-                    ?: System.currentTimeMillis()
+            if (showEndDatePicker && startDate != null) {
+                val startMillis = startDate!!.toEpochDay() * (24 * 60 * 60 * 1000)
+                val initial = endDate?.toEpochDay()?.times(24 * 60 * 60 * 1000) ?: startMillis
                 val endState = rememberDatePickerState(
                     initialSelectedDateMillis = initial
                 )
@@ -204,8 +213,7 @@ fun CreateCampaignScreen(
                     confirmButton = {
                         Button(onClick = {
                             val picked = endState.selectedDateMillis
-                            val startMillis = startDate?.toEpochDay()?.times(24 * 60 * 60 * 1000)
-                            if (picked != null && (startMillis == null || picked >= startMillis)) {
+                            if (picked != null && picked >= startMillis) {
                                 endDate = LocalDate.ofEpochDay(picked / (24 * 60 * 60 * 1000))
                                 showEndDatePicker = false
                             } else {
@@ -226,7 +234,7 @@ fun CreateCampaignScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            Text("Campaign Description", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text("Campaign Description*", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(
                 value = campaignDescription,
@@ -234,12 +242,18 @@ fun CreateCampaignScreen(
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text("Enjoy 15% off this festive season.") },
                 singleLine = true,
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(8.dp),
+                isError = campaignDescription.isEmpty() && campaignDescription.isNotBlank(),
+                supportingText = { 
+                    if (campaignDescription.isEmpty() && campaignDescription.isNotBlank()) {
+                        Text("Description is required")
+                    }
+                }
             )
 
             Spacer(Modifier.height(16.dp))
 
-            Text("Select Target Franchises", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text("Select Target Franchises*", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(8.dp))
             ExposedDropdownMenuBox(
                 expanded = expandedFranchiseDropdown,
@@ -274,7 +288,7 @@ fun CreateCampaignScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            Text("Select Menu Category", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text("Select Menu Category*", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(8.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -307,7 +321,9 @@ fun CreateCampaignScreen(
             }
 
             Spacer(Modifier.height(16.dp))
-
+            
+            Text("Upload Image (Optional)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(8.dp))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -345,35 +361,40 @@ fun CreateCampaignScreen(
                 ) { Text("Cancel") }
 
                 Button(
-                    onClick = {
-                        val selectedCategories = buildList {
-                            if (snacksChecked) add("Snacks")
-                            if (southIndianChecked) add("South Indian")
-                            if (vegGravyChecked) add("Veg Gravy")
-                            if (chineseChecked) add("Chinese")
-                            if (nonVegChecked) add("Non Veg")
-                        }
-                        if (campaignTitle.isNotBlank() && campaignDescription.isNotBlank()
-                            && startDate != null && endDate != null
-                        ) {
-                            viewModel.handleEvent(
-                                CampaignEvent.CreateCampaign(
-                                    title = campaignTitle,
-                                    description = campaignDescription,
-                                    startDate = startDate!!,
-                                    endDate = endDate!!,
-                                    menuCategories = emptyList(),
-                                    targetFranchises = "abc",
-                                    imageUrl = null
-                                )
+                onClick = {
+                    val selectedCategories = buildList {
+                        if (snacksChecked) add("Snacks")
+                        if (southIndianChecked) add("South Indian")
+                        if (vegGravyChecked) add("Veg Gravy")
+                        if (chineseChecked) add("Chinese")
+                        if (nonVegChecked) add("Non Veg")
+                    }
+                    
+                    // Check if at least one category is selected
+                    val isCategorySelected = selectedCategories.isNotEmpty()
+                    
+                    if (campaignTitle.isNotBlank() && campaignDescription.isNotBlank()
+                        && startDate != null && endDate != null && isCategorySelected
+                    ) {
+                        viewModel.handleEvent(
+                            CampaignEvent.CreateCampaign(
+                                title = campaignTitle,
+                                description = campaignDescription,
+                                startDate = startDate!!,
+                                endDate = endDate!!,
+                                menuCategories = selectedCategories,
+                                targetFranchises = selectedFranchises,
+                                imageUrl = null // Image is optional
                             )
-                            onNavigateBack()
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = campaignTitle.isNotBlank() && campaignDescription.isNotBlank()
-                            && startDate != null && endDate != null
-                ) { Text("Create Campaign") }
+                        )
+                        onNavigateBack()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = campaignTitle.isNotBlank() && campaignDescription.isNotBlank()
+                        && startDate != null && endDate != null
+                        && (snacksChecked || southIndianChecked || vegGravyChecked || chineseChecked || nonVegChecked)
+            ) { Text("Create Campaign") }
             }
 
             Spacer(Modifier.height(24.dp))
