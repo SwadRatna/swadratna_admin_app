@@ -35,13 +35,21 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     
+                    // List of main routes that should show the bottom navigation bar
+                    val mainRoutes = listOf("dashboard", "campaigns", "store", "analytics")
+                    
+                    // Check if current destination is one of the main routes
+                    val showBottomBar = navBackStackEntry?.destination?.route in mainRoutes
+                    
                     Scaffold(
                         contentWindowInsets = WindowInsets(0.dp),
                         bottomBar = {
-                            BottomNavBar(
-                                navController = navController,
-                                currentDestination = navBackStackEntry?.destination
-                            )
+                            if (showBottomBar) {
+                                BottomNavBar(
+                                    navController = navController,
+                                    currentDestination = navBackStackEntry?.destination
+                                )
+                            }
                         }
                     ) { innerPadding ->
                         NavGraph(
