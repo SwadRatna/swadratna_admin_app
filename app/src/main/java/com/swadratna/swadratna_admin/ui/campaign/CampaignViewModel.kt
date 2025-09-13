@@ -1,27 +1,36 @@
 package com.swadratna.swadratna_admin.ui.campaign
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.swadratna.swadratna_admin.model.Campaign
 import com.swadratna.swadratna_admin.model.CampaignStatus
 import com.swadratna.swadratna_admin.model.CampaignType
+import com.swadratna.swadratna_admin.utils.SharedPrefsManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
-class CampaignViewModel @Inject constructor() : ViewModel() {
+class CampaignViewModel @Inject constructor(
+    private val sharedPrefsManager: SharedPrefsManager
+) : ViewModel() {
     private val _uiState = MutableStateFlow(CampaignUiState())
     val uiState: StateFlow<CampaignUiState> = _uiState.asStateFlow()
 
     init {
-        // Initialize with mock data
-        _uiState.value = CampaignUiState(
-            searchQuery = "",
-            campaigns = listOf(
+        // Load campaigns from SharedPreferences or use mock data if none exist
+        val savedCampaigns = sharedPrefsManager.getCampaigns()
+        
+        val initialCampaigns = if (savedCampaigns.isNotEmpty()) {
+            savedCampaigns
+        } else {
+            // Use mock data if no saved campaigns
+            listOf(
                 Campaign(
                     id = "1",
                     title = "Diwali Mega Offer",
@@ -59,6 +68,11 @@ class CampaignViewModel @Inject constructor() : ViewModel() {
                     imageUrl = null
                 )
             )
+        }
+        
+        _uiState.value = CampaignUiState(
+            searchQuery = "",
+            campaigns = initialCampaigns
         )
     }
 
@@ -96,6 +110,11 @@ class CampaignViewModel @Inject constructor() : ViewModel() {
                 }
                 
                 _uiState.value = _uiState.value.copy(campaigns = updatedCampaigns)
+                
+                // Save updated campaigns to SharedPreferences
+                viewModelScope.launch {
+                    sharedPrefsManager.saveCampaigns(updatedCampaigns)
+                }
             }
         }
     }

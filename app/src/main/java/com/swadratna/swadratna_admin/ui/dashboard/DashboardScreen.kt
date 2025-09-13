@@ -1,6 +1,7 @@
 package com.swadratna.swadratna_admin.ui.dashboard
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -25,7 +26,8 @@ import com.swadratna.swadratna_admin.ui.components.AppSearchField
 @Composable
 fun DashboardScreen(
     modifier: Modifier = Modifier,
-    viewModel: DashboardViewModel = hiltViewModel()
+    viewModel: DashboardViewModel = hiltViewModel(),
+    onNavigateToSettings: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -47,6 +49,7 @@ fun DashboardScreen(
                                 .clip(CircleShape)
                                 .align(Alignment.CenterVertically)
                                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                                .clickable { onNavigateToSettings() }
                         )
                     }
                 },
