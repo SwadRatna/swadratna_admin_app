@@ -94,9 +94,10 @@ fun DailyOverviewCard(
             .fillMaxWidth()
             .padding(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF8F9FA)
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        shape = RoundedCornerShape(8.dp)
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
@@ -106,7 +107,8 @@ fun DailyOverviewCard(
             Text(
                 text = "Daily Overview",
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
             )
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -118,20 +120,28 @@ fun DailyOverviewCard(
                 AttendanceCountItem(
                     count = totalStaff,
                     label = "Total",
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.primary
                 )
                 
                 AttendanceCountItem(
                     count = presentCount,
                     label = "Present",
-                    color = Color(0xFF4CAF50)
+                    color = MaterialTheme.colorScheme.tertiary
                 )
                 
                 AttendanceCountItem(
                     count = absentCount,
                     label = "Absent",
-                    color = Color(0xFFF44336)
+                    color = MaterialTheme.colorScheme.error
                 )
+                
+                if (leaveCount > 0) {
+                    AttendanceCountItem(
+                        count = leaveCount,
+                        label = "Leave",
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
             }
         }
     }
@@ -143,19 +153,24 @@ fun AttendanceCountItem(
     label: String,
     color: Color
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
         Text(
             text = "$count",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
         )
         
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = color
+            color = color,
+            fontWeight = FontWeight.Medium
         )
     }
 }

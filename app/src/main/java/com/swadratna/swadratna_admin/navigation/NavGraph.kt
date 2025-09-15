@@ -3,16 +3,20 @@ package com.swadratna.swadratna_admin.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.swadratna.swadratna_admin.ui.dashboard.DashboardScreen
 import com.swadratna.swadratna_admin.ui.home.HomeScreen
 import com.swadratna.swadratna_admin.ui.campaign.CampaignScreen
 import com.swadratna.swadratna_admin.ui.campaign.CreateCampaignScreen
 import com.swadratna.swadratna_admin.ui.settings.SettingsScreen
-import com.swadratna.swadratna_admin.ui.store.StoreScreen
-import com.swadratna.swadratna_admin.ui.store.CreateStoreScreen
+import com.swadratna.swadratna_admin.ui.staff.AddStaffScreen
 import com.swadratna.swadratna_admin.ui.staff.StaffManagementScreen
+import com.swadratna.swadratna_admin.ui.store.CreateStoreScreen
+import com.swadratna.swadratna_admin.ui.store.StoreScreen
+import com.swadratna.swadratna_admin.ui.store.StoreDetailScreen
 import com.swadratna.swadratna_admin.ui.attendance.AttendancePaymentScreen
 
 @Composable
@@ -30,17 +34,6 @@ fun NavGraph(
             DashboardScreen(
                 onNavigateToSettings = {
                     navController.navigate(NavRoute.Settings.route)
-                },
-                onNavigateToStaffManagement = {
-                    navController.navigate(NavRoute.StaffManagement.route)
-                },
-                onNavigateToMenuManagement = {
-                    // TODO: Implement Menu Management screen
-                    // For now, we'll just show a placeholder
-                    navController.navigate(NavRoute.Home.route)
-                },
-                onNavigateToAttendance = {
-                    navController.navigate(NavRoute.AttendancePayment.route)
                 }
             )
         }
@@ -66,12 +59,35 @@ fun NavGraph(
             )
         }
         composable(NavRoute.Store.route) {
-            StoreScreen(
-                onNavigateToCreateStore = {
-                    navController.navigate(NavRoute.CreateStore.route)
+        StoreScreen(
+            onNavigateToCreateStore = {
+                navController.navigate(NavRoute.CreateStore.route)
+            },
+            onNavigateToManageStore = { storeId ->
+                navController.navigate("${NavRoute.StoreDetail.route}/$storeId")
+            }
+        )
+    }
+        
+        composable(
+            route = "${NavRoute.StoreDetail.route}/{storeId}",
+            arguments = listOf(navArgument("storeId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val storeId = backStackEntry.arguments?.getString("storeId") ?: return@composable
+            StoreDetailScreen(
+                storeId = storeId,
+                onNavigateBack = {
+                    navController.popBackStack()
                 },
-                onNavigateToManageStore = { storeId ->
-                    // TODO: Navigate to store details when implemented
+                onNavigateToStaffManagement = { selectedStoreId ->
+                    navController.navigate(NavRoute.StaffManagement.route)
+                },
+                onNavigateToMenuManagement = { selectedStoreId ->
+                    // TODO: Implement Menu Management screen
+                    navController.navigate(NavRoute.Home.route)
+                },
+                onNavigateToAttendance = { selectedStoreId ->
+                    navController.navigate(NavRoute.AttendancePayment.route)
                 }
             )
         }
@@ -122,9 +138,15 @@ fun NavGraph(
         
         composable(NavRoute.StaffManagement.route) {
             StaffManagementScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAddStaff = { navController.navigate(NavRoute.AddStaff.route) }
+            )
+        }
+        
+        composable(NavRoute.AddStaff.route) {
+            AddStaffScreen(
+                onNavigateBack = { navController.popBackStack() },
+                storeId = "" // This would typically come from the StaffManagementScreen
             )
         }
         
@@ -145,8 +167,10 @@ sealed class NavRoute(val route: String) {
     object CreateCampaign : NavRoute("create_campaign")
     object Store : NavRoute("store")
     object CreateStore : NavRoute("create_store")
+    object StoreDetail : NavRoute("store_detail")
     object Analytics : NavRoute("analytics")
     object Settings : NavRoute("settings")
     object StaffManagement : NavRoute("staff_management")
+    object AddStaff : NavRoute("add_staff")
     object AttendancePayment : NavRoute("attendance_payment")
 }

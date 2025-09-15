@@ -30,10 +30,7 @@ import com.swadratna.swadratna_admin.ui.components.AppSearchField
 fun DashboardScreen(
     modifier: Modifier = Modifier,
     viewModel: DashboardViewModel = hiltViewModel(),
-    onNavigateToSettings: () -> Unit = {},
-    onNavigateToStaffManagement: () -> Unit = {},
-    onNavigateToMenuManagement: () -> Unit = {},
-    onNavigateToAttendance: () -> Unit = {}
+    onNavigateToSettings: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -64,22 +61,17 @@ fun DashboardScreen(
         contentWindowInsets = WindowInsets(0.dp)
     ) { paddingValues ->
         LazyColumn(
-            modifier = modifier
-                .fillMaxSize()
-                .consumeWindowInsets(paddingValues)
-                .padding(paddingValues),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item { SearchBar(uiState.searchQuery, viewModel) }
-            item { ManagementCardsSection(
-                onNavigateToStaffManagement = onNavigateToStaffManagement,
-                onNavigateToMenuManagement = onNavigateToMenuManagement,
-                onNavigateToAttendance = onNavigateToAttendance
-            ) }
-            item { StatisticsSection(uiState) }
-            item { RecentActivitySection(uiState.recentActivities) }
-            item { TopPerformingStoreSection(uiState.topStore) }
-        }
+        modifier = modifier
+            .fillMaxSize()
+            .consumeWindowInsets(paddingValues)
+            .padding(paddingValues),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item { SearchBar(uiState.searchQuery, viewModel) }
+        item { StatisticsSection(uiState) }
+        item { RecentActivitySection(uiState.recentActivities) }
+        item { TopPerformingStoreSection(uiState.topStore) }
+    }
     }
 }
 
@@ -239,81 +231,7 @@ fun TopPerformingStoreSection(storeItem: List<StoreItem>) {
     }
 }
 
-@Composable
-fun ManagementCardsSection(
-    onNavigateToStaffManagement: () -> Unit,
-    onNavigateToMenuManagement: () -> Unit,
-    onNavigateToAttendance: () -> Unit
-) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-        Text(
-            text = "Management",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            ManagementCard(
-                title = "Staff",
-                iconResId = R.drawable.ic_people,
-                onClick = onNavigateToStaffManagement,
-                modifier = Modifier.weight(1f)
-            )
-            ManagementCard(
-                title = "Menu",
-                iconResId = R.drawable.ic_menu,
-                onClick = onNavigateToMenuManagement,
-                modifier = Modifier.weight(1f)
-            )
-            ManagementCard(
-                title = "Attendance",
-                iconResId = R.drawable.ic_attendance,
-                onClick = onNavigateToAttendance,
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
 
-@Composable
-fun ManagementCard(
-    title: String,
-    iconResId: Int,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier
-            .height(120.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                painter = painterResource(id = iconResId),
-                contentDescription = title,
-                modifier = Modifier.size(36.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Manage\n$title",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
 
 @Composable
 fun StoreItem(store: StoreItem, color: Color) {
