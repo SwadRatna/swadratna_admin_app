@@ -67,12 +67,10 @@ fun StoreItem(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Status chip
             StoreStatusChip(status = store.status)
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Location
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.LocationOn,
@@ -89,7 +87,6 @@ fun StoreItem(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Address
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Spacer(modifier = Modifier.width(20.dp))
                 Text(
@@ -100,7 +97,6 @@ fun StoreItem(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Creation date
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.DateRange,
@@ -117,7 +113,6 @@ fun StoreItem(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Manage button
             TextButton(
                 onClick = { onManage(store.id) },
                 modifier = Modifier.align(Alignment.End)

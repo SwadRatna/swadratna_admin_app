@@ -19,7 +19,6 @@ class SharedPrefsManager @Inject constructor(
     )
     private val gson = Gson()
 
-    // Store methods
     fun saveStores(stores: List<Store>) {
         val storesJson = gson.toJson(stores)
         sharedPreferences.edit().putString(KEY_STORES, storesJson).apply()
@@ -31,7 +30,6 @@ class SharedPrefsManager @Inject constructor(
         return gson.fromJson(storesJson, type)
     }
 
-    // Campaign methods
     fun saveCampaigns(campaigns: List<Campaign>) {
         val campaignsJson = gson.toJson(campaigns)
         sharedPreferences.edit().putString(KEY_CAMPAIGNS, campaignsJson).apply()

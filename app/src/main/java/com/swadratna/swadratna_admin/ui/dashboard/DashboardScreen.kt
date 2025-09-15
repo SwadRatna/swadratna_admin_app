@@ -15,11 +15,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBarsPadding
+import com.swadratna.swadratna_admin.R
 import com.swadratna.swadratna_admin.ui.components.AppSearchField
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,7 +30,10 @@ import com.swadratna.swadratna_admin.ui.components.AppSearchField
 fun DashboardScreen(
     modifier: Modifier = Modifier,
     viewModel: DashboardViewModel = hiltViewModel(),
-    onNavigateToSettings: () -> Unit = {}
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToStaffManagement: () -> Unit = {},
+    onNavigateToMenuManagement: () -> Unit = {},
+    onNavigateToAttendance: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -37,7 +43,7 @@ fun DashboardScreen(
                 title = { Text("Admin Panel") },
                 actions = {
                     Row(
-                        modifier = Modifier.padding(end = 16.dp) // match start padding visually
+                        modifier = Modifier.padding(end = 16.dp)
                     ) {
                         IconButton(onClick = { /* TODO */ }) {
                             Icon(Icons.Default.Notifications, contentDescription = "Notifications")
@@ -65,6 +71,11 @@ fun DashboardScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item { SearchBar(uiState.searchQuery, viewModel) }
+            item { ManagementCardsSection(
+                onNavigateToStaffManagement = onNavigateToStaffManagement,
+                onNavigateToMenuManagement = onNavigateToMenuManagement,
+                onNavigateToAttendance = onNavigateToAttendance
+            ) }
             item { StatisticsSection(uiState) }
             item { RecentActivitySection(uiState.recentActivities) }
             item { TopPerformingStoreSection(uiState.topStore) }
@@ -224,6 +235,82 @@ fun TopPerformingStoreSection(storeItem: List<StoreItem>) {
         }
         TextButton(onClick = { /* TODO */ }) {
             Text("View Full Leaderboard")
+        }
+    }
+}
+
+@Composable
+fun ManagementCardsSection(
+    onNavigateToStaffManagement: () -> Unit,
+    onNavigateToMenuManagement: () -> Unit,
+    onNavigateToAttendance: () -> Unit
+) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        Text(
+            text = "Management",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            ManagementCard(
+                title = "Staff",
+                iconResId = R.drawable.ic_people,
+                onClick = onNavigateToStaffManagement,
+                modifier = Modifier.weight(1f)
+            )
+            ManagementCard(
+                title = "Menu",
+                iconResId = R.drawable.ic_menu,
+                onClick = onNavigateToMenuManagement,
+                modifier = Modifier.weight(1f)
+            )
+            ManagementCard(
+                title = "Attendance",
+                iconResId = R.drawable.ic_attendance,
+                onClick = onNavigateToAttendance,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+fun ManagementCard(
+    title: String,
+    iconResId: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .height(120.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                painter = painterResource(id = iconResId),
+                contentDescription = title,
+                modifier = Modifier.size(36.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Manage\n$title",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center
+            )
         }
     }
 }

@@ -23,13 +23,11 @@ class CampaignViewModel @Inject constructor(
     val uiState: StateFlow<CampaignUiState> = _uiState.asStateFlow()
 
     init {
-        // Load campaigns from SharedPreferences or use mock data if none exist
         val savedCampaigns = sharedPrefsManager.getCampaigns()
         
         val initialCampaigns = if (savedCampaigns.isNotEmpty()) {
             savedCampaigns
         } else {
-            // Use mock data if no saved campaigns
             listOf(
                 Campaign(
                     id = "1",
@@ -91,7 +89,6 @@ class CampaignViewModel @Inject constructor(
                 // TODO: Implement refresh logic
             }
             is CampaignEvent.CreateCampaign -> {
-                // Create a new campaign and add it to the list
                 val newCampaign = Campaign(
                     id = UUID.randomUUID().toString(),
                     title = event.title,
@@ -99,19 +96,18 @@ class CampaignViewModel @Inject constructor(
                     startDate = event.startDate,
                     endDate = event.endDate,
                     status = CampaignStatus.SCHEDULED,
-                    type = CampaignType.DISCOUNT, // Default type, can be updated later
-                    discount = 15, // Default discount percentage
-                    storeCount = 0, // Will be calculated based on franchises
+                    type = CampaignType.DISCOUNT,
+                    discount = 15,
+                    storeCount = 0,
                     imageUrl = event.imageUrl ?: "https://via.placeholder.com/150"
                 )
                 
                 val updatedCampaigns = _uiState.value.campaigns.toMutableList().apply {
-                    add(0, newCampaign) // Add to the beginning of the list
+                    add(0, newCampaign)
                 }
                 
                 _uiState.value = _uiState.value.copy(campaigns = updatedCampaigns)
                 
-                // Save updated campaigns to SharedPreferences
                 viewModelScope.launch {
                     sharedPrefsManager.saveCampaigns(updatedCampaigns)
                 }

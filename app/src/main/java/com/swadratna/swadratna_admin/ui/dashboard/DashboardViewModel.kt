@@ -13,7 +13,6 @@ class DashboardViewModel @Inject constructor() : ViewModel() {
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     init {
-        // Initialize with mock data
         _uiState.value = DashboardUiState(
             searchQuery = "",
             totalCampaigns = 124,

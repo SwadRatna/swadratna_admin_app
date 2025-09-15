@@ -50,7 +50,6 @@ fun CreateStoreScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Store name field
             OutlinedTextField(
                 value = storeName,
                 onValueChange = { storeName = it },
@@ -61,7 +60,6 @@ fun CreateStoreScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Store location field
             OutlinedTextField(
                 value = storeLocation,
                 onValueChange = { storeLocation = it },
@@ -72,7 +70,6 @@ fun CreateStoreScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Store address field
             OutlinedTextField(
                 value = storeAddress,
                 onValueChange = { storeAddress = it },
@@ -84,7 +81,6 @@ fun CreateStoreScreen(
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            // Store status selection
             Text(
                 text = "Store Status",
                 style = MaterialTheme.typography.titleMedium,
@@ -94,7 +90,6 @@ fun CreateStoreScreen(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Status radio buttons
             Column {
                 StatusRadioButton(
                     text = "Active",
@@ -117,7 +112,6 @@ fun CreateStoreScreen(
             
             Spacer(modifier = Modifier.height(32.dp))
             
-            // Create button
             Button(
                 onClick = {
                     if (storeName.isNotBlank() && storeLocation.isNotBlank() && storeAddress.isNotBlank()) {

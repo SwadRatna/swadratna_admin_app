@@ -66,24 +66,24 @@ fun CreateCampaignScreen(
     onNavigateBack: () -> Unit = {},
     viewModel: CampaignViewModel = hiltViewModel()
 ) {
-    var campaignTitle by remember { mutableStateOf("") }            // UI state hoisted in composable [2]
-    var campaignDescription by remember { mutableStateOf("") }      // [2]
-    var selectedFranchises by remember { mutableStateOf("All") }    // [2]
-    var expandedFranchiseDropdown by remember { mutableStateOf(false) } // [2]
+    var campaignTitle by remember { mutableStateOf("") }
+    var campaignDescription by remember { mutableStateOf("") }
+    var selectedFranchises by remember { mutableStateOf("All") }
+    var expandedFranchiseDropdown by remember { mutableStateOf(false) }
 
-    var startDate by remember { mutableStateOf<LocalDate?>(null) }  // [2]
-    var endDate by remember { mutableStateOf<LocalDate?>(null) }    // [2]
-    var showStartDatePicker by remember { mutableStateOf(false) }   // 
-    var showEndDatePicker by remember { mutableStateOf(false) }     // 
-    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd MMM yyyy") } // 
+    var startDate by remember { mutableStateOf<LocalDate?>(null) }
+    var endDate by remember { mutableStateOf<LocalDate?>(null) }
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd MMM yyyy") }
 
-    var snacksChecked by remember { mutableStateOf(false) }         // [2]
-    var southIndianChecked by remember { mutableStateOf(false) }    // [2]
-    var vegGravyChecked by remember { mutableStateOf(false) }       // [2]
-    var chineseChecked by remember { mutableStateOf(false) }        // [2]
-    var nonVegChecked by remember { mutableStateOf(false) }         // [2]
+    var snacksChecked by remember { mutableStateOf(false) }
+    var southIndianChecked by remember { mutableStateOf(false) }
+    var vegGravyChecked by remember { mutableStateOf(false) }
+    var chineseChecked by remember { mutableStateOf(false) }
+    var nonVegChecked by remember { mutableStateOf(false) }
 
-    val scroll = rememberScrollState()                              // 
+    val scroll = rememberScrollState()
 
     Column(
         modifier = Modifier
@@ -101,7 +101,7 @@ fun CreateCampaignScreen(
                     Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                 }
             },
-            windowInsets = WindowInsets(0.dp) // parent provides top inset [3]
+            windowInsets = WindowInsets(0.dp)
         )
 
         Column(
@@ -370,7 +370,6 @@ fun CreateCampaignScreen(
                         if (nonVegChecked) add("Non Veg")
                     }
                     
-                    // Check if at least one category is selected
                     val isCategorySelected = selectedCategories.isNotEmpty()
                     
                     if (campaignTitle.isNotBlank() && campaignDescription.isNotBlank()
@@ -384,7 +383,7 @@ fun CreateCampaignScreen(
                                 endDate = endDate!!,
                                 menuCategories = selectedCategories,
                                 targetFranchises = selectedFranchises,
-                                imageUrl = null // Image is optional
+                                imageUrl = null
                             )
                         )
                         onNavigateBack()

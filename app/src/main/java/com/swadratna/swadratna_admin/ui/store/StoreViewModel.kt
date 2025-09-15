@@ -22,13 +22,11 @@ class StoreViewModel @Inject constructor(
     val uiState: StateFlow<StoreUiState> = _uiState.asStateFlow()
 
     init {
-        // Load stores from SharedPreferences or use mock data if none exist
         val savedStores = sharedPrefsManager.getStores()
         
         val initialStores = if (savedStores.isNotEmpty()) {
             savedStores
         } else {
-            // Use mock data if no saved stores
             listOf(
                 Store(
                     id = "1",
@@ -95,12 +93,9 @@ class StoreViewModel @Inject constructor(
                 )
             }
             is StoreEvent.RefreshStores -> {
-                // In a real app, this would fetch from a repository
-                // For now, we're just using the mock data initialized in init{}
                 updateFilteredStores()
             }
             is StoreEvent.CreateStore -> {
-                // Create a new store and add it to the list
                 val newStore = Store(
                     id = UUID.randomUUID().toString(),
                     name = event.name,
@@ -112,12 +107,11 @@ class StoreViewModel @Inject constructor(
                 )
                 
                 val updatedStores = _uiState.value.stores.toMutableList().apply {
-                    add(0, newStore) // Add to the beginning of the list
+                    add(0, newStore)
                 }
                 
                 _uiState.value = _uiState.value.copy(stores = updatedStores)
                 
-                // Save updated stores to SharedPreferences
                 viewModelScope.launch {
                     sharedPrefsManager.saveStores(updatedStores)
                 }
@@ -129,19 +123,16 @@ class StoreViewModel @Inject constructor(
     
     private fun updateFilteredStores() {
         val filteredList = _uiState.value.stores.filter { store ->
-            // Apply search filter
             val matchesSearch = _uiState.value.searchQuery.isEmpty() ||
                     store.name.contains(_uiState.value.searchQuery, ignoreCase = true) ||
                     store.location.contains(_uiState.value.searchQuery, ignoreCase = true)
             
-            // Apply status filter
             val matchesStatus = _uiState.value.filterStatus == null ||
                     store.status.name == _uiState.value.filterStatus
             
             matchesSearch && matchesStatus
         }
         
-        // Apply sorting
         val sortedList = when (_uiState.value.sortOption) {
             "NAME_ASC" -> filteredList.sortedBy { it.name }
             "NAME_DESC" -> filteredList.sortedByDescending { it.name }
@@ -165,8 +156,6 @@ data class StoreUiState(
     val isLoading: Boolean = false,
     val error: String? = null
 )
-
-// These enums are replaced by string constants in the UI state
 
 sealed interface StoreEvent {
     data class SearchQueryChanged(val query: String) : StoreEvent

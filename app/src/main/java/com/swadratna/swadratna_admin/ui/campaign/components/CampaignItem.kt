@@ -71,12 +71,10 @@ fun CampaignItem(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Status chip
             CampaignStatusChip(status = campaign.status)
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Date range
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.DateRange,
@@ -93,7 +91,6 @@ fun CampaignItem(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Offer description
             Text(
                 text = "Offer: ${campaign.description}",
                 style = MaterialTheme.typography.bodyMedium
@@ -101,7 +98,6 @@ fun CampaignItem(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Performance metrics
             if (campaign.status != CampaignStatus.SCHEDULED && campaign.status != CampaignStatus.DRAFT) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
@@ -120,7 +116,6 @@ fun CampaignItem(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // View details button
             TextButton(
                 onClick = { onViewDetails(campaign.id) },
                 modifier = Modifier.align(Alignment.End)
