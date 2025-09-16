@@ -2,6 +2,7 @@ package com.swadratna.swadratna_admin.ui.staff
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -82,16 +84,65 @@ fun StaffManagementScreen(
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }
             )
             
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                items(uiState.staffList) { staff ->
-                    StaffItem(
-                        staff = staff,
-                        onEdit = { viewModel.editStaff(it) },
-                        onDelete = { viewModel.deleteStaff(it) }
+                OutlinedButton(
+                    onClick = { viewModel.toggleFilterMenu() },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.Home, contentDescription = "Filter")
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Filter")
+                }
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                OutlinedButton(
+                    onClick = { viewModel.toggleSortMenu() },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.Home, contentDescription = "Sort")
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Sort")
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Box(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(uiState.staffList) { staff ->
+                        StaffItem(
+                            staff = staff,
+                            onEdit = { viewModel.editStaff(it) },
+                            onDelete = { viewModel.deleteStaff(it) }
+                        )
+                    }
+                }
+                
+                if (uiState.isFilterMenuVisible) {
+                    FilterMenu(
+                        selectedFilter = uiState.selectedFilter,
+                        onFilterSelected = { viewModel.updateFilter(it) },
+                        onDismiss = { viewModel.toggleFilterMenu() },
+                        modifier = Modifier.align(Alignment.TopEnd)
+                    )
+                }
+                
+                if (uiState.isSortMenuVisible) {
+                    SortMenu(
+                        selectedSortOrder = uiState.selectedSortOrder,
+                        onSortOrderSelected = { viewModel.updateSortOrder(it) },
+                        onDismiss = { viewModel.toggleSortMenu() },
+                        modifier = Modifier.align(Alignment.TopEnd)
                     )
                 }
             }
@@ -175,6 +226,127 @@ fun StaffItem(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun FilterMenu(
+    selectedFilter: String?,
+    onFilterSelected: (String?) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.medium,
+        tonalElevation = 3.dp
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Filter by Status",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            FilterOption(
+                text = "All",
+                isSelected = selectedFilter == null,
+                onClick = { onFilterSelected(null); onDismiss() }
+            )
+            
+            FilterOption(
+                text = "Active",
+                isSelected = selectedFilter == "ACTIVE",
+                onClick = { onFilterSelected("ACTIVE"); onDismiss() }
+            )
+            
+            FilterOption(
+                text = "On Leave",
+                isSelected = selectedFilter == "ON_LEAVE",
+                onClick = { onFilterSelected("ON_LEAVE"); onDismiss() }
+            )
+            
+            FilterOption(
+                text = "Terminated",
+                isSelected = selectedFilter == "TERMINATED",
+                onClick = { onFilterSelected("TERMINATED"); onDismiss() }
+            )
+        }
+    }
+}
+
+@Composable
+fun SortMenu(
+    selectedSortOrder: String,
+    onSortOrderSelected: (String) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.medium,
+        tonalElevation = 3.dp
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Sort by",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            FilterOption(
+                text = "Name (A-Z)",
+                isSelected = selectedSortOrder == "NAME_ASC",
+                onClick = { onSortOrderSelected("NAME_ASC"); onDismiss() }
+            )
+            
+            FilterOption(
+                text = "Name (Z-A)",
+                isSelected = selectedSortOrder == "NAME_DESC",
+                onClick = { onSortOrderSelected("NAME_DESC"); onDismiss() }
+            )
+            
+            FilterOption(
+                text = "Position (A-Z)",
+                isSelected = selectedSortOrder == "POSITION_ASC",
+                onClick = { onSortOrderSelected("POSITION_ASC"); onDismiss() }
+            )
+            
+            FilterOption(
+                text = "Position (Z-A)",
+                isSelected = selectedSortOrder == "POSITION_DESC",
+                onClick = { onSortOrderSelected("POSITION_DESC"); onDismiss() }
+            )
+        }
+    }
+}
+
+@Composable
+fun FilterOption(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = isSelected,
+            onClick = onClick
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge
+        )
     }
 }
 

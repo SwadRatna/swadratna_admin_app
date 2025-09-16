@@ -21,6 +21,8 @@ class CampaignViewModel @Inject constructor(
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CampaignUiState())
     val uiState: StateFlow<CampaignUiState> = _uiState.asStateFlow()
+    
+    private val _allCampaigns = mutableListOf<Campaign>()
 
     init {
         val savedCampaigns = sharedPrefsManager.getCampaigns()
@@ -68,6 +70,9 @@ class CampaignViewModel @Inject constructor(
             )
         }
         
+        _allCampaigns.clear()
+        _allCampaigns.addAll(initialCampaigns)
+        
         _uiState.value = CampaignUiState(
             searchQuery = "",
             campaigns = initialCampaigns
@@ -78,15 +83,30 @@ class CampaignViewModel @Inject constructor(
         when (event) {
             is CampaignEvent.SearchQueryChanged -> {
                 _uiState.value = _uiState.value.copy(searchQuery = event.query)
+                applyFiltersAndSort()
             }
             is CampaignEvent.FilterChanged -> {
                 _uiState.value = _uiState.value.copy(filter = event.filter)
+                applyFiltersAndSort()
             }
             is CampaignEvent.SortChanged -> {
                 _uiState.value = _uiState.value.copy(sortOrder = event.sortOrder)
+                applyFiltersAndSort()
             }
             CampaignEvent.RefreshData -> {
-                // TODO: Implement refresh logic
+                applyFiltersAndSort()
+            }
+            CampaignEvent.ToggleFilterMenu -> {
+                _uiState.value = _uiState.value.copy(
+                    isFilterMenuVisible = !_uiState.value.isFilterMenuVisible,
+                    isSortMenuVisible = false
+                )
+            }
+            CampaignEvent.ToggleSortMenu -> {
+                _uiState.value = _uiState.value.copy(
+                    isSortMenuVisible = !_uiState.value.isSortMenuVisible,
+                    isFilterMenuVisible = false
+                )
             }
             is CampaignEvent.CreateCampaign -> {
                 val newCampaign = Campaign(
@@ -102,17 +122,91 @@ class CampaignViewModel @Inject constructor(
                     imageUrl = event.imageUrl ?: "https://via.placeholder.com/150"
                 )
                 
-                val updatedCampaigns = _uiState.value.campaigns.toMutableList().apply {
-                    add(0, newCampaign)
-                }
-                
-                _uiState.value = _uiState.value.copy(campaigns = updatedCampaigns)
+                _allCampaigns.add(0, newCampaign)
+                applyFiltersAndSort()
                 
                 viewModelScope.launch {
-                    sharedPrefsManager.saveCampaigns(updatedCampaigns)
+                    sharedPrefsManager.saveCampaigns(_allCampaigns)
+                }
+            }
+            is CampaignEvent.EditCampaign -> {
+                val campaignToEdit = _allCampaigns.find { it.id == event.campaignId }
+                if (campaignToEdit != null) {
+                    _uiState.value = _uiState.value.copy(
+                        campaignToEdit = campaignToEdit,
+                        isEditMode = true
+                    )
+                }
+            }
+            is CampaignEvent.DeleteCampaign -> {
+                _allCampaigns.removeAll { it.id == event.campaignId }
+                applyFiltersAndSort()
+                
+                viewModelScope.launch {
+                    sharedPrefsManager.saveCampaigns(_allCampaigns)
+                }
+            }
+            is CampaignEvent.UpdateCampaign -> {
+                val index = _allCampaigns.indexOfFirst { it.id == event.id }
+                if (index != -1) {
+                    _allCampaigns[index] = _allCampaigns[index].copy(
+                        title = event.title,
+                        description = event.description,
+                        startDate = event.startDate,
+                        endDate = event.endDate,
+                        type = event.type,
+                        discount = event.discount,
+                        imageUrl = event.imageUrl,
+                        targetFranchises = event.targetFranchises,
+                        menuCategories = event.menuCategories
+                    )
+                }
+                
+                applyFiltersAndSort()
+                
+                _uiState.value = _uiState.value.copy(
+                    campaignToEdit = null,
+                    isEditMode = false
+                )
+                
+                viewModelScope.launch {
+                    sharedPrefsManager.saveCampaigns(_allCampaigns)
                 }
             }
         }
+    }
+    
+    private fun applyFiltersAndSort() {
+        val searchQuery = _uiState.value.searchQuery.lowercase()
+        val filter = _uiState.value.filter
+        val sortOrder = _uiState.value.sortOrder
+        
+        // Apply search and filter
+        var filteredCampaigns = _allCampaigns.filter { campaign ->
+            val matchesSearch = searchQuery.isEmpty() ||
+                campaign.title.lowercase().contains(searchQuery) ||
+                campaign.description.lowercase().contains(searchQuery)
+            
+            val matchesFilter = when (filter) {
+                CampaignFilter.ALL -> true
+                CampaignFilter.ACTIVE -> campaign.status == CampaignStatus.ACTIVE
+                CampaignFilter.SCHEDULED -> campaign.status == CampaignStatus.SCHEDULED
+                CampaignFilter.COMPLETED -> campaign.status == CampaignStatus.COMPLETED
+                CampaignFilter.DRAFT -> campaign.status == CampaignStatus.DRAFT
+            }
+            
+            matchesSearch && matchesFilter
+        }
+        
+        // Apply sorting
+        filteredCampaigns = when (sortOrder) {
+            CampaignSortOrder.DATE_ASC -> filteredCampaigns.sortedBy { it.startDate }
+            CampaignSortOrder.DATE_DESC -> filteredCampaigns.sortedByDescending { it.startDate }
+            CampaignSortOrder.TITLE_ASC -> filteredCampaigns.sortedBy { it.title }
+            CampaignSortOrder.TITLE_DESC -> filteredCampaigns.sortedByDescending { it.title }
+        }
+        
+        _uiState.value = _uiState.value.copy(campaigns = filteredCampaigns)
     }
 }
 
@@ -122,7 +216,11 @@ data class CampaignUiState(
     val filter: CampaignFilter = CampaignFilter.ALL,
     val sortOrder: CampaignSortOrder = CampaignSortOrder.DATE_DESC,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val campaignToEdit: Campaign? = null,
+    val isEditMode: Boolean = false,
+    val isFilterMenuVisible: Boolean = false,
+    val isSortMenuVisible: Boolean = false
 )
 
 enum class CampaignFilter {
@@ -145,6 +243,8 @@ sealed interface CampaignEvent {
     data class FilterChanged(val filter: CampaignFilter) : CampaignEvent
     data class SortChanged(val sortOrder: CampaignSortOrder) : CampaignEvent
     object RefreshData : CampaignEvent
+    object ToggleFilterMenu : CampaignEvent
+    object ToggleSortMenu : CampaignEvent
     data class CreateCampaign(
         val title: String,
         val description: String,
@@ -153,5 +253,19 @@ sealed interface CampaignEvent {
         val targetFranchises: String,
         val menuCategories: List<String>,
         val imageUrl: String?
+    ) : CampaignEvent
+    data class EditCampaign(val campaignId: String) : CampaignEvent
+    data class DeleteCampaign(val campaignId: String) : CampaignEvent
+    data class UpdateCampaign(
+        val id: String,
+        val title: String,
+        val description: String,
+        val startDate: LocalDate,
+        val endDate: LocalDate,
+        val type: CampaignType,
+        val discount: Int,
+        val imageUrl: String?,
+        val targetFranchises: String,
+        val menuCategories: List<String>
     ) : CampaignEvent
 }

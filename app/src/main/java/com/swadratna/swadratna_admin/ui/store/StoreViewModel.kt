@@ -95,6 +95,12 @@ class StoreViewModel @Inject constructor(
             is StoreEvent.RefreshStores -> {
                 updateFilteredStores()
             }
+            is StoreEvent.ResetEditMode -> {
+                _uiState.value = _uiState.value.copy(
+                    storeToEdit = null,
+                    isEditMode = false
+                )
+            }
             is StoreEvent.CreateStore -> {
                 val newStore = Store(
                     id = UUID.randomUUID().toString(),
@@ -111,6 +117,52 @@ class StoreViewModel @Inject constructor(
                 }
                 
                 _uiState.value = _uiState.value.copy(stores = updatedStores)
+                
+                viewModelScope.launch {
+                    sharedPrefsManager.saveStores(updatedStores)
+                }
+                
+                updateFilteredStores()
+            }
+            is StoreEvent.EditStore -> {
+                val storeToEdit = _uiState.value.stores.find { it.id == event.storeId }
+                if (storeToEdit != null) {
+                    _uiState.value = _uiState.value.copy(
+                        storeToEdit = storeToEdit,
+                        isEditMode = true
+                    )
+                }
+            }
+            is StoreEvent.DeleteStore -> {
+                val updatedStores = _uiState.value.stores.filter { it.id != event.storeId }
+                
+                _uiState.value = _uiState.value.copy(stores = updatedStores)
+                
+                viewModelScope.launch {
+                    sharedPrefsManager.saveStores(updatedStores)
+                }
+                
+                updateFilteredStores()
+            }
+            is StoreEvent.UpdateStore -> {
+                val updatedStores = _uiState.value.stores.map { store ->
+                    if (store.id == event.id) {
+                        store.copy(
+                            name = event.name,
+                            location = event.location,
+                            address = event.address,
+                            status = event.status
+                        )
+                    } else {
+                        store
+                    }
+                }
+                
+                _uiState.value = _uiState.value.copy(
+                    stores = updatedStores,
+                    storeToEdit = null,
+                    isEditMode = false
+                )
                 
                 viewModelScope.launch {
                     sharedPrefsManager.saveStores(updatedStores)
@@ -154,7 +206,9 @@ data class StoreUiState(
     val isFilterMenuVisible: Boolean = false,
     val isSortMenuVisible: Boolean = false,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val storeToEdit: Store? = null,
+    val isEditMode: Boolean = false
 )
 
 sealed interface StoreEvent {
@@ -164,7 +218,17 @@ sealed interface StoreEvent {
     object ToggleFilterMenu : StoreEvent
     object ToggleSortMenu : StoreEvent
     object RefreshStores : StoreEvent
+    object ResetEditMode : StoreEvent
     data class CreateStore(
+        val name: String,
+        val location: String,
+        val address: String,
+        val status: StoreStatus
+    ) : StoreEvent
+    data class EditStore(val storeId: String) : StoreEvent
+    data class DeleteStore(val storeId: String) : StoreEvent
+    data class UpdateStore(
+        val id: String,
         val name: String,
         val location: String,
         val address: String,

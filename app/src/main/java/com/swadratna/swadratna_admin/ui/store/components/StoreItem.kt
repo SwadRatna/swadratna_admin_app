@@ -19,6 +19,8 @@ import com.swadratna.swadratna_admin.model.StoreStatus
 fun StoreItem(
     store: Store,
     onManage: (String) -> Unit,
+    onEdit: (String) -> Unit,
+    onDelete: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -55,11 +57,17 @@ fun StoreItem(
                     ) {
                         DropdownMenuItem(
                             text = { Text("Edit") },
-                            onClick = { expanded = false }
+                            onClick = {
+                                expanded = false
+                                onEdit(store.id)
+                            }
                         )
                         DropdownMenuItem(
                             text = { Text("Delete") },
-                            onClick = { expanded = false }
+                            onClick = {
+                                expanded = false
+                                onDelete(store.id)
+                            }
                         )
                     }
                 }

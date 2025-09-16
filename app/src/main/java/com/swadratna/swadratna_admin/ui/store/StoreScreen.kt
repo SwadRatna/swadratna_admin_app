@@ -24,6 +24,7 @@ import com.swadratna.swadratna_admin.ui.store.components.StoreItem
 fun StoreScreen(
     onNavigateToCreateStore: () -> Unit,
     onNavigateToManageStore: (String) -> Unit,
+    onNavigateToEditStore: (String) -> Unit,
     viewModel: StoreViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -113,7 +114,12 @@ fun StoreScreen(
                             items(uiState.filteredStores) { store ->
                                 StoreItem(
                                     store = store,
-                                    onManage = onNavigateToManageStore
+                                    onManage = onNavigateToManageStore,
+                                    onEdit = { 
+                                        viewModel.onEvent(StoreEvent.EditStore(it))
+                                        onNavigateToEditStore(it)
+                                    },
+                                    onDelete = { viewModel.onEvent(StoreEvent.DeleteStore(it)) }
                                 )
                             }
                         }

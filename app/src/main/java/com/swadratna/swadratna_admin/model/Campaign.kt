@@ -13,7 +13,9 @@ data class Campaign(
     val type: CampaignType,
     val discount: Int,
     val storeCount: Int,
-    val imageUrl: String? = null
+    val imageUrl: String? = null,
+    val targetFranchises: String = "All",
+    val menuCategories: List<String> = emptyList()
 ) {
     fun getFormattedDateRange(): String {
         val formatter = DateTimeFormatter.ofPattern("dd MMM")

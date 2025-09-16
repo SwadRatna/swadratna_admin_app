@@ -47,6 +47,9 @@ fun NavGraph(
                 },
                 onNavigateToCreateCampaign = {
                     navController.navigate(NavRoute.CreateCampaign.route)
+                },
+                onNavigateToEditCampaign = { campaignId ->
+                    navController.navigate("${NavRoute.CreateCampaign.route}/$campaignId")
                 }
             )
         }
@@ -58,16 +61,31 @@ fun NavGraph(
                 }
             )
         }
+        
+        composable(
+            route = "${NavRoute.CreateCampaign.route}/{campaignId}",
+            arguments = listOf(navArgument("campaignId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val campaignId = backStackEntry.arguments?.getString("campaignId")
+            CreateCampaignScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
         composable(NavRoute.Store.route) {
-        StoreScreen(
-            onNavigateToCreateStore = {
-                navController.navigate(NavRoute.CreateStore.route)
-            },
-            onNavigateToManageStore = { storeId ->
-                navController.navigate("${NavRoute.StoreDetail.route}/$storeId")
-            }
-        )
-    }
+            StoreScreen(
+                onNavigateToCreateStore = {
+                    navController.navigate(NavRoute.CreateStore.route)
+                },
+                onNavigateToManageStore = { storeId ->
+                    navController.navigate("${NavRoute.StoreDetail.route}/$storeId")
+                },
+                onNavigateToEditStore = { storeId ->
+                    navController.navigate("${NavRoute.CreateStore.route}/$storeId")
+                }
+            )
+        }
         
         composable(
             route = "${NavRoute.StoreDetail.route}/{storeId}",
@@ -97,6 +115,19 @@ fun NavGraph(
                 onNavigateBack = {
                     navController.popBackStack()
                 }
+            )
+        }
+        
+        composable(
+            route = "${NavRoute.CreateStore.route}/{storeId}",
+            arguments = listOf(navArgument("storeId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val storeId = backStackEntry.arguments?.getString("storeId")
+            CreateStoreScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                storeId = storeId
             )
         }
         composable(NavRoute.Analytics.route) {

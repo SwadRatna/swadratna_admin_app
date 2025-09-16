@@ -19,6 +19,8 @@ import com.swadratna.swadratna_admin.model.CampaignStatus
 fun CampaignItem(
     campaign: Campaign,
     onViewDetails: (String) -> Unit,
+    onEdit: (String) -> Unit = {},
+    onDelete: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -55,11 +57,17 @@ fun CampaignItem(
                     ) {
                         DropdownMenuItem(
                             text = { Text("Edit") },
-                            onClick = { expanded = false }
+                            onClick = { 
+                                expanded = false
+                                onEdit(campaign.id)
+                            }
                         )
                         DropdownMenuItem(
                             text = { Text("Delete") },
-                            onClick = { expanded = false }
+                            onClick = { 
+                                expanded = false
+                                onDelete(campaign.id)
+                            }
                         )
                         DropdownMenuItem(
                             text = { Text("Duplicate") },
