@@ -1,15 +1,21 @@
 package com.swadratna.swadratna_admin.ui.staff
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.swadratna.swadratna_admin.model.Staff
 import com.swadratna.swadratna_admin.model.StaffStatus
+import com.swadratna.swadratna_admin.model.Store
 import com.swadratna.swadratna_admin.model.WorkingHours
+import com.swadratna.swadratna_admin.ui.store.StoreEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.LocalTime
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -92,19 +98,8 @@ class StaffManagementViewModel @Inject constructor() : ViewModel() {
     }
 
     fun deleteStaff(staffId: String) {
-        // Remove from _allStaff list
         _allStaff.removeIf { it.id == staffId }
-        
-        // Apply filters and sort to update the UI with filtered list
         applyFiltersAndSort()
-    }
-    
-    fun toggleFilterMenu() {
-        _uiState.update { it.copy(isFilterMenuVisible = !it.isFilterMenuVisible, isSortMenuVisible = false) }
-    }
-    
-    fun toggleSortMenu() {
-        _uiState.update { it.copy(isSortMenuVisible = !it.isSortMenuVisible, isFilterMenuVisible = false) }
     }
     
     fun updateFilter(filter: String?) {
@@ -146,6 +141,23 @@ class StaffManagementViewModel @Inject constructor() : ViewModel() {
         
         _uiState.update { it.copy(staffList = sortedStaff) }
     }
+
+    fun onEvent(event: StaffEvent) {
+        when (event) {
+            is StaffEvent.ToggleFilterMenu -> {
+                _uiState.value = _uiState.value.copy(
+                    isFilterMenuVisible = !_uiState.value.isFilterMenuVisible,
+                    isSortMenuVisible = false
+                )
+            }
+            is StaffEvent.ToggleSortMenu -> {
+                _uiState.value = _uiState.value.copy(
+                    isSortMenuVisible = !_uiState.value.isSortMenuVisible,
+                    isFilterMenuVisible = false
+                )
+            }
+        }
+    }
 }
 
 data class StaffManagementUiState(
@@ -158,3 +170,8 @@ data class StaffManagementUiState(
     val selectedFilter: String? = null,
     val selectedSortOrder: String = "NAME_ASC"
 )
+
+sealed interface StaffEvent {
+    object ToggleFilterMenu : StaffEvent
+    object ToggleSortMenu : StaffEvent
+}

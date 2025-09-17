@@ -29,6 +29,7 @@ import com.swadratna.swadratna_admin.R
 import com.swadratna.swadratna_admin.model.Staff
 import com.swadratna.swadratna_admin.model.StaffStatus
 import com.swadratna.swadratna_admin.ui.components.AppSearchField
+import com.swadratna.swadratna_admin.ui.store.StoreEvent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -91,7 +92,7 @@ fun StaffManagementScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 OutlinedButton(
-                    onClick = { viewModel.toggleFilterMenu() },
+                    onClick = { viewModel.onEvent(StaffEvent.ToggleFilterMenu)  },
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(Icons.Default.Home, contentDescription = "Filter")
@@ -102,7 +103,7 @@ fun StaffManagementScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 
                 OutlinedButton(
-                    onClick = { viewModel.toggleSortMenu() },
+                    onClick = {viewModel.onEvent(StaffEvent.ToggleSortMenu)  },
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(Icons.Default.Home, contentDescription = "Sort")
@@ -132,7 +133,7 @@ fun StaffManagementScreen(
                     FilterMenu(
                         selectedFilter = uiState.selectedFilter,
                         onFilterSelected = { viewModel.updateFilter(it) },
-                        onDismiss = { viewModel.toggleFilterMenu() },
+                        onDismiss = { viewModel.onEvent(StaffEvent.ToggleFilterMenu) },
                         modifier = Modifier.align(Alignment.TopEnd)
                     )
                 }
@@ -141,7 +142,7 @@ fun StaffManagementScreen(
                     SortMenu(
                         selectedSortOrder = uiState.selectedSortOrder,
                         onSortOrderSelected = { viewModel.updateSortOrder(it) },
-                        onDismiss = { viewModel.toggleSortMenu() },
+                        onDismiss = { viewModel.onEvent(StaffEvent.ToggleSortMenu) },
                         modifier = Modifier.align(Alignment.TopEnd)
                     )
                 }
