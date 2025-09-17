@@ -1,4 +1,4 @@
-package com.swadratna.swadratna_admin.model
+package com.swadratna.swadratna_admin.data.model
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -18,10 +18,6 @@ data class Campaign(
     fun getFormattedDateRange(): String {
         val formatter = DateTimeFormatter.ofPattern("dd MMM")
         return "${startDate.format(formatter)} - ${endDate.format(formatter)}"
-    }
-    
-    fun getDurationInDays(): Int {
-        return endDate.toEpochDay().toInt() - startDate.toEpochDay().toInt() + 1
     }
 }
 

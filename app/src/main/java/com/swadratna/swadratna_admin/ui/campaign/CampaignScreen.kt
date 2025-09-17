@@ -1,5 +1,7 @@
 package com.swadratna.swadratna_admin.ui.campaign
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,6 +21,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.swadratna.swadratna_admin.ui.campaign.components.CampaignItem
 import com.swadratna.swadratna_admin.ui.components.AppSearchField
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun CampaignScreen(
     viewModel: CampaignViewModel = hiltViewModel(),

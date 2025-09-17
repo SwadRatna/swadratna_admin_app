@@ -19,7 +19,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBarsPadding
 import com.swadratna.swadratna_admin.ui.components.AppSearchField
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,7 +36,7 @@ fun DashboardScreen(
                 title = { Text("Admin Panel") },
                 actions = {
                     Row(
-                        modifier = Modifier.padding(end = 16.dp) // match start padding visually
+                        modifier = Modifier.padding(end = 16.dp)
                     ) {
                         IconButton(onClick = { /* TODO */ }) {
                             Icon(Icons.Default.Notifications, contentDescription = "Notifications")
@@ -57,17 +56,34 @@ fun DashboardScreen(
         },
         contentWindowInsets = WindowInsets(0.dp)
     ) { paddingValues ->
-        LazyColumn(
-            modifier = modifier
-                .fillMaxSize()
-                .consumeWindowInsets(paddingValues)
-                .padding(paddingValues),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item { SearchBar(uiState.searchQuery, viewModel) }
-            item { StatisticsSection(uiState) }
-            item { RecentActivitySection(uiState.recentActivities) }
-            item { TopPerformingStoreSection(uiState.topStore) }
+        when {
+            uiState.isLoading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+            uiState.error != null -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = uiState.error ?: "Error",
+                        color = Color.Red
+                    )
+                }
+            }
+            else -> {
+                LazyColumn(
+                    modifier = modifier
+                        .fillMaxSize()
+                        .consumeWindowInsets(paddingValues)
+                        .padding(paddingValues),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    item { SearchBar(uiState.searchQuery, viewModel) }
+                    item { StatisticsSection(uiState) }
+                    item { RecentActivitySection(uiState.recentActivities) }
+                    item { TopPerformingStoreSection(uiState.topStore) }
+                }
+            }
         }
     }
 }

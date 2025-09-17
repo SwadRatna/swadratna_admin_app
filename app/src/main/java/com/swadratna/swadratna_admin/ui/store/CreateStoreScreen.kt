@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.swadratna.swadratna_admin.model.StoreStatus
+import com.swadratna.swadratna_admin.data.model.StoreStatus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
