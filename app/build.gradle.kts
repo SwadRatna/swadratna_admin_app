@@ -83,6 +83,10 @@ dependencies {
     // ViewModel
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
+    // OKHTTP
+    implementation(libs.okhttp)
+    implementation(libs.logging.interceptor)
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

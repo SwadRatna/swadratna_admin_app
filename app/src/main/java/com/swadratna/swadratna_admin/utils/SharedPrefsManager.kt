@@ -4,8 +4,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.swadratna.swadratna_admin.model.Campaign
-import com.swadratna.swadratna_admin.model.Store
+import com.swadratna.swadratna_admin.data.model.Campaign
+import com.swadratna.swadratna_admin.data.model.Store
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton

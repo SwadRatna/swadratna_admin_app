@@ -18,7 +18,7 @@ import com.swadratna.swadratna_admin.ui.components.AppSearchField
 import com.swadratna.swadratna_admin.ui.components.EmptyStateMessage
 import com.swadratna.swadratna_admin.ui.components.LoadingIndicator
 import com.swadratna.swadratna_admin.ui.store.components.StoreItem
-import com.swadratna.swadratna_admin.model.Store
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StoreScreen(

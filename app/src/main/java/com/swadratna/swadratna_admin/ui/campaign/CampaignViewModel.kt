@@ -1,124 +1,85 @@
 package com.swadratna.swadratna_admin.ui.campaign
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.swadratna.swadratna_admin.model.Campaign
-import com.swadratna.swadratna_admin.model.CampaignStatus
-import com.swadratna.swadratna_admin.model.CampaignType
-import com.swadratna.swadratna_admin.utils.SharedPrefsManager
+import com.swadratna.swadratna_admin.data.model.Campaign
+import com.swadratna.swadratna_admin.data.model.CampaignType
+import com.swadratna.swadratna_admin.data.remote.api.CreateCampaignRequest
+import com.swadratna.swadratna_admin.data.repository.CampaignRepository
+import com.swadratna.swadratna_admin.data.wrapper.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.util.UUID
 import javax.inject.Inject
+import kotlin.collections.toMutableList
 
 @HiltViewModel
+@RequiresApi(Build.VERSION_CODES.O)
 class CampaignViewModel @Inject constructor(
-    private val sharedPrefsManager: SharedPrefsManager
+    private val repository: CampaignRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CampaignUiState())
     val uiState: StateFlow<CampaignUiState> = _uiState.asStateFlow()
 
-    init {
-        // Load campaigns from SharedPreferences or use mock data if none exist
-        val savedCampaigns = sharedPrefsManager.getCampaigns()
-        
-        val initialCampaigns = if (savedCampaigns.isNotEmpty()) {
-            savedCampaigns
-        } else {
-            // Use mock data if no saved campaigns
-            listOf(
-                Campaign(
-                    id = "1",
-                    title = "Diwali Mega Offer",
-                    description = "Enjoy 15% off this festive season on all product",
-                    startDate = LocalDate.of(2025, 10, 15),
-                    endDate = LocalDate.of(2025, 10, 22),
-                    status = CampaignStatus.ACTIVE,
-                    type = CampaignType.DISCOUNT,
-                    discount = 15,
-                    storeCount = 12,
-                    imageUrl = null
-                ),
-                Campaign(
-                    id = "2",
-                    title = "Winter Holiday Deals",
-                    description = "Enjoy 20% off on order above 100",
-                    startDate = LocalDate.of(2024, 11, 15),
-                    endDate = LocalDate.of(2024, 12, 31),
-                    status = CampaignStatus.COMPLETED,
-                    type = CampaignType.SEASONAL,
-                    discount = 20,
-                    storeCount = 25,
-                    imageUrl = null
-                ),
-                Campaign(
-                    id = "3",
-                    title = "Summer Flash Sale",
-                    description = "Get up to 30% off on selected items",
-                    startDate = LocalDate.of(2025, 5, 1),
-                    endDate = LocalDate.of(2025, 5, 15),
-                    status = CampaignStatus.SCHEDULED,
-                    type = CampaignType.FLASH_SALE,
-                    discount = 30,
-                    storeCount = 18,
-                    imageUrl = null
-                )
-            )
-        }
-        
-        _uiState.value = CampaignUiState(
-            searchQuery = "",
-            campaigns = initialCampaigns
-        )
-    }
+    init { refresh() }
 
     fun handleEvent(event: CampaignEvent) {
         when (event) {
-            is CampaignEvent.SearchQueryChanged -> {
+            is CampaignEvent.SearchQueryChanged ->
                 _uiState.value = _uiState.value.copy(searchQuery = event.query)
-            }
-            is CampaignEvent.FilterChanged -> {
+            is CampaignEvent.FilterChanged ->
                 _uiState.value = _uiState.value.copy(filter = event.filter)
-            }
-            is CampaignEvent.SortChanged -> {
+            is CampaignEvent.SortChanged ->
                 _uiState.value = _uiState.value.copy(sortOrder = event.sortOrder)
+            CampaignEvent.RefreshData -> refresh()
+            is CampaignEvent.CreateCampaign -> createCampaign(event)
+        }
+    }
+
+    private fun refresh() = viewModelScope.launch {
+        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+        when (val res = repository.getCampaigns()) {
+            is Result.Success -> _uiState.value = _uiState.value.copy(
+                campaigns = res.data, isLoading = false, error = null
+            )
+            is Result.Error -> _uiState.value = _uiState.value.copy(
+                isLoading = false, error = res.message
+            )
+            is Result.Loading -> _uiState.value = _uiState.value.copy(isLoading = true)
+        }
+    }
+
+    private fun createCampaign(event: CampaignEvent.CreateCampaign) = viewModelScope.launch {
+        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+
+        val req = CreateCampaignRequest(
+            title = event.title,
+            description = event.description,
+            startDate = event.startDate.toString(),
+            endDate = event.endDate.toString(),
+            type = CampaignType.DISCOUNT.name,
+            discount = 15,
+            targetFranchises = event.targetFranchises,
+            menuCategories = event.menuCategories,
+            imageUrl = event.imageUrl
+        )
+
+        when (val res = repository.createCampaign(req)) {
+            is Result.Success -> {
+                val updated = _uiState.value.campaigns.toMutableList().apply { add(0, res.data) }
+                _uiState.value = _uiState.value.copy(campaigns = updated, isLoading = false, error = null)
             }
-            CampaignEvent.RefreshData -> {
-                // TODO: Implement refresh logic
-            }
-            is CampaignEvent.CreateCampaign -> {
-                // Create a new campaign and add it to the list
-                val newCampaign = Campaign(
-                    id = UUID.randomUUID().toString(),
-                    title = event.title,
-                    description = event.description,
-                    startDate = event.startDate,
-                    endDate = event.endDate,
-                    status = CampaignStatus.SCHEDULED,
-                    type = CampaignType.DISCOUNT, // Default type, can be updated later
-                    discount = 15, // Default discount percentage
-                    storeCount = 0, // Will be calculated based on franchises
-                    imageUrl = event.imageUrl ?: "https://via.placeholder.com/150"
-                )
-                
-                val updatedCampaigns = _uiState.value.campaigns.toMutableList().apply {
-                    add(0, newCampaign) // Add to the beginning of the list
-                }
-                
-                _uiState.value = _uiState.value.copy(campaigns = updatedCampaigns)
-                
-                // Save updated campaigns to SharedPreferences
-                viewModelScope.launch {
-                    sharedPrefsManager.saveCampaigns(updatedCampaigns)
-                }
-            }
+            is Result.Error -> _uiState.value = _uiState.value.copy(isLoading = false, error = res.message)
+            is Result.Loading -> _uiState.value = _uiState.value.copy(isLoading = true)
         }
     }
 }
+
 
 data class CampaignUiState(
     val searchQuery: String = "",
