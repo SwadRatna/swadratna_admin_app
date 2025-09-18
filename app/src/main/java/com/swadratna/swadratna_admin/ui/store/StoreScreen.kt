@@ -1,5 +1,6 @@
 package com.swadratna.swadratna_admin.ui.store
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,12 +19,13 @@ import com.swadratna.swadratna_admin.ui.components.AppSearchField
 import com.swadratna.swadratna_admin.ui.components.EmptyStateMessage
 import com.swadratna.swadratna_admin.ui.components.LoadingIndicator
 import com.swadratna.swadratna_admin.ui.store.components.StoreItem
-import com.swadratna.swadratna_admin.model.Store
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StoreScreen(
     onNavigateToCreateStore: () -> Unit,
     onNavigateToManageStore: (String) -> Unit,
+    onNavigateToEditStore: (String) -> Unit,
     viewModel: StoreViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -57,7 +59,6 @@ fun StoreScreen(
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
         ) {
-            // Search field
             AppSearchField(
                 value = uiState.searchQuery,
                 onValueChange = { viewModel.onEvent(StoreEvent.SearchQueryChanged(it)) },
@@ -67,12 +68,10 @@ fun StoreScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Filter and Sort buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Filter button
                 OutlinedButton(
                     onClick = { viewModel.onEvent(StoreEvent.ToggleFilterMenu) },
                     modifier = Modifier.weight(1f)
@@ -84,7 +83,6 @@ fun StoreScreen(
                 
                 Spacer(modifier = Modifier.width(8.dp))
                 
-                // Sort button
                 OutlinedButton(
                     onClick = { viewModel.onEvent(StoreEvent.ToggleSortMenu) },
                     modifier = Modifier.weight(1f)
@@ -97,7 +95,6 @@ fun StoreScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Store list
             Box(modifier = Modifier.fillMaxSize()) {
                 when {
                     uiState.isLoading -> {
@@ -118,14 +115,18 @@ fun StoreScreen(
                             items(uiState.filteredStores) { store ->
                                 StoreItem(
                                     store = store,
-                                    onManage = onNavigateToManageStore
+                                    onManage = onNavigateToManageStore,
+                                    onEdit = { 
+                                        viewModel.onEvent(StoreEvent.EditStore(it))
+                                        onNavigateToEditStore(it)
+                                    },
+                                    onDelete = { viewModel.onEvent(StoreEvent.DeleteStore(it)) }
                                 )
                             }
                         }
                     }
                 }
                 
-                // Filter dropdown menu
                 if (uiState.isFilterMenuVisible) {
                     FilterMenu(
                         selectedStatus = uiState.filterStatus,
@@ -135,7 +136,6 @@ fun StoreScreen(
                     )
                 }
                 
-                // Sort dropdown menu
                 if (uiState.isSortMenuVisible) {
                     SortMenu(
                         selectedSortOption = uiState.sortOption,
@@ -170,28 +170,24 @@ fun FilterMenu(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // All option
             FilterOption(
                 text = "All",
                 isSelected = selectedStatus == null,
                 onClick = { onStatusSelected(null); onDismiss() }
             )
             
-            // Active option
             FilterOption(
                 text = "Active",
                 isSelected = selectedStatus == "ACTIVE",
                 onClick = { onStatusSelected("ACTIVE"); onDismiss() }
             )
             
-            // Inactive option
             FilterOption(
                 text = "Inactive",
                 isSelected = selectedStatus == "INACTIVE",
                 onClick = { onStatusSelected("INACTIVE"); onDismiss() }
             )
             
-            // Pending option
             FilterOption(
                 text = "Pending",
                 isSelected = selectedStatus == "PENDING",
@@ -222,28 +218,24 @@ fun SortMenu(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Name (A-Z)
             FilterOption(
                 text = "Name (A-Z)",
                 isSelected = selectedSortOption == "NAME_ASC",
                 onClick = { onSortOptionSelected("NAME_ASC"); onDismiss() }
             )
             
-            // Name (Z-A)
             FilterOption(
                 text = "Name (Z-A)",
                 isSelected = selectedSortOption == "NAME_DESC",
                 onClick = { onSortOptionSelected("NAME_DESC"); onDismiss() }
             )
             
-            // Date (Newest first)
             FilterOption(
                 text = "Date (Newest first)",
                 isSelected = selectedSortOption == "DATE_DESC",
                 onClick = { onSortOptionSelected("DATE_DESC"); onDismiss() }
             )
             
-            // Date (Oldest first)
             FilterOption(
                 text = "Date (Oldest first)",
                 isSelected = selectedSortOption == "DATE_ASC",
@@ -262,6 +254,7 @@ fun FilterOption(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

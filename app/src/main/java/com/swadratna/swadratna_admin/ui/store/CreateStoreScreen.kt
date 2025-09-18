@@ -18,22 +18,44 @@ import com.swadratna.swadratna_admin.model.StoreStatus
 @Composable
 fun CreateStoreScreen(
     onNavigateBack: () -> Unit,
+    storeId: String? = null,
     viewModel: StoreViewModel = hiltViewModel()
 ) {
-    var storeName by remember { mutableStateOf("") }
-    var storeLocation by remember { mutableStateOf("") }
-    var storeAddress by remember { mutableStateOf("") }
-    var storeStatus by remember { mutableStateOf(StoreStatus.ACTIVE) }
-    var isCreating by remember { mutableStateOf(false) }
+    val uiState by viewModel.uiState.collectAsState()
+    val isEditMode = uiState.isEditMode
+    val storeToEdit = uiState.storeToEdit
+    
+    // Reset edit mode when navigating away from the screen
+    DisposableEffect(key1 = Unit) {
+        onDispose {
+            viewModel.onEvent(StoreEvent.ResetEditMode)
+        }
+    }
+    
+    // Trigger EditStore event when storeId is provided
+    LaunchedEffect(key1 = storeId) {
+        if (storeId != null) {
+            viewModel.onEvent(StoreEvent.EditStore(storeId))
+        }
+    }
+    
+    var storeName by remember(storeToEdit) { mutableStateOf(storeToEdit?.name ?: "") }
+    var storeLocation by remember(storeToEdit) { mutableStateOf(storeToEdit?.location ?: "") }
+    var storeAddress by remember(storeToEdit) { mutableStateOf(storeToEdit?.address ?: "") }
+    var storeStatus by remember(storeToEdit) { mutableStateOf(storeToEdit?.status ?: StoreStatus.ACTIVE) }
+    var isProcessing by remember { mutableStateOf(false) }
     
     val scrollState = rememberScrollState()
     
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Create New Store") },
+                title = { Text(if (isEditMode) "Edit Store" else "Create New Store") },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = { 
+                        viewModel.onEvent(StoreEvent.ResetEditMode)
+                        onNavigateBack() 
+                    }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 }
@@ -50,7 +72,6 @@ fun CreateStoreScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Store name field
             OutlinedTextField(
                 value = storeName,
                 onValueChange = { storeName = it },
@@ -61,7 +82,6 @@ fun CreateStoreScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Store location field
             OutlinedTextField(
                 value = storeLocation,
                 onValueChange = { storeLocation = it },
@@ -72,7 +92,6 @@ fun CreateStoreScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Store address field
             OutlinedTextField(
                 value = storeAddress,
                 onValueChange = { storeAddress = it },
@@ -84,7 +103,6 @@ fun CreateStoreScreen(
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            // Store status selection
             Text(
                 text = "Store Status",
                 style = MaterialTheme.typography.titleMedium,
@@ -94,7 +112,6 @@ fun CreateStoreScreen(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            // Status radio buttons
             Column {
                 StatusRadioButton(
                     text = "Active",
@@ -117,19 +134,29 @@ fun CreateStoreScreen(
             
             Spacer(modifier = Modifier.height(32.dp))
             
-            // Create button
             Button(
                 onClick = {
                     if (storeName.isNotBlank() && storeLocation.isNotBlank() && storeAddress.isNotBlank()) {
-                        isCreating = true
-                        viewModel.onEvent(StoreEvent.CreateStore(storeName, storeLocation, storeAddress, storeStatus))
+                        isProcessing = true
+                        if (isEditMode && storeToEdit != null) {
+                            viewModel.onEvent(StoreEvent.UpdateStore(
+                                id = storeToEdit.id,
+                                name = storeName,
+                                location = storeLocation,
+                                address = storeAddress,
+                                status = storeStatus
+                            ))
+                        } else {
+                            viewModel.onEvent(StoreEvent.CreateStore(storeName, storeLocation, storeAddress, storeStatus))
+                        }
+                        viewModel.onEvent(StoreEvent.ResetEditMode)
                         onNavigateBack()
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = storeName.isNotBlank() && storeLocation.isNotBlank() && storeAddress.isNotBlank() && !isCreating
+                enabled = storeName.isNotBlank() && storeLocation.isNotBlank() && storeAddress.isNotBlank() && !isProcessing
             ) {
-                Text("Create Store")
+                Text(if (isEditMode) "Save Changes" else "Create Store")
             }
             
             Spacer(modifier = Modifier.height(16.dp))

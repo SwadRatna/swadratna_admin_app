@@ -20,6 +20,4 @@ object NetworkModule {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
-
-    // Add more network-related dependencies here
 }
