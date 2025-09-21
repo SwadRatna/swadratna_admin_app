@@ -24,8 +24,6 @@ import com.swadratna.swadratna_admin.ui.campaign.components.CampaignItem
 import com.swadratna.swadratna_admin.ui.components.AppSearchField
 import com.swadratna.swadratna_admin.ui.staff.FilterOption
 
-// Using local FilterMenu, FilterOption, and SortMenu components
-
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun CampaignScreen(

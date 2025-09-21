@@ -2,6 +2,8 @@ package com.swadratna.swadratna_admin.di
 
 import com.swadratna.swadratna_admin.data.repository.Repository
 import com.swadratna.swadratna_admin.data.repository.RepositoryImpl
+import com.swadratna.swadratna_admin.data.repository.AnalyticsRepository
+import com.swadratna.swadratna_admin.data.repository.AnalyticsRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -10,9 +12,13 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-interface RepositoryModule {
+abstract class RepositoryModule {
 
     @Binds
     @Singleton
-    fun bindRepository(repositoryImpl: RepositoryImpl): Repository
+    abstract fun bindRepository(repositoryImpl: RepositoryImpl): Repository
+    
+    @Binds
+    @Singleton
+    abstract fun bindAnalyticsRepository(analyticsRepositoryImpl: AnalyticsRepositoryImpl): AnalyticsRepository
 }

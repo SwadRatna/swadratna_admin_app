@@ -18,6 +18,7 @@ import com.swadratna.swadratna_admin.ui.store.CreateStoreScreen
 import com.swadratna.swadratna_admin.ui.store.StoreScreen
 import com.swadratna.swadratna_admin.ui.store.StoreDetailScreen
 import com.swadratna.swadratna_admin.ui.attendance.AttendancePaymentScreen
+import com.swadratna.swadratna_admin.ui.analytics.AnalyticsScreen
 
 @Composable
 fun NavGraph(
@@ -133,6 +134,10 @@ fun NavGraph(
         composable(NavRoute.Analytics.route) {
             // TODO: Add Analytics screen
             HomeScreen()
+        }
+        
+        composable(NavRoute.Analytics.route) {
+            AnalyticsScreen()
         }
         
         composable(NavRoute.Settings.route) {
