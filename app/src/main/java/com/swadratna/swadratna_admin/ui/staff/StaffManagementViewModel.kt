@@ -1,21 +1,15 @@
 package com.swadratna.swadratna_admin.ui.staff
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.swadratna.swadratna_admin.model.Staff
 import com.swadratna.swadratna_admin.model.StaffStatus
-import com.swadratna.swadratna_admin.model.Store
 import com.swadratna.swadratna_admin.model.WorkingHours
-import com.swadratna.swadratna_admin.ui.store.StoreEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import java.time.LocalDate
 import java.time.LocalTime
-import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel

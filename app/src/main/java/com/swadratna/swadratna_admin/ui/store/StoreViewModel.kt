@@ -2,8 +2,8 @@ package com.swadratna.swadratna_admin.ui.store
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.swadratna.swadratna_admin.model.Store
-import com.swadratna.swadratna_admin.model.StoreStatus
+import com.swadratna.swadratna_admin.data.model.Store
+import com.swadratna.swadratna_admin.data.model.StoreStatus
 import com.swadratna.swadratna_admin.utils.SharedPrefsManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
