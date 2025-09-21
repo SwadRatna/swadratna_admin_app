@@ -13,13 +13,13 @@ import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
 import com.google.gson.reflect.TypeToken
-import com.swadratna.swadratna_admin.model.Campaign
-import com.swadratna.swadratna_admin.model.Store
 import java.time.LocalDate
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import androidx.core.content.edit
+import com.swadratna.swadratna_admin.data.model.Campaign
+import com.swadratna.swadratna_admin.data.model.Store
 
 @Singleton
 @RequiresApi(Build.VERSION_CODES.O)

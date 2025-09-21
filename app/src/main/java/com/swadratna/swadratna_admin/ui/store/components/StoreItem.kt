@@ -12,8 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.swadratna.swadratna_admin.model.Store
-import com.swadratna.swadratna_admin.model.StoreStatus
+import com.swadratna.swadratna_admin.data.model.Store
+import com.swadratna.swadratna_admin.data.model.StoreStatus
 
 @Composable
 fun StoreItem(

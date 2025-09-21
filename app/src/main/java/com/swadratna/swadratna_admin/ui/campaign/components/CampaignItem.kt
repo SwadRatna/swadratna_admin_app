@@ -12,8 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.swadratna.swadratna_admin.model.Campaign
-import com.swadratna.swadratna_admin.model.CampaignStatus
+import com.swadratna.swadratna_admin.data.model.Campaign
+import com.swadratna.swadratna_admin.data.model.CampaignStatus
 
 @Composable
 fun CampaignItem(

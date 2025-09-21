@@ -1,4 +1,4 @@
-package com.swadratna.swadratna_admin.model
+package com.swadratna.swadratna_admin.data.model
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
