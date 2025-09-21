@@ -3,7 +3,6 @@ package com.swadratna.swadratna_admin.data.repository
 import javax.inject.Inject
 
 interface Repository {
-    // Define your repository methods here
     suspend fun getExample(): Result<String>
 }
 

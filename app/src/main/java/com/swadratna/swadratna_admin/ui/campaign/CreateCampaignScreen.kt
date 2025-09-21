@@ -44,6 +44,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,24 +67,31 @@ fun CreateCampaignScreen(
     onNavigateBack: () -> Unit = {},
     viewModel: CampaignViewModel = hiltViewModel()
 ) {
-    var campaignTitle by remember { mutableStateOf("") }            // UI state hoisted in composable [2]
-    var campaignDescription by remember { mutableStateOf("") }      // [2]
-    var selectedFranchises by remember { mutableStateOf("All") }    // [2]
-    var expandedFranchiseDropdown by remember { mutableStateOf(false) } // [2]
+    val uiState by viewModel.uiState.collectAsState()
+    val isEditMode = uiState.isEditMode
+    val campaignToEdit = uiState.campaignToEdit
+    
+    var campaignTitle by remember { mutableStateOf(campaignToEdit?.title ?: "") }
+    var campaignDescription by remember { mutableStateOf(campaignToEdit?.description ?: "") }
+    var selectedFranchises by remember { mutableStateOf(campaignToEdit?.targetFranchises ?: "All") }
+    var expandedFranchiseDropdown by remember { mutableStateOf(false) }
 
-    var startDate by remember { mutableStateOf<LocalDate?>(null) }  // [2]
-    var endDate by remember { mutableStateOf<LocalDate?>(null) }    // [2]
-    var showStartDatePicker by remember { mutableStateOf(false) }   // 
-    var showEndDatePicker by remember { mutableStateOf(false) }     // 
-    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd MMM yyyy") } // 
+    var startDate by remember { mutableStateOf(campaignToEdit?.startDate) }
+    var endDate by remember { mutableStateOf(campaignToEdit?.endDate) }
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd MMM yyyy") }
 
-    var snacksChecked by remember { mutableStateOf(false) }         // [2]
-    var southIndianChecked by remember { mutableStateOf(false) }    // [2]
-    var vegGravyChecked by remember { mutableStateOf(false) }       // [2]
-    var chineseChecked by remember { mutableStateOf(false) }        // [2]
-    var nonVegChecked by remember { mutableStateOf(false) }         // [2]
+    val savedCategories = campaignToEdit?.menuCategories ?: emptyList()
+    var snacksChecked by remember { mutableStateOf(savedCategories.contains("Snacks")) }
+    var southIndianChecked by remember { mutableStateOf(savedCategories.contains("South Indian")) }
+    var vegGravyChecked by remember { mutableStateOf(savedCategories.contains("Veg Gravy")) }
+    var chineseChecked by remember { mutableStateOf(savedCategories.contains("Chinese")) }
+    var nonVegChecked by remember { mutableStateOf(savedCategories.contains("Non Veg")) }
+    
+    var isProcessing by remember { mutableStateOf(false) }
 
-    val scroll = rememberScrollState()                              // 
+    val scroll = rememberScrollState()
 
     Column(
         modifier = Modifier
@@ -95,13 +103,13 @@ fun CreateCampaignScreen(
             )
     ) {
         TopAppBar(
-            title = { Text("Create Campaign") },
+            title = { Text(if (isEditMode) "Edit Campaign" else "Create Campaign") },
             navigationIcon = {
                 IconButton(onClick = onNavigateBack) {
                     Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                 }
             },
-            windowInsets = WindowInsets(0.dp) // parent provides top inset [3]
+            windowInsets = WindowInsets(0.dp)
         )
 
         Column(
@@ -370,23 +378,40 @@ fun CreateCampaignScreen(
                         if (nonVegChecked) add("Non Veg")
                     }
                     
-                    // Check if at least one category is selected
                     val isCategorySelected = selectedCategories.isNotEmpty()
+                    isProcessing = true
                     
                     if (campaignTitle.isNotBlank() && campaignDescription.isNotBlank()
                         && startDate != null && endDate != null && isCategorySelected
                     ) {
-                        viewModel.handleEvent(
-                            CampaignEvent.CreateCampaign(
-                                title = campaignTitle,
-                                description = campaignDescription,
-                                startDate = startDate!!,
-                                endDate = endDate!!,
-                                menuCategories = selectedCategories,
-                                targetFranchises = selectedFranchises,
-                                imageUrl = null // Image is optional
+                        if (isEditMode && campaignToEdit != null) {
+                            viewModel.handleEvent(
+                                CampaignEvent.UpdateCampaign(
+                                    id = campaignToEdit.id,
+                                    title = campaignTitle,
+                                    description = campaignDescription,
+                                    startDate = startDate!!,
+                                    endDate = endDate!!,
+                                    type = campaignToEdit.type,
+                                    discount = campaignToEdit.discount,
+                                    menuCategories = selectedCategories,
+                                    targetFranchises = selectedFranchises,
+                                    imageUrl = campaignToEdit.imageUrl
+                                )
                             )
-                        )
+                        } else {
+                            viewModel.handleEvent(
+                                CampaignEvent.CreateCampaign(
+                                    title = campaignTitle,
+                                    description = campaignDescription,
+                                    startDate = startDate!!,
+                                    endDate = endDate!!,
+                                    menuCategories = selectedCategories,
+                                    targetFranchises = selectedFranchises,
+                                    imageUrl = null
+                                )
+                            )
+                        }
                         onNavigateBack()
                     }
                 },
@@ -394,7 +419,8 @@ fun CreateCampaignScreen(
                 enabled = campaignTitle.isNotBlank() && campaignDescription.isNotBlank()
                         && startDate != null && endDate != null
                         && (snacksChecked || southIndianChecked || vegGravyChecked || chineseChecked || nonVegChecked)
-            ) { Text("Create Campaign") }
+                        && !isProcessing
+            ) { Text(if (isEditMode) "Update Campaign" else "Create Campaign") }
             }
 
             Spacer(Modifier.height(24.dp))

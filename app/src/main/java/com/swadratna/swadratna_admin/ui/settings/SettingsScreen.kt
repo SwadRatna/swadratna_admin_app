@@ -235,7 +235,7 @@ fun SettingsItem(
             )
         }
     }
-    if (title != "Logout") { // No divider after the last item
+    if (title != "Logout") {
         Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
     }
 }
