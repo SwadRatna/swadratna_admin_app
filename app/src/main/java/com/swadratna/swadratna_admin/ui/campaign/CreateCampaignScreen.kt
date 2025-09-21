@@ -53,10 +53,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swadratna.swadratna_admin.R
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -153,7 +155,7 @@ fun CreateCampaignScreen(
                         .clickable { showStartDatePicker = true },
                     placeholder = { Text("Start Date") },
                     trailingIcon = { IconButton(onClick = { showStartDatePicker = true }) {
-                        Icon(Icons.Default.Home, contentDescription = "Select date")
+                        Icon(painter = painterResource(R.drawable.ic_date), contentDescription = "Select date")
                     } },
                     readOnly = true,
                     singleLine = true,
@@ -171,7 +173,7 @@ fun CreateCampaignScreen(
                         .clickable { if (startDate != null) showEndDatePicker = true },
                     placeholder = { Text("End Date") },
                     trailingIcon = { IconButton(onClick = { if (startDate != null) showEndDatePicker = true }) {
-                        Icon(Icons.Default.Home, contentDescription = "Select Date", 
+                        Icon(painter = painterResource(R.drawable.ic_date), contentDescription = "Select Date",
                              tint = if (startDate == null) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f) 
                                    else MaterialTheme.colorScheme.onSurfaceVariant)
                     } },
@@ -343,7 +345,7 @@ fun CreateCampaignScreen(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
-                        imageVector = Icons.Default.Home,
+                        painter = painterResource(R.drawable.ic_upload),
                         contentDescription = "Upload Image",
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         modifier = Modifier.size(48.dp)
