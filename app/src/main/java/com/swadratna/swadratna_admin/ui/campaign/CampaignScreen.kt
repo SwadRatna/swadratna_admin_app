@@ -15,9 +15,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swadratna.swadratna_admin.R
 import com.swadratna.swadratna_admin.ui.campaign.components.CampaignItem
 import com.swadratna.swadratna_admin.ui.components.AppSearchField
 import com.swadratna.swadratna_admin.ui.staff.FilterOption
@@ -71,7 +73,7 @@ fun CampaignScreen(
                     onClick = { viewModel.handleEvent(CampaignEvent.ToggleFilterMenu) },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(Icons.Default.AccountBox, contentDescription = "Filter")
+                    Icon(painter = painterResource(R.drawable.ic_filter), contentDescription = "Filter")
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Filter")
                 }
@@ -80,7 +82,7 @@ fun CampaignScreen(
                     onClick = { viewModel.handleEvent(CampaignEvent.ToggleSortMenu) },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(Icons.Default.Build, contentDescription = "Sort")
+                    Icon(painter = painterResource(R.drawable.ic_sort), contentDescription = "Sort")
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Sort")
                 }

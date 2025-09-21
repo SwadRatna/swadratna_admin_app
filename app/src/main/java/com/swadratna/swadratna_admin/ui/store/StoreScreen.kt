@@ -12,9 +12,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swadratna.swadratna_admin.R
 import com.swadratna.swadratna_admin.ui.components.AppSearchField
 import com.swadratna.swadratna_admin.ui.components.EmptyStateMessage
 import com.swadratna.swadratna_admin.ui.components.LoadingIndicator
@@ -76,7 +78,7 @@ fun StoreScreen(
                     onClick = { viewModel.onEvent(StoreEvent.ToggleFilterMenu) },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(Icons.Default.Home, contentDescription = "Filter")
+                    Icon(painter = painterResource(R.drawable.ic_filter), contentDescription = "Filter")
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Filter")
                 }
@@ -87,7 +89,7 @@ fun StoreScreen(
                     onClick = { viewModel.onEvent(StoreEvent.ToggleSortMenu) },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(Icons.Default.Home, contentDescription = "Sort")
+                    Icon(painter = painterResource(R.drawable.ic_sort), contentDescription = "Sort")
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Sort")
                 }

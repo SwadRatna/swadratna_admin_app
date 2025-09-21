@@ -95,7 +95,7 @@ fun StaffManagementScreen(
                     onClick = { viewModel.onEvent(StaffEvent.ToggleFilterMenu)  },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(Icons.Default.Home, contentDescription = "Filter")
+                    Icon(painter = painterResource(R.drawable.ic_filter), contentDescription = "Filter")
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Filter")
                 }
@@ -106,7 +106,7 @@ fun StaffManagementScreen(
                     onClick = {viewModel.onEvent(StaffEvent.ToggleSortMenu)  },
                     modifier = Modifier.weight(1f)
                 ) {
-                    Icon(Icons.Default.Home, contentDescription = "Sort")
+                    Icon(painter = painterResource(R.drawable.ic_sort), contentDescription = "Sort")
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Sort")
                 }
