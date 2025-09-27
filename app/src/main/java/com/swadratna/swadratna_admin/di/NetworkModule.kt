@@ -3,6 +3,7 @@ package com.swadratna.swadratna_admin.di
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.swadratna.swadratna_admin.data.LocalDateAdapter
+import com.swadratna.swadratna_admin.data.remote.api.AnalyticsApi
 import com.swadratna.swadratna_admin.data.remote.api.CampaignApi
 import com.swadratna.swadratna_admin.data.remote.api.DashboardApi
 import com.swadratna.swadratna_admin.data.repository.CampaignRepository
@@ -77,4 +78,9 @@ object NetworkModule {
     fun provideDashboardRepository(api: DashboardApi): DashboardRepository {
         return DashboardRepository(api)
     }
+
+    @Provides
+    @Singleton
+    fun provideAnalyticsApi(retrofit: Retrofit): AnalyticsApi =
+        retrofit.create(AnalyticsApi::class.java)
 }

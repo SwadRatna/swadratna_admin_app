@@ -42,6 +42,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.8"
@@ -86,6 +87,8 @@ dependencies {
     // OKHTTP
     implementation(libs.okhttp)
     implementation(libs.logging.interceptor)
+
+    implementation(libs.mpandroidchart)
 
     // Testing
     testImplementation(libs.junit)

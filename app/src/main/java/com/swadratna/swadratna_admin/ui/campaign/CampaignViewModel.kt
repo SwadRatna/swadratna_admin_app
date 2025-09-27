@@ -18,7 +18,6 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.util.UUID
 import javax.inject.Inject
-import kotlin.collections.toMutableList
 
 @HiltViewModel
 @RequiresApi(Build.VERSION_CODES.O)
@@ -109,7 +108,7 @@ class CampaignViewModel @Inject constructor(
                         type = event.type,
                         discount = event.discount,
                         imageUrl = event.imageUrl,
-                        targetFranchises = event.targetFranchises,
+                        targetStores = event.targetFranchises,
                         menuCategories = event.menuCategories
                     )
                 }
