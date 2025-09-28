@@ -18,6 +18,7 @@ import com.swadratna.swadratna_admin.ui.store.CreateStoreScreen
 import com.swadratna.swadratna_admin.ui.store.StoreScreen
 import com.swadratna.swadratna_admin.ui.store.StoreDetailScreen
 import com.swadratna.swadratna_admin.ui.attendance.AttendancePaymentScreen
+import com.swadratna.swadratna_admin.ui.menu.MenuScreen
 
 @Composable
 fun NavGraph(
@@ -101,8 +102,7 @@ fun NavGraph(
                     navController.navigate(NavRoute.StaffManagement.route)
                 },
                 onNavigateToMenuManagement = { selectedStoreId ->
-                    // TODO: Implement Menu Management screen
-                    navController.navigate(NavRoute.Home.route)
+                    navController.navigate(NavRoute.MenuScreen.route)
                 },
                 onNavigateToAttendance = { selectedStoreId ->
                     navController.navigate(NavRoute.AttendancePayment.route)
@@ -173,6 +173,10 @@ fun NavGraph(
                 onNavigateToAddStaff = { navController.navigate(NavRoute.AddStaff.route) }
             )
         }
+
+        composable(NavRoute.MenuScreen.route) {
+            MenuScreen()
+        }
         
         composable(NavRoute.AddStaff.route) {
             AddStaffScreen(
@@ -204,4 +208,5 @@ sealed class NavRoute(val route: String) {
     object StaffManagement : NavRoute("staff_management")
     object AddStaff : NavRoute("add_staff")
     object AttendancePayment : NavRoute("attendance_payment")
+    object MenuScreen: NavRoute("menu_screen")
 }
