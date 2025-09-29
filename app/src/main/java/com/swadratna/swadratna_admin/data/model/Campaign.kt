@@ -14,7 +14,7 @@ data class Campaign(
     val discount: Int,
     val storeCount: Int,
     val imageUrl: String? = null,
-    val targetFranchises: String = "All",
+    val targetStores: String = "All",
     val menuCategories: List<String> = emptyList()
 ) {
     fun getFormattedDateRange(): String {

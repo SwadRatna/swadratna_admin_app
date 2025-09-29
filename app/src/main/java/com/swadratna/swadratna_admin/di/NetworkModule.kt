@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import com.swadratna.swadratna_admin.data.LocalDateAdapter
+import com.swadratna.swadratna_admin.data.remote.api.AnalyticsApi
 import com.swadratna.swadratna_admin.data.remote.api.CampaignApi
 import com.swadratna.swadratna_admin.data.remote.api.DashboardApi
 import com.swadratna.swadratna_admin.data.remote.api.MenuApi
@@ -86,6 +87,11 @@ object NetworkModule {
     fun provideDashboardRepository(api: DashboardApi): DashboardRepository {
         return DashboardRepository(api)
     }
+
+    @Provides
+    @Singleton
+    fun provideAnalyticsApi(retrofit: Retrofit): AnalyticsApi =
+        retrofit.create(AnalyticsApi::class.java)
 
     @Provides
     @Singleton

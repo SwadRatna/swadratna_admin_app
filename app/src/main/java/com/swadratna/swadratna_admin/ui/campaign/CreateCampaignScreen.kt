@@ -24,7 +24,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
@@ -35,7 +34,6 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -55,7 +53,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swadratna.swadratna_admin.R
@@ -75,7 +72,7 @@ fun CreateCampaignScreen(
     
     var campaignTitle by remember { mutableStateOf(campaignToEdit?.title ?: "") }
     var campaignDescription by remember { mutableStateOf(campaignToEdit?.description ?: "") }
-    var selectedFranchises by remember { mutableStateOf(campaignToEdit?.targetFranchises ?: "All") }
+    var selectedFranchises by remember { mutableStateOf(campaignToEdit?.targetStores ?: "All") }
     var expandedFranchiseDropdown by remember { mutableStateOf(false) }
 
     var startDate by remember { mutableStateOf(campaignToEdit?.startDate) }

@@ -1,5 +1,7 @@
 package com.swadratna.swadratna_admin.di
 
+import com.swadratna.swadratna_admin.data.repository.AnalyticsRepository
+import com.swadratna.swadratna_admin.data.repository.AnalyticsRepositoryImpl
 import com.swadratna.swadratna_admin.data.repository.Repository
 import com.swadratna.swadratna_admin.data.repository.RepositoryImpl
 import dagger.Binds
@@ -15,4 +17,8 @@ interface RepositoryModule {
     @Binds
     @Singleton
     fun bindRepository(repositoryImpl: RepositoryImpl): Repository
+
+    @Binds
+    @Singleton
+    abstract fun bindAnalyticsRepository(impl: AnalyticsRepositoryImpl): AnalyticsRepository
 }

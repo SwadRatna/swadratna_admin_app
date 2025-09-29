@@ -42,6 +42,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.8"
@@ -88,6 +89,8 @@ dependencies {
     implementation(libs.logging.interceptor)
     implementation(libs.moshi.kotlin)
     implementation(libs.converter.moshi)
+
+    implementation(libs.mpandroidchart)
 
     // Testing
     testImplementation(libs.junit)

@@ -7,6 +7,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.swadratna.swadratna_admin.ui.analytics.AdminAnalyticsScreen
 import com.swadratna.swadratna_admin.ui.dashboard.DashboardScreen
 import com.swadratna.swadratna_admin.ui.home.HomeScreen
 import com.swadratna.swadratna_admin.ui.campaign.CampaignScreen
@@ -131,8 +132,7 @@ fun NavGraph(
             )
         }
         composable(NavRoute.Analytics.route) {
-            // TODO: Add Analytics screen
-            HomeScreen()
+            AdminAnalyticsScreen()
         }
         
         composable(NavRoute.Settings.route) {
