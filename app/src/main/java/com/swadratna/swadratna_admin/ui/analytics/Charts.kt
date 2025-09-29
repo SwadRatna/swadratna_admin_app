@@ -1,7 +1,5 @@
 package com.swadratna.swadratna_admin.ui.analytics
 
-import android.content.Context
-import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color

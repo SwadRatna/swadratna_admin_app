@@ -46,22 +46,12 @@ class AnalyticsViewModel @Inject constructor(
 
     fun refresh() = viewModelScope.launch {
         _state.update { it.copy(loading = true, error = null) }
-        try {
-            val data = repo.loadDashboard(
-                franchise = _state.value.franchiseFilter,
-                from = null, to = null
-            )
+        runCatching {
+            repo.loadDashboard(franchise = _state.value.franchiseFilter, from = null, to = null)
+        }.onSuccess { data ->
             _state.update { it.copy(loading = false, analytics = data) }
-        } catch (t: Throwable) {
-            _state.update { it.copy(loading = false, error = t.message) }
+        }.onFailure { e ->
+            _state.update { it.copy(loading = false, error = e.message ?: "Unknown error") }
         }
     }
-
-//    fun exportReport(context: Context) {
-//        viewModelScope.launch {
-//            state.value.analytics?.let { data ->
-//                AnalyticsPdfExporter.exportAnalyticsPdf(context, data)
-//            }
-//        }
-//    }
 }

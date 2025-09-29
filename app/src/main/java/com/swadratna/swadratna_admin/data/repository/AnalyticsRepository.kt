@@ -22,7 +22,7 @@ interface AnalyticsRepository {
 
 @Singleton
 class AnalyticsRepositoryImpl @Inject constructor(
-    private val api: AnalyticsApi
+    private val api: AnalyticsApi,
 ) : AnalyticsRepository {
 
     override suspend fun loadDashboard(franchise: String?, from: String?, to: String?): Analytics {

@@ -25,7 +25,6 @@ import com.swadratna.swadratna_admin.data.model.Cards
 @Composable
 fun AdminAnalyticsScreen(
     viewModel: AnalyticsViewModel = hiltViewModel(),
-    onExportReport: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
@@ -125,7 +124,21 @@ fun AdminAnalyticsScreen(
                     }
                     Spacer(Modifier.height(12.dp))
                     Button(
-                        onClick = onExportReport,
+                        onClick = {
+                            val data = state.analytics ?: return@Button
+                            val uri = AnalyticsCsvExporter.exportToCsv(
+                                context = context,
+                                franchise = state.franchiseFilter,
+                                analytics = data
+                            )
+                            val share = androidx.core.app.ShareCompat.IntentBuilder(context)
+                                .setType("text/csv")
+                                .setStream(uri)
+                                .setChooserTitle("Share analytics CSV")
+                                .createChooserIntent()
+                                .addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            context.startActivity(share)
+                        },
                         modifier = Modifier.fillMaxWidth()
                     ) { Text("Export Report") }
                 }
