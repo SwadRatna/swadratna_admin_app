@@ -2,9 +2,12 @@ package com.swadratna.swadratna_admin.di
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import com.swadratna.swadratna_admin.data.LocalDateAdapter
 import com.swadratna.swadratna_admin.data.remote.api.CampaignApi
 import com.swadratna.swadratna_admin.data.remote.api.DashboardApi
+import com.swadratna.swadratna_admin.data.remote.api.MenuApi
 import com.swadratna.swadratna_admin.data.repository.CampaignRepository
 import com.swadratna.swadratna_admin.data.repository.DashboardRepository
 import dagger.Module
@@ -33,6 +36,12 @@ object NetworkModule {
             .addInterceptor(logging)
             .build()
     }
+
+    @Provides
+    @Singleton
+    fun provideMoshi(): Moshi = Moshi.Builder()
+        .add(KotlinJsonAdapterFactory())
+        .build()
 
     @Provides
     @Singleton
@@ -77,4 +86,9 @@ object NetworkModule {
     fun provideDashboardRepository(api: DashboardApi): DashboardRepository {
         return DashboardRepository(api)
     }
+
+    @Provides
+    @Singleton
+    fun provideMenuApi(retrofit: Retrofit): MenuApi =
+        retrofit.create(MenuApi::class.java)
 }

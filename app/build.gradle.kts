@@ -86,6 +86,8 @@ dependencies {
     // OKHTTP
     implementation(libs.okhttp)
     implementation(libs.logging.interceptor)
+    implementation(libs.moshi.kotlin)
+    implementation(libs.converter.moshi)
 
     // Testing
     testImplementation(libs.junit)

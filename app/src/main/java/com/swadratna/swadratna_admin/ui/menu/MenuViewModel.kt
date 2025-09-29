@@ -1,43 +1,60 @@
 package com.swadratna.swadratna_admin.ui.menu
 
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.swadratna.swadratna_admin.data.model.MenuCategory
 import com.swadratna.swadratna_admin.data.model.MenuItem
+import com.swadratna.swadratna_admin.data.repository.MenuRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
-class MenuViewModel : ViewModel() {
+@HiltViewModel
+class MenuViewModel @Inject constructor(
+    private val repository: MenuRepository
+) : ViewModel() {
 
-    private val _selectedCategory = mutableStateOf(MenuCategory.ALL)
-    val selectedCategory get() = _selectedCategory
+    private val _selectedCategory = MutableStateFlow(MenuCategory.ALL)
+    val selectedCategory: StateFlow<MenuCategory> = _selectedCategory.asStateFlow()
 
-    private val _menuItems = MutableStateFlow<List<MenuItem>>(dummyMenuItems())
-    val menuItems: StateFlow<List<MenuItem>> get() = _menuItems
+    private val _uiState = MutableStateFlow<MenuUiState>(MenuUiState.Loading)
+    val uiState: StateFlow<MenuUiState> = _uiState.asStateFlow()
+
+    init {
+        load()
+    }
 
     fun selectCategory(category: MenuCategory) {
         _selectedCategory.value = category
-        // For now, we can filter locally if needed
-        _menuItems.value = dummyMenuItems().filter {
-            when(category) {
-                MenuCategory.ALL -> true
-                MenuCategory.APPETIZERS -> it.id <= 2
-                MenuCategory.MAIN -> it.id > 2
-            }
-        }
+        load()
     }
 
     fun toggleAvailability(item: MenuItem) {
-        val updatedList = _menuItems.value.map {
-            if (it.id == item.id) it.copy(isAvailable = !it.isAvailable) else it
-        }
-        _menuItems.value = updatedList
+        val current = (_uiState.value as? MenuUiState.Success)?.items ?: return
+        val updated = current.map { if (it.id == item.id) it.copy(isAvailable = !it.isAvailable) else it }
+        _uiState.value = MenuUiState.Success(updated)
+        // TODO: Optionally call repository to persist availability change (PATCH)
     }
 
-    private fun dummyMenuItems(): List<MenuItem> = listOf(
-        MenuItem(1, "Classic Margherita Pizza", "Fresh tomato sauce, mozzarella, and basil on", 14.99, "All Day", true),
-        MenuItem(2, "Caesar Salad", "Crisp romaine lettuce, croutons, parmesan,", 9.50, "Lunch & Dinner", true),
-        MenuItem(3, "Chocolate Lava Cake", "Warm chocolate cake with a molten center,", 8.00, "Dinner Only", false),
-        MenuItem(4, "Freshly Squeezed Lemonade", "Classic tangy and sweet lemonade, perfectly", 4.25, "All Day", true)
-    )
+    fun setUseMock(enabled: Boolean) {
+        repository.useMock = enabled
+        load()
+    }
+
+    private fun load() {
+        viewModelScope.launch {
+            _uiState.value = MenuUiState.Loading
+            runCatching {
+                repository.getMenu(_selectedCategory.value)
+            }.onSuccess { list ->
+                _uiState.value = MenuUiState.Success(list)
+            }.onFailure { e ->
+                _uiState.value = MenuUiState.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
 }
+

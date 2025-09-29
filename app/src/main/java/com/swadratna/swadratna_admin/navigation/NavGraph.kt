@@ -175,7 +175,7 @@ fun NavGraph(
         }
 
         composable(NavRoute.MenuScreen.route) {
-            MenuScreen()
+            MenuScreen(onBack = { navController.popBackStack() })
         }
         
         composable(NavRoute.AddStaff.route) {
