@@ -1,58 +1,41 @@
 package com.swadratna.swadratna_admin.ui.dashboard
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.swadratna.swadratna_admin.data.repository.DashboardRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class DashboardViewModel @Inject constructor() : ViewModel() {
+class DashboardViewModel @Inject constructor(
+    private val repository: DashboardRepository,
+) : ViewModel() {
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     init {
-        // Initialize with mock data
-        _uiState.value = DashboardUiState(
-            searchQuery = "",
-            totalCampaigns = 124,
-            campaignsChange = "+12% since last month",
-            activeFranchises = 89,
-            franchisesChange = "+5% last 3 months",
-            topSeller = "Burger King",
-            topSellerMetric = "30% of total sales",
-            newUsers = 450,
-            newUsersChange = "-8% compared to avg.",
-            recentActivities = listOf(
-                ActivityItem(
-                    title = "New campaign \"Summer Blast\" launched",
-                    time = "2 hours ago"
-                ),
-                ActivityItem(
-                    title = "Franchise \"Downtown Deli\" updated menu",
-                    time = "1 day ago"
-                ),
-                ActivityItem(
-                    title = "Report for Q3 2023 generated",
-                    time = "3 days ago"
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+
+            try {
+                val response = repository.getDashboardData()
+
+                _uiState.value = response.toUiState().copy(
+                    isLoading = false,
+                    error = null
                 )
-            ),
-            topFranchises = listOf(
-                FranchiseItem(
-                    name = "Coastal Grill",
-                    revenue = "$125,000"
-                ),
-                FranchiseItem(
-                    name = "Urban Eatery",
-                    revenue = "$110,500"
-                ),
-                FranchiseItem(
-                    name = "Parkside Bistro",
-                    revenue = "$98,200"
+
+            } catch (e: Exception) {
+                _uiState.value = DashboardUiState(
+                    isLoading = false,
+                    error = e.message ?: "Unknown error"
                 )
-            )
-        )
+            }
+        }
     }
 
     fun handleEvent(event: DashboardEvent) {
@@ -71,14 +54,16 @@ data class DashboardUiState(
     val searchQuery: String = "",
     val totalCampaigns: Int = 0,
     val campaignsChange: String = "",
-    val activeFranchises: Int = 0,
-    val franchisesChange: String = "",
+    val activeStore: Int = 0,
+    val storeChange: String = "",
     val topSeller: String = "",
     val topSellerMetric: String = "",
     val newUsers: Int = 0,
     val newUsersChange: String = "",
     val recentActivities: List<ActivityItem> = emptyList(),
-    val topFranchises: List<FranchiseItem> = emptyList()
+    val topStore: List<StoreItem> = emptyList(),
+    val isLoading: Boolean = false,
+    val error: String? = null
 )
 
 data class ActivityItem(
@@ -86,7 +71,7 @@ data class ActivityItem(
     val time: String
 )
 
-data class FranchiseItem(
+data class StoreItem(
     val name: String,
     val revenue: String
 )

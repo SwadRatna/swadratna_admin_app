@@ -1,9 +1,9 @@
 package com.swadratna.swadratna_admin.ui.dashboard
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -15,47 +15,79 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBarsPadding
+import com.swadratna.swadratna_admin.R
+import com.swadratna.swadratna_admin.ui.components.AppSearchField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     modifier: Modifier = Modifier,
-    viewModel: DashboardViewModel = hiltViewModel()
+    viewModel: DashboardViewModel = hiltViewModel(),
+    onNavigateToSettings: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Restaurant OS") },
+                title = { Text("Admin Panel") },
                 actions = {
-                    IconButton(onClick = { /* TODO */ }) {
-                        Icon(Icons.Default.Notifications, contentDescription = "Notifications")
+                    Row(
+                        modifier = Modifier.padding(end = 16.dp)
+                    ) {
+                        IconButton(onClick = { /* TODO */ }) {
+                            Icon(Icons.Default.Notifications, contentDescription = "Notifications")
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .align(Alignment.CenterVertically)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                                .clickable { onNavigateToSettings() }
+                        )
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                },
+            )
+        },
+        contentWindowInsets = WindowInsets(0.dp)
+    ) { paddingValues ->
+        when {
+            uiState.isLoading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+            uiState.error != null -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = uiState.error ?: "Error",
+                        color = Color.Red
                     )
                 }
-            )
-        }
-    ) { paddingValues ->
-        LazyColumn(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            item { SearchBar(uiState.searchQuery, viewModel) }
-            item { StatisticsSection(uiState) }
-            item { RecentActivitySection(uiState.recentActivities) }
-            item { TopPerformingFranchisesSection(uiState.topFranchises) }
+            }
+            else -> {
+                LazyColumn(
+                    modifier = modifier
+                        .fillMaxSize()
+                        .consumeWindowInsets(paddingValues)
+                        .padding(paddingValues),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    item { SearchBar(uiState.searchQuery, viewModel) }
+                    item { StatisticsSection(uiState) }
+                    item { RecentActivitySection(uiState.recentActivities) }
+                    item { TopPerformingStoreSection(uiState.topStore) }
+                }
+            }
         }
     }
 }
@@ -63,16 +95,14 @@ fun DashboardScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchBar(query: String, viewModel: DashboardViewModel) {
-    OutlinedTextField(
+    AppSearchField(
         value = query,
         onValueChange = { viewModel.handleEvent(DashboardEvent.SearchQueryChanged(it)) },
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        placeholder = { Text("Search franchises, campaigns...") },
-        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-        singleLine = true,
-        shape = RoundedCornerShape(12.dp)
+        placeholder = "Search store, campaigns…",
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }
     )
 }
 
@@ -90,9 +120,9 @@ fun StatisticsSection(uiState: DashboardUiState) {
                 modifier = Modifier.weight(1f)
             )
             StatCard(
-                title = "Active Franchises",
-                value = uiState.activeFranchises.toString(),
-                change = uiState.franchisesChange,
+                title = "Active Store",
+                value = uiState.activeStore.toString(),
+                change = uiState.storeChange,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -194,17 +224,17 @@ fun ActivityItem(activity: ActivityItem) {
 }
 
 @Composable
-fun TopPerformingFranchisesSection(franchises: List<FranchiseItem>) {
+fun TopPerformingStoreSection(storeItem: List<StoreItem>) {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         Text(
-            text = "Top Performing Franchises",
+            text = "Top Performing Store",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(16.dp))
-        franchises.forEachIndexed { index, franchise ->
-            FranchiseItem(
-                franchise = franchise,
+        storeItem.forEachIndexed { index, store ->
+            StoreItem(
+                store = store,
                 color = when (index) {
                     0 -> Color(0xFFE8F5E9)
                     1 -> Color(0xFFFFEBEE)
@@ -218,8 +248,10 @@ fun TopPerformingFranchisesSection(franchises: List<FranchiseItem>) {
     }
 }
 
+
+
 @Composable
-fun FranchiseItem(franchise: FranchiseItem, color: Color) {
+fun StoreItem(store: StoreItem, color: Color) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -234,12 +266,12 @@ fun FranchiseItem(franchise: FranchiseItem, color: Color) {
         )
         Spacer(modifier = Modifier.width(16.dp))
         Text(
-            text = franchise.name,
+            text = store.name,
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.weight(1f)
         )
         Text(
-            text = franchise.revenue,
+            text = store.revenue,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Bold
         )
