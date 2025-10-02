@@ -73,9 +73,34 @@ class SharedPrefsManager @Inject constructor(
         return gson.fromJson(campaignsJson, type)
     }
 
+    fun saveAuthToken(token: String) {
+        sharedPreferences.edit { putString(KEY_AUTH_TOKEN, token) }
+    }
+
+    fun getAuthToken(): String? {
+        return sharedPreferences.getString(KEY_AUTH_TOKEN, null)
+    }
+
+    fun saveRefreshToken(token: String?) {
+        sharedPreferences.edit { putString(KEY_REFRESH_TOKEN, token) }
+    }
+
+    fun getRefreshToken(): String? {
+        return sharedPreferences.getString(KEY_REFRESH_TOKEN, null)
+    }
+    
+    fun clearTokens() {
+        sharedPreferences.edit {
+            remove(KEY_AUTH_TOKEN)
+            remove(KEY_REFRESH_TOKEN)
+        }
+    }
+
     companion object {
         private const val PREFS_NAME = "swadratna_admin_prefs"
         private const val KEY_STORES = "stores"
         private const val KEY_CAMPAIGNS = "campaigns"
+        private const val KEY_AUTH_TOKEN = "auth_token"
+        private const val KEY_REFRESH_TOKEN = "refresh_token"
     }
 }
