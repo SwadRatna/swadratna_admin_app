@@ -6,15 +6,22 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import com.swadratna.swadratna_admin.data.LocalDateAdapter
 import com.swadratna.swadratna_admin.data.remote.api.AnalyticsApi
+import com.swadratna.swadratna_admin.data.remote.api.AuthApiService
+import com.swadratna.swadratna_admin.data.remote.api.AuthInterceptor
 import com.swadratna.swadratna_admin.data.remote.api.CampaignApi
 import com.swadratna.swadratna_admin.data.remote.api.DashboardApi
 import com.swadratna.swadratna_admin.data.remote.api.MenuApi
+import com.swadratna.swadratna_admin.data.remote.api.HeaderInterceptor
+import com.swadratna.swadratna_admin.data.remote.api.TokenAuthenticator
 import com.swadratna.swadratna_admin.data.repository.CampaignRepository
 import com.swadratna.swadratna_admin.data.repository.DashboardRepository
+import com.swadratna.swadratna_admin.utils.ApiConstants
+import com.swadratna.swadratna_admin.utils.SharedPrefsManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Provider
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import okhttp3.OkHttpClient
@@ -29,13 +36,35 @@ import javax.inject.Singleton
 object NetworkModule {
 
     @Provides @Singleton
-    fun provideOkHttp(): OkHttpClient {
-        val logging = HttpLoggingInterceptor().apply {
+    fun provideOkHttp(
+        authInterceptor: AuthInterceptor,
+        headerInterceptor: HeaderInterceptor,
+        tokenAuthenticator: TokenAuthenticator
+    ): OkHttpClient {
+        val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
         return OkHttpClient.Builder()
-            .addInterceptor(logging)
+            .addInterceptor(loggingInterceptor)
+            .addInterceptor(headerInterceptor)
+            .addInterceptor(authInterceptor)
+            .authenticator(tokenAuthenticator)
             .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideTokenAuthenticator(
+        sharedPrefsManager: SharedPrefsManager,
+        authApiServiceProvider: Provider<AuthApiService>
+    ): TokenAuthenticator {
+        return TokenAuthenticator(sharedPrefsManager, authApiServiceProvider)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAuthInterceptor(sharedPrefsManager: SharedPrefsManager): AuthInterceptor {
+        return AuthInterceptor(sharedPrefsManager)
     }
 
     @Provides
@@ -54,7 +83,7 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(client: OkHttpClient, gson: Gson): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://api.swadratna.com/")
+            .baseUrl(ApiConstants.BASE_URL)
             .client(client)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
@@ -97,4 +126,9 @@ object NetworkModule {
     @Singleton
     fun provideMenuApi(retrofit: Retrofit): MenuApi =
         retrofit.create(MenuApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAuthApiService(retrofit: Retrofit): AuthApiService =
+        retrofit.create(AuthApiService::class.java)
 }

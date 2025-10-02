@@ -12,6 +12,7 @@ import com.swadratna.swadratna_admin.ui.dashboard.DashboardScreen
 import com.swadratna.swadratna_admin.ui.home.HomeScreen
 import com.swadratna.swadratna_admin.ui.campaign.CampaignScreen
 import com.swadratna.swadratna_admin.ui.campaign.CreateCampaignScreen
+import com.swadratna.swadratna_admin.ui.screens.LoginScreen
 import com.swadratna.swadratna_admin.ui.settings.SettingsScreen
 import com.swadratna.swadratna_admin.ui.staff.AddStaffScreen
 import com.swadratna.swadratna_admin.ui.staff.StaffManagementScreen
@@ -24,7 +25,7 @@ import com.swadratna.swadratna_admin.ui.menu.MenuScreen
 @Composable
 fun NavGraph(
     navController: NavHostController,
-    startDestination: String = NavRoute.Dashboard.route,
+    startDestination: String = NavRoute.Login.route,
     modifier: Modifier = Modifier,
 ) {
     NavHost(
@@ -32,6 +33,16 @@ fun NavGraph(
         startDestination = startDestination,
         modifier = modifier
     ) {
+        composable(NavRoute.Login.route) {
+            LoginScreen(
+                onLoginSuccess = {
+                    navController.navigate(NavRoute.Dashboard.route) {
+                        popUpTo(NavRoute.Login.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        
         composable(NavRoute.Dashboard.route) {
             DashboardScreen(
                 onNavigateToSettings = {
@@ -103,7 +114,7 @@ fun NavGraph(
                     navController.navigate(NavRoute.StaffManagement.route)
                 },
                 onNavigateToMenuManagement = { selectedStoreId ->
-                    navController.navigate(NavRoute.MenuScreen.route)
+                    navController.navigate(NavRoute.Menu.route)
                 },
                 onNavigateToAttendance = { selectedStoreId ->
                     navController.navigate(NavRoute.AttendancePayment.route)
@@ -174,7 +185,7 @@ fun NavGraph(
             )
         }
 
-        composable(NavRoute.MenuScreen.route) {
+        composable(NavRoute.Menu.route) {
             MenuScreen(onBack = { navController.popBackStack() })
         }
         
@@ -195,18 +206,18 @@ fun NavGraph(
     }
 }
 
-sealed class NavRoute(val route: String) {
-    object Dashboard : NavRoute("dashboard")
-    object Home : NavRoute("home")
-    object Campaigns : NavRoute("campaigns")
-    object CreateCampaign : NavRoute("create_campaign")
-    object Store : NavRoute("store")
-    object CreateStore : NavRoute("create_store")
-    object StoreDetail : NavRoute("store_detail")
-    object Analytics : NavRoute("analytics")
-    object Settings : NavRoute("settings")
-    object StaffManagement : NavRoute("staff_management")
-    object AddStaff : NavRoute("add_staff")
-    object AttendancePayment : NavRoute("attendance_payment")
-    object MenuScreen: NavRoute("menu_screen")
-}
+//sealed class NavRoute(val route: String) {
+//    object Dashboard : NavRoute("dashboard")
+//    object Home : NavRoute("home")
+//    object Campaigns : NavRoute("campaigns")
+//    object CreateCampaign : NavRoute("create_campaign")
+//    object Store : NavRoute("store")
+//    object CreateStore : NavRoute("create_store")
+//    object StoreDetail : NavRoute("store_detail")
+//    object Analytics : NavRoute("analytics")
+//    object Settings : NavRoute("settings")
+//    object StaffManagement : NavRoute("staff_management")
+//    object AddStaff : NavRoute("add_staff")
+//    object AttendancePayment : NavRoute("attendance_payment")
+//    object MenuScreen: NavRoute("menu_screen")
+//}

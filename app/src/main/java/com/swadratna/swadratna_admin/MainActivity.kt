@@ -36,8 +36,9 @@ class MainActivity : ComponentActivity() {
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     
                     val mainRoutes = listOf("dashboard", "campaigns", "store", "analytics")
+                    val currentRoute = navBackStackEntry?.destination?.route
                     
-                    val showBottomBar = navBackStackEntry?.destination?.route in mainRoutes
+                    val showBottomBar = currentRoute in mainRoutes && currentRoute != "login"
                     
                     Scaffold(
                         contentWindowInsets = WindowInsets(0.dp),
