@@ -79,4 +79,24 @@ class StaffRepositoryImpl @Inject constructor(
             Result.failure(Exception("An unexpected error occurred: ${e.message}"))
         }
     }
+    
+    override suspend fun deleteStaff(staffId: Int): Result<StaffOperationResponse> {
+        return try {
+            val response = staffApiService.deleteStaff(staffId)
+            Result.success(response)
+        } catch (e: HttpException) {
+            val errorMessage = when (e.code()) {
+                401 -> "Authentication failed. Please login again."
+                403 -> "Access denied. You don't have permission to delete staff."
+                404 -> "Staff member not found."
+                500 -> "Server error: Failed to delete staff. Please try again later."
+                else -> "Failed to delete staff. Error code: ${e.code()}"
+            }
+            Result.failure(Exception(errorMessage))
+        } catch (e: IOException) {
+            Result.failure(Exception("Network error. Please check your internet connection."))
+        } catch (e: Exception) {
+            Result.failure(Exception("An unexpected error occurred: ${e.message}"))
+        }
+    }
 }

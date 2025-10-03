@@ -200,7 +200,7 @@ fun StaffManagementScreen(
                                 StaffItem(
                                     staff = staff,
                                     onEdit = { staffId -> onNavigateToEditStaff(staffId) },
-                                    onDelete = { /* TODO: Implement delete functionality */ }
+                                    onDelete = { staffId -> viewModel.deleteStaff(staffId) }
                                 )
                             }
                         }

@@ -5,6 +5,7 @@ import com.swadratna.swadratna_admin.data.model.StaffOperationResponse
 import com.swadratna.swadratna_admin.data.model.StaffResponse
 import com.swadratna.swadratna_admin.data.model.UpdateStaffRequest
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
@@ -26,5 +27,10 @@ interface StaffApiService {
     suspend fun updateStaff(
         @Path("staffId") staffId: Int,
         @Body request: UpdateStaffRequest
+    ): StaffOperationResponse
+    
+    @DELETE("api/v1/admin/staff/{staffId}")
+    suspend fun deleteStaff(
+        @Path("staffId") staffId: Int
     ): StaffOperationResponse
 }

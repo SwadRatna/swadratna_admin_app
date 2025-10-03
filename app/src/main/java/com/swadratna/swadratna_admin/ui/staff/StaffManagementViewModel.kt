@@ -173,8 +173,30 @@ class StaffManagementViewModel @Inject constructor(
     }
 
     fun deleteStaff(staffId: Int) {
-        _allStaff.removeIf { it.id == staffId }
-        applyFiltersAndSort()
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            
+            staffRepository.deleteStaff(staffId)
+                .onSuccess { response ->
+                    // Remove from local list and update UI
+                    _allStaff.removeIf { it.id == staffId }
+                    applyFiltersAndSort()
+                    _uiState.update { 
+                        it.copy(
+                            isLoading = false,
+                            error = null
+                        )
+                    }
+                }
+                .onFailure { exception ->
+                    _uiState.update { 
+                        it.copy(
+                            isLoading = false,
+                            error = exception.message ?: "Failed to delete staff"
+                        )
+                    }
+                }
+        }
     }
     
     fun updateFilter(filter: String?) {
