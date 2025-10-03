@@ -36,10 +36,26 @@ fun StoreScreen(
         viewModel.onEvent(StoreEvent.RefreshStores)
     }
     
+    // Debug logging
+    LaunchedEffect(uiState) {
+        println("DEBUG StoreScreen: isLoading=${uiState.isLoading}, stores.size=${uiState.stores.size}, filteredStores.size=${uiState.filteredStores.size}, error=${uiState.error}")
+    }
+    
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Manage Stores") }
+                title = { Text("Manage Stores") },
+                actions = {
+                    // Debug button to check token status
+                    TextButton(
+                        onClick = { 
+                            val tokenStatus = viewModel.checkTokenStatus()
+                            println("DEBUG: Token Status - $tokenStatus")
+                        }
+                    ) {
+                        Text("Debug Token")
+                    }
+                }
             )
         },
         floatingActionButton = {
@@ -119,10 +135,12 @@ fun StoreScreen(
                                     store = store,
                                     onManage = onNavigateToManageStore,
                                     onEdit = { 
-                                        viewModel.onEvent(StoreEvent.EditStore(it))
+                                        viewModel.onEvent(StoreEvent.EditStore(it.toIntOrNull() ?: 0))
                                         onNavigateToEditStore(it)
                                     },
-                                    onDelete = { viewModel.onEvent(StoreEvent.DeleteStore(it)) }
+                                    onDelete = { storeId ->
+                                        viewModel.onEvent(StoreEvent.DeleteStore(storeId.toIntOrNull() ?: 0))
+                                    }
                                 )
                             }
                         }

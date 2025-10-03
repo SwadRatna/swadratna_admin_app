@@ -3,67 +3,57 @@ package com.swadratna.swadratna_admin.ui.store
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swadratna.swadratna_admin.data.model.Store
-import com.swadratna.swadratna_admin.data.model.StoreStatus
+import com.swadratna.swadratna_admin.data.model.StoreAddressRequest
+import com.swadratna.swadratna_admin.data.model.StoreRequest
+import com.swadratna.swadratna_admin.data.repository.StoreRepository
 import com.swadratna.swadratna_admin.utils.SharedPrefsManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
 class StoreViewModel @Inject constructor(
+    private val storeRepository: StoreRepository,
     private val sharedPrefsManager: SharedPrefsManager
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(StoreUiState())
     val uiState: StateFlow<StoreUiState> = _uiState.asStateFlow()
 
     init {
-        val savedStores = sharedPrefsManager.getStores()
+        loadStores()
+    }
+    
+    private fun loadStores() {
+        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
         
-        val initialStores = if (savedStores.isNotEmpty()) {
-            savedStores
-        } else {
-            listOf(
-                Store(
-                    id = "1",
-                    name = "Coastal Grill",
-                    location = "Mumbai, Maharashtra",
-                    address = "123 Coastal Avenue, Bandra West",
-                    creationDate = LocalDate.of(2023, 5, 15),
-                    status = StoreStatus.ACTIVE,
-                    imageUrl = null
-                ),
-                Store(
-                    id = "2",
-                    name = "Urban Eatery",
-                    location = "Delhi, NCR",
-                    address = "45 Connaught Place, New Delhi",
-                    creationDate = LocalDate.of(2023, 8, 22),
-                    status = StoreStatus.ACTIVE,
-                    imageUrl = null
-                ),
-                Store(
-                    id = "3",
-                    name = "Parkside Bistro",
-                    location = "Bangalore, Karnataka",
-                    address = "78 MG Road, Indiranagar",
-                    creationDate = LocalDate.of(2024, 1, 10),
-                    status = StoreStatus.PENDING,
-                    imageUrl = null
+        viewModelScope.launch {
+            try {
+                val result = storeRepository.getStores(page = 1, limit = 20, restaurantId = 1000001)
+                result.onSuccess { response ->
+                    println("DEBUG: API Success - Stores count: ${response.stores.size}")
+                    println("DEBUG: Stores data: ${response.stores}")
+                    _uiState.value = _uiState.value.copy(
+                        stores = response.stores,
+                        isLoading = false
+                    )
+                    updateFilteredStores()
+                    println("DEBUG: After updateFilteredStores - Filtered count: ${_uiState.value.filteredStores.size}")
+                }.onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = exception.message ?: "Failed to load stores"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "An unexpected error occurred"
                 )
-            )
+            }
         }
-        
-        _uiState.value = StoreUiState(
-            searchQuery = "",
-            stores = initialStores
-        )
-        
-        updateFilteredStores()
     }
 
     fun onEvent(event: StoreEvent) {
@@ -93,36 +83,13 @@ class StoreViewModel @Inject constructor(
                 )
             }
             is StoreEvent.RefreshStores -> {
-                updateFilteredStores()
+                loadStores()
             }
             is StoreEvent.ResetEditMode -> {
                 _uiState.value = _uiState.value.copy(
                     storeToEdit = null,
                     isEditMode = false
                 )
-            }
-            is StoreEvent.CreateStore -> {
-                val newStore = Store(
-                    id = UUID.randomUUID().toString(),
-                    name = event.name,
-                    location = event.location,
-                    address = event.address,
-                    creationDate = LocalDate.now(),
-                    status = event.status,
-                    imageUrl = null
-                )
-                
-                val updatedStores = _uiState.value.stores.toMutableList().apply {
-                    add(0, newStore)
-                }
-                
-                _uiState.value = _uiState.value.copy(stores = updatedStores)
-                
-                viewModelScope.launch {
-                    sharedPrefsManager.saveStores(updatedStores)
-                }
-                
-                updateFilteredStores()
             }
             is StoreEvent.EditStore -> {
                 val storeToEdit = _uiState.value.stores.find { it.id == event.storeId }
@@ -133,42 +100,14 @@ class StoreViewModel @Inject constructor(
                     )
                 }
             }
-            is StoreEvent.DeleteStore -> {
-                val updatedStores = _uiState.value.stores.filter { it.id != event.storeId }
-                
-                _uiState.value = _uiState.value.copy(stores = updatedStores)
-                
-                viewModelScope.launch {
-                    sharedPrefsManager.saveStores(updatedStores)
-                }
-                
-                updateFilteredStores()
+            is StoreEvent.CreateStore -> {
+                createStore(event)
             }
             is StoreEvent.UpdateStore -> {
-                val updatedStores = _uiState.value.stores.map { store ->
-                    if (store.id == event.id) {
-                        store.copy(
-                            name = event.name,
-                            location = event.location,
-                            address = event.address,
-                            status = event.status
-                        )
-                    } else {
-                        store
-                    }
-                }
-                
-                _uiState.value = _uiState.value.copy(
-                    stores = updatedStores,
-                    storeToEdit = null,
-                    isEditMode = false
-                )
-                
-                viewModelScope.launch {
-                    sharedPrefsManager.saveStores(updatedStores)
-                }
-                
-                updateFilteredStores()
+                updateStore(event)
+            }
+            is StoreEvent.DeleteStore -> {
+                deleteStore(event.storeId)
             }
         }
     }
@@ -177,10 +116,10 @@ class StoreViewModel @Inject constructor(
         val filteredList = _uiState.value.stores.filter { store ->
             val matchesSearch = _uiState.value.searchQuery.isEmpty() ||
                     store.name.contains(_uiState.value.searchQuery, ignoreCase = true) ||
-                    store.location.contains(_uiState.value.searchQuery, ignoreCase = true)
+                    store.getFullAddress().contains(_uiState.value.searchQuery, ignoreCase = true)
             
             val matchesStatus = _uiState.value.filterStatus == null ||
-                    store.status.name == _uiState.value.filterStatus
+                    store.status == _uiState.value.filterStatus
             
             matchesSearch && matchesStatus
         }
@@ -188,12 +127,142 @@ class StoreViewModel @Inject constructor(
         val sortedList = when (_uiState.value.sortOption) {
             "NAME_ASC" -> filteredList.sortedBy { it.name }
             "NAME_DESC" -> filteredList.sortedByDescending { it.name }
-            "DATE_ASC" -> filteredList.sortedBy { it.creationDate }
-            "DATE_DESC" -> filteredList.sortedByDescending { it.creationDate }
+            "DATE_ASC" -> filteredList.sortedBy { it.createdAt }
+            "DATE_DESC" -> filteredList.sortedByDescending { it.createdAt }
             else -> filteredList
         }
         
         _uiState.value = _uiState.value.copy(filteredStores = sortedList)
+    }
+    
+    private fun createStore(event: StoreEvent.CreateStore) {
+        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+        
+        viewModelScope.launch {
+            try {
+                val storeRequest = StoreRequest(
+                    address = StoreAddressRequest(
+                        plotNo = event.plotNo,
+                        poBoxNo = event.poBoxNo,
+                        street1 = event.street1,
+                        street2 = event.street2,
+                        locality = event.locality,
+                        city = event.city,
+                        pincode = event.pincode,
+                        landmark = event.landmark
+                    ),
+                    status = "active",
+                    locationMobileNumber = event.locationMobileNumber,
+                    restaurantId = 1000001,
+                    numberOfTables = event.numberOfTables
+                )
+                
+                val result = storeRepository.createStore(storeRequest)
+                result.onSuccess { newStore ->
+                    // Refresh the store list to include the new store
+                    loadStores()
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = null
+                    )
+                }.onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = exception.message ?: "Failed to create store"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "An unexpected error occurred"
+                )
+            }
+        }
+    }
+    
+    private fun updateStore(event: StoreEvent.UpdateStore) {
+        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+        
+        viewModelScope.launch {
+            try {
+                val storeRequest = StoreRequest(
+                    address = StoreAddressRequest(
+                        plotNo = event.plotNo,
+                        poBoxNo = event.poBoxNo,
+                        street1 = event.street1,
+                        street2 = event.street2,
+                        locality = event.locality,
+                        city = event.city,
+                        pincode = event.pincode,
+                        landmark = event.landmark
+                    ),
+                    status = "active",
+                    locationMobileNumber = event.locationMobileNumber,
+                    restaurantId = 1000001,
+                    numberOfTables = event.numberOfTables
+                )
+                
+                val result = storeRepository.updateStore(event.storeId, storeRequest)
+                result.onSuccess { updatedStore ->
+                    // Refresh the store list to reflect the updated store
+                    loadStores()
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = null,
+                        storeToEdit = null,
+                        isEditMode = false
+                    )
+                }.onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = exception.message ?: "Failed to update store"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "An unexpected error occurred"
+                )
+            }
+        }
+    }
+    
+    private fun deleteStore(storeId: Int) {
+        viewModelScope.launch {
+            try {
+                _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+                
+                storeRepository.deleteStore(storeId).onSuccess {
+                    // Remove the store from the current list
+                    val updatedStores = _uiState.value.stores.filter { it.id != storeId }
+                    _uiState.value = _uiState.value.copy(
+                        stores = updatedStores,
+                        isLoading = false
+                    )
+                    updateFilteredStores()
+                }.onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = exception.message ?: "Failed to delete store"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "An unexpected error occurred"
+                )
+            }
+        }
+    }
+    
+    // Debug method to check token status
+    fun checkTokenStatus(): String {
+        val token = sharedPrefsManager.getAuthToken()
+        return if (token != null) {
+            "Token exists: ${token.take(10)}... (length: ${token.length})"
+        } else {
+            "No token found in SharedPreferences"
+        }
     }
 }
 
@@ -208,7 +277,9 @@ data class StoreUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val storeToEdit: Store? = null,
-    val isEditMode: Boolean = false
+    val isEditMode: Boolean = false,
+    val currentPage: Int = 1,
+    val totalPages: Int = 1
 )
 
 sealed interface StoreEvent {
@@ -219,19 +290,31 @@ sealed interface StoreEvent {
     object ToggleSortMenu : StoreEvent
     object RefreshStores : StoreEvent
     object ResetEditMode : StoreEvent
+    data class EditStore(val storeId: Int) : StoreEvent
     data class CreateStore(
-        val name: String,
-        val location: String,
-        val address: String,
-        val status: StoreStatus
+        val plotNo: String,
+        val poBoxNo: String,
+        val street1: String,
+        val street2: String,
+        val locality: String,
+        val city: String,
+        val pincode: String,
+        val landmark: String,
+        val locationMobileNumber: String,
+        val numberOfTables: Int
     ) : StoreEvent
-    data class EditStore(val storeId: String) : StoreEvent
-    data class DeleteStore(val storeId: String) : StoreEvent
     data class UpdateStore(
-        val id: String,
-        val name: String,
-        val location: String,
-        val address: String,
-        val status: StoreStatus
+        val storeId: Int,
+        val plotNo: String,
+        val poBoxNo: String,
+        val street1: String,
+        val street2: String,
+        val locality: String,
+        val city: String,
+        val pincode: String,
+        val landmark: String,
+        val locationMobileNumber: String,
+        val numberOfTables: Int
     ) : StoreEvent
+    data class DeleteStore(val storeId: Int) : StoreEvent
 }

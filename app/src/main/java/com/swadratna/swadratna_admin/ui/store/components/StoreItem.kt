@@ -13,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.swadratna.swadratna_admin.data.model.Store
-import com.swadratna.swadratna_admin.data.model.StoreStatus
 
 @Composable
 fun StoreItem(
@@ -59,14 +58,14 @@ fun StoreItem(
                             text = { Text("Edit") },
                             onClick = {
                                 expanded = false
-                                onEdit(store.id)
+                                onEdit(store.id.toString())
                             }
                         )
                         DropdownMenuItem(
                             text = { Text("Delete") },
                             onClick = {
                                 expanded = false
-                                onDelete(store.id)
+                                onDelete(store.id.toString())
                             }
                         )
                     }
@@ -88,17 +87,7 @@ fun StoreItem(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = store.location,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Spacer(modifier = Modifier.width(20.dp))
-                Text(
-                    text = store.address,
+                    text = store.getFullAddress(),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -114,7 +103,7 @@ fun StoreItem(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "Created on: ${store.getFormattedCreationDate()}",
+                    text = "Created on: ${store.createdAt}",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -122,7 +111,7 @@ fun StoreItem(
             Spacer(modifier = Modifier.height(16.dp))
             
             TextButton(
-                onClick = { onManage(store.id) },
+                onClick = { onManage(store.id.toString()) },
                 modifier = Modifier.align(Alignment.End)
             ) {
                 Text("Manage")
@@ -132,17 +121,19 @@ fun StoreItem(
 }
 
 @Composable
-fun StoreStatusChip(status: StoreStatus) {
+fun StoreStatusChip(status: String) {
     val (backgroundColor, contentColor) = when (status) {
-        StoreStatus.ACTIVE -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
-        StoreStatus.INACTIVE -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
-        StoreStatus.PENDING -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+        "ACTIVE" -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
+        "INACTIVE" -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+        "PENDING" -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
+        else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
     }
     
     val statusText = when (status) {
-        StoreStatus.ACTIVE -> "Active"
-        StoreStatus.INACTIVE -> "Inactive"
-        StoreStatus.PENDING -> "Pending"
+        "ACTIVE" -> "Active"
+        "INACTIVE" -> "Inactive"
+        "PENDING" -> "Pending"
+        else -> status
     }
     
     SuggestionChip(

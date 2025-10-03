@@ -12,9 +12,17 @@ import com.swadratna.swadratna_admin.data.remote.api.CampaignApi
 import com.swadratna.swadratna_admin.data.remote.api.DashboardApi
 import com.swadratna.swadratna_admin.data.remote.api.MenuApi
 import com.swadratna.swadratna_admin.data.remote.api.HeaderInterceptor
+import com.swadratna.swadratna_admin.data.remote.api.StaffApiService
+import com.swadratna.swadratna_admin.data.remote.api.StoreApiService
 import com.swadratna.swadratna_admin.data.remote.api.TokenAuthenticator
+import com.swadratna.swadratna_admin.data.repository.AuthRepository
+import com.swadratna.swadratna_admin.data.repository.AuthRepositoryImpl
 import com.swadratna.swadratna_admin.data.repository.CampaignRepository
 import com.swadratna.swadratna_admin.data.repository.DashboardRepository
+import com.swadratna.swadratna_admin.data.repository.StaffRepository
+import com.swadratna.swadratna_admin.data.repository.StaffRepositoryImpl
+import com.swadratna.swadratna_admin.data.repository.StoreRepository
+import com.swadratna.swadratna_admin.data.repository.StoreRepositoryImpl
 import com.swadratna.swadratna_admin.utils.ApiConstants
 import com.swadratna.swadratna_admin.utils.SharedPrefsManager
 import dagger.Module
@@ -91,6 +99,12 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideStoreApiService(retrofit: Retrofit): StoreApiService {
+        return retrofit.create(StoreApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
     fun provideCampaignApi(retrofit: Retrofit): CampaignApi =
         retrofit.create(CampaignApi::class.java)
 
@@ -131,4 +145,9 @@ object NetworkModule {
     @Singleton
     fun provideAuthApiService(retrofit: Retrofit): AuthApiService =
         retrofit.create(AuthApiService::class.java)
+    
+    @Provides
+    @Singleton
+    fun provideStaffApiService(retrofit: Retrofit): StaffApiService =
+        retrofit.create(StaffApiService::class.java)
 }

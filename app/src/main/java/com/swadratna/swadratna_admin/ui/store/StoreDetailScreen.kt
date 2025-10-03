@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swadratna.swadratna_admin.R
 import com.swadratna.swadratna_admin.data.model.Store
-import com.swadratna.swadratna_admin.data.model.StoreStatus
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,7 +31,7 @@ fun StoreDetailScreen(
     viewModel: StoreViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val store = uiState.stores.find { it.id == storeId } ?: return
+    val store = uiState.stores.find { it.id.toString() == storeId } ?: return
     
     Scaffold(
         topBar = {
@@ -90,16 +89,8 @@ fun StoreInfoCard(store: Store) {
             Spacer(modifier = Modifier.height(8.dp))
             
             Text(
-                text = store.location,
+                text = store.getFullAddress(),
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
-            
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            Text(
-                text = store.address,
-                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
             
@@ -116,13 +107,14 @@ fun StoreInfoCard(store: Store) {
                 )
                 
                 val statusColor = when(store.status) {
-                    StoreStatus.ACTIVE -> Color(0xFF4CAF50)
-                    StoreStatus.PENDING -> Color(0xFFFFA000)
-                    StoreStatus.INACTIVE -> Color(0xFFF44336)
+                    "ACTIVE" -> Color(0xFF4CAF50)
+                    "PENDING" -> Color(0xFFFFA000)
+                    "INACTIVE" -> Color(0xFFF44336)
+                    else -> Color(0xFF9E9E9E)
                 }
                 
                 Text(
-                    text = store.status.name,
+                    text = store.status,
                     style = MaterialTheme.typography.bodyMedium,
                     color = statusColor,
                     fontWeight = FontWeight.Medium
@@ -132,7 +124,7 @@ fun StoreInfoCard(store: Store) {
             Spacer(modifier = Modifier.height(4.dp))
             
             Text(
-                text = "Created on: ${store.getFormattedCreationDate()}",
+                text = "Created on: ${store.createdAt}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )

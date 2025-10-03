@@ -26,20 +26,29 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swadratna.swadratna_admin.R
-import com.swadratna.swadratna_admin.model.Staff
-import com.swadratna.swadratna_admin.model.StaffStatus
+import com.swadratna.swadratna_admin.data.model.Staff
+import com.swadratna.swadratna_admin.data.model.StaffStatus
 import com.swadratna.swadratna_admin.ui.components.AppSearchField
 import com.swadratna.swadratna_admin.ui.store.StoreEvent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StaffManagementScreen(
+    storeId: String,
     modifier: Modifier = Modifier,
     viewModel: StaffManagementViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
-    onNavigateToAddStaff: () -> Unit = {}
+    onNavigateToAddStaff: () -> Unit = {},
+    onNavigateToEditStaff: (Int) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    
+    // Load staff data when screen is first displayed
+    LaunchedEffect(storeId) {
+        if (storeId.isNotEmpty()) {
+            viewModel.loadStaff(storeId.toInt())
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -115,17 +124,86 @@ fun StaffManagementScreen(
             Spacer(modifier = Modifier.height(8.dp))
             
             Box(modifier = Modifier.fillMaxSize()) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(uiState.staffList) { staff ->
-                        StaffItem(
-                            staff = staff,
-                            onEdit = { viewModel.editStaff(it) },
-                            onDelete = { viewModel.deleteStaff(it) }
-                        )
+                when {
+                    uiState.isLoading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                    uiState.error != null -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = uiState.error ?: "Unknown error",
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(
+                                    onClick = { 
+                                        if (storeId.isNotEmpty()) {
+                                            viewModel.loadStaff(storeId.toInt())
+                                        }
+                                    }
+                                ) {
+                                    Text("Retry")
+                                }
+                            }
+                        }
+                    }
+                    uiState.staffList.isEmpty() -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_home),
+                                    contentDescription = "No staff",
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "No staff members found",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Add staff members to get started",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    else -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(uiState.staffList) { staff ->
+                                StaffItem(
+                                    staff = staff,
+                                    onEdit = { staffId -> onNavigateToEditStaff(staffId) },
+                                    onDelete = { /* TODO: Implement delete functionality */ }
+                                )
+                            }
+                        }
                     }
                 }
                 
@@ -154,8 +232,8 @@ fun StaffManagementScreen(
 @Composable
 fun StaffItem(
     staff: Staff,
-    onEdit: (String) -> Unit,
-    onDelete: (String) -> Unit
+    onEdit: (Int) -> Unit,
+    onDelete: (Int) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -187,13 +265,13 @@ fun StaffItem(
                     
                     Column {
                         Text(
-                            text = staff.name,
+                            text = staff.name ?: "Unknown Name",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         
                         Text(
-                            text = staff.position,
+                            text = staff.position ?: "Unknown Position",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
@@ -206,8 +284,16 @@ fun StaffItem(
             Spacer(modifier = Modifier.height(16.dp))
             
             Text(
-                text = "${staff.workingHours.startTime} - ${staff.workingHours.endTime}",
-                style = MaterialTheme.typography.bodyMedium
+                text = staff.workingHours?.let { workingHours ->
+                    val startTime = workingHours.startTime ?: "00:00"
+                    val endTime = workingHours.endTime ?: "00:00"
+                    "$startTime - $endTime"
+                } ?: "Working hours not set",
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (staff.workingHours == null) 
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) 
+                else 
+                    MaterialTheme.colorScheme.onSurface
             )
             
             Spacer(modifier = Modifier.height(16.dp))
