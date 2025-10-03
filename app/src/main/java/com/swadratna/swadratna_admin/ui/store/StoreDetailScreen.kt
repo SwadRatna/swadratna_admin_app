@@ -41,11 +41,6 @@ fun StoreDetailScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
-                },
-                actions = {
-                    IconButton(onClick = { /* TODO: Show notifications */ }) {
-                        Icon(Icons.Default.Notifications, contentDescription = "Notifications")
-                    }
                 }
             )
         }
@@ -124,7 +119,7 @@ fun StoreInfoCard(store: Store) {
             Spacer(modifier = Modifier.height(4.dp))
             
             Text(
-                text = "Created on: ${store.createdAt}",
+                text = "Created on: ${store.getFormattedCreationDate()}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )

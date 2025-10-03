@@ -8,7 +8,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,19 +17,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBarsPadding
 import com.swadratna.swadratna_admin.R
-import com.swadratna.swadratna_admin.ui.components.AppSearchField
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     modifier: Modifier = Modifier,
     viewModel: DashboardViewModel = hiltViewModel(),
-    onNavigateToSettings: () -> Unit = {}
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToNotifications: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -42,7 +42,7 @@ fun DashboardScreen(
                     Row(
                         modifier = Modifier.padding(end = 16.dp)
                     ) {
-                        IconButton(onClick = { /* TODO */ }) {
+                        IconButton(onClick = onNavigateToNotifications) {
                             Icon(Icons.Default.Notifications, contentDescription = "Notifications")
                         }
                         Spacer(Modifier.width(8.dp))
@@ -82,9 +82,8 @@ fun DashboardScreen(
                         .padding(paddingValues),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    item { SearchBar(uiState.searchQuery, viewModel) }
                     item { StatisticsSection(uiState) }
-                    item { RecentActivitySection(uiState.recentActivities) }
+                    item { RecentActivitySection(uiState.recentActivities, onNavigateToNotifications) }
                     item { TopPerformingStoreSection(uiState.topStore) }
                 }
             }
@@ -92,19 +91,7 @@ fun DashboardScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SearchBar(query: String, viewModel: DashboardViewModel) {
-    AppSearchField(
-        value = query,
-        onValueChange = { viewModel.handleEvent(DashboardEvent.SearchQueryChanged(it)) },
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        placeholder = "Search store, campaigns…",
-        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }
-    )
-}
+
 
 @Composable
 fun StatisticsSection(uiState: DashboardUiState) {
@@ -186,7 +173,7 @@ fun StatCard(
 }
 
 @Composable
-fun RecentActivitySection(activities: List<ActivityItem>) {
+fun RecentActivitySection(activities: List<ActivityItem>, onNavigateToNotifications: () -> Unit) {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         Text(
             text = "Recent Activity",
@@ -194,11 +181,29 @@ fun RecentActivitySection(activities: List<ActivityItem>) {
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(16.dp))
-        activities.forEach { activity ->
-            ActivityItem(activity)
-        }
-        TextButton(onClick = { /* TODO */ }) {
-            Text("View All Activity")
+        
+        if (activities.isEmpty()) {
+            Text(
+                text = "No activity yet",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        } else {
+            activities.forEach { activity ->
+                ActivityItem(activity)
+            }
+            Text(
+                text = "View All Activity",
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    textDecoration = TextDecoration.Underline
+                ),
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .clickable { onNavigateToNotifications() }
+            )
         }
     }
 }
@@ -242,9 +247,17 @@ fun TopPerformingStoreSection(storeItem: List<StoreItem>) {
                 }
             )
         }
-        TextButton(onClick = { /* TODO */ }) {
-            Text("View Full Leaderboard")
-        }
+        Text(
+            text = "View Full Leaderboard",
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontWeight = FontWeight.Bold,
+                textDecoration = TextDecoration.Underline
+            ),
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .clickable { /* TODO */ }
+        )
     }
 }
 

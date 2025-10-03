@@ -1,5 +1,7 @@
 package com.swadratna.swadratna_admin.di
 
+import com.swadratna.swadratna_admin.data.repository.ActivityRepository
+import com.swadratna.swadratna_admin.data.repository.ActivityRepositoryImpl
 import com.swadratna.swadratna_admin.data.repository.AnalyticsRepository
 import com.swadratna.swadratna_admin.data.repository.AnalyticsRepositoryImpl
 import com.swadratna.swadratna_admin.data.repository.AuthRepository
@@ -35,6 +37,10 @@ interface RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindStoreRepository(impl: StoreRepositoryImpl): StoreRepository
+    
+    @Binds
+    @Singleton
+    abstract fun bindActivityRepository(impl: ActivityRepositoryImpl): ActivityRepository
     
     @Binds
     @Singleton

@@ -22,4 +22,5 @@ sealed class NavRoute(val route: String) {
     }
     object AttendancePayment : NavRoute("attendance_payment")
     object Menu : NavRoute("menu")
+    object Notifications : NavRoute("notifications")
 }
