@@ -6,6 +6,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -47,6 +48,10 @@ fun EditStaffScreen(
     var startTime by remember { mutableStateOf("") }
     var endTime by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("active") }
+    
+    // Dropdown state for role selection
+    var roleDropdownExpanded by remember { mutableStateOf(false) }
+    val roleOptions = listOf("manager", "waiter", "chef", "cashier")
     
     // Error states
     var nameError by remember { mutableStateOf("") }
@@ -295,22 +300,45 @@ fun EditStaffScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Role field
-            OutlinedTextField(
-                value = role,
-                onValueChange = { 
-                    role = it
-                    roleError = ""
-                },
-                label = { Text("Role *") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                placeholder = { Text("e.g., manager, cashier, cook") },
-                isError = roleError.isNotEmpty(),
-                supportingText = if (roleError.isNotEmpty()) {
-                    { Text(roleError) }
-                } else null
-            )
+            // Role field - Dropdown
+            ExposedDropdownMenuBox(
+                expanded = roleDropdownExpanded,
+                onExpandedChange = { roleDropdownExpanded = it },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = role,
+                    onValueChange = { },
+                    readOnly = true,
+                    label = { Text("Role *") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(),
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = roleDropdownExpanded) },
+                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                    isError = roleError.isNotEmpty(),
+                    supportingText = if (roleError.isNotEmpty()) {
+                        { Text(roleError) }
+                    } else null,
+                    placeholder = { Text("Select a role") }
+                )
+                
+                ExposedDropdownMenu(
+                    expanded = roleDropdownExpanded,
+                    onDismissRequest = { roleDropdownExpanded = false }
+                ) {
+                    roleOptions.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option.replaceFirstChar { it.uppercase() }) },
+                            onClick = {
+                                role = option
+                                roleError = ""
+                                roleDropdownExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
             
             Spacer(modifier = Modifier.height(16.dp))
             

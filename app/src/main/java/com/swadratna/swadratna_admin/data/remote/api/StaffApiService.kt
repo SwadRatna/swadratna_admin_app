@@ -32,5 +32,5 @@ interface StaffApiService {
     @DELETE("api/v1/admin/staff/{staffId}")
     suspend fun deleteStaff(
         @Path("staffId") staffId: Int
-    ): StaffOperationResponse
+    )
 }

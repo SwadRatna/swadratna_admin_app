@@ -177,7 +177,7 @@ class StaffManagementViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             
             staffRepository.deleteStaff(staffId)
-                .onSuccess { response ->
+                .onSuccess {
                     // Remove from local list and update UI
                     _allStaff.removeIf { it.id == staffId }
                     applyFiltersAndSort()
