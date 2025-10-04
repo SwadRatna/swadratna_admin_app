@@ -198,15 +198,7 @@ class StaffManagementViewModel @Inject constructor(
             val staffToDelete = _allStaff.find { it.id == staffId }
             
             staffRepository.deleteStaff(staffId)
-                .onSuccess { response ->
-                    // Add activity tracking
-                    activityRepository.addActivity(
-                        ActivityType.STAFF_DELETED,
-                        "Staff member removed",
-                        "Staff member '${staffToDelete?.name ?: "Unknown"}' has been successfully removed"
-                    )
-                    
-                    // Remove from local list and update UI
+                .onSuccess {
                     _allStaff.removeIf { it.id == staffId }
                     applyFiltersAndSort()
                     _uiState.update { 

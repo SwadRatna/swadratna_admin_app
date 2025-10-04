@@ -80,10 +80,10 @@ class StaffRepositoryImpl @Inject constructor(
         }
     }
     
-    override suspend fun deleteStaff(staffId: Int): Result<StaffOperationResponse> {
+    override suspend fun deleteStaff(staffId: Int): Result<Unit> {
         return try {
-            val response = staffApiService.deleteStaff(staffId)
-            Result.success(response)
+            staffApiService.deleteStaff(staffId)
+            Result.success(Unit)
         } catch (e: HttpException) {
             val errorMessage = when (e.code()) {
                 401 -> "Authentication failed. Please login again."
