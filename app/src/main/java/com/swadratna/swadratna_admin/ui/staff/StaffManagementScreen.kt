@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -60,8 +61,17 @@ fun StaffManagementScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* TODO: Show notifications */ }) {
-                        Icon(Icons.Default.Notifications, contentDescription = "Notifications")
+                    IconButton(
+                        onClick = { 
+                            if (storeId.isNotEmpty()) {
+                                viewModel.loadStaff(storeId.toInt())
+                            }
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.Refresh, 
+                            contentDescription = "Refresh"
+                        )
                     }
                 }
             )
@@ -284,16 +294,25 @@ fun StaffItem(
             Spacer(modifier = Modifier.height(16.dp))
             
             Text(
-                text = staff.workingHours?.let { workingHours ->
-                    val startTime = workingHours.startTime ?: "00:00"
-                    val endTime = workingHours.endTime ?: "00:00"
-                    "$startTime - $endTime"
-                } ?: "Working hours not set",
+                text = run {
+                    val startTime = staff.workingHours?.startTime ?: staff.shiftTiming?.startTime
+                    val endTime = staff.workingHours?.endTime ?: staff.shiftTiming?.endTime
+                    
+                    if (startTime != null && endTime != null) {
+                        "$startTime - $endTime"
+                    } else {
+                        "Working hours not set"
+                    }
+                },
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (staff.workingHours == null) 
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) 
-                else 
-                    MaterialTheme.colorScheme.onSurface
+                color = run {
+                    val hasWorkingHours = (staff.workingHours?.startTime != null && staff.workingHours?.endTime != null) ||
+                                         (staff.shiftTiming?.startTime != null && staff.shiftTiming?.endTime != null)
+                    if (hasWorkingHours) 
+                        MaterialTheme.colorScheme.onSurface 
+                    else 
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                }
             )
             
             Spacer(modifier = Modifier.height(16.dp))

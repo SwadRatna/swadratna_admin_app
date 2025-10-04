@@ -22,6 +22,7 @@ import com.swadratna.swadratna_admin.ui.store.StoreScreen
 import com.swadratna.swadratna_admin.ui.store.StoreDetailScreen
 import com.swadratna.swadratna_admin.ui.attendance.AttendancePaymentScreen
 import com.swadratna.swadratna_admin.ui.menu.MenuScreen
+import com.swadratna.swadratna_admin.ui.notifications.NotificationScreen
 
 @Composable
 fun NavGraph(
@@ -48,6 +49,9 @@ fun NavGraph(
             DashboardScreen(
                 onNavigateToSettings = {
                     navController.navigate(NavRoute.Settings.route)
+                },
+                onNavigateToNotifications = {
+                    navController.navigate(NavRoute.Notifications.route)
                 }
             )
         }
@@ -224,6 +228,14 @@ fun NavGraph(
         
         composable(NavRoute.AttendancePayment.route) {
             AttendancePaymentScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        composable(NavRoute.Notifications.route) {
+            NotificationScreen(
                 onNavigateBack = {
                     navController.popBackStack()
                 }

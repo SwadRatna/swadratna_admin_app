@@ -79,8 +79,8 @@ fun EditStaffScreen(
             joinDate = staff.joinDate ?: ""
             
             // Handle working hours from either workingHours or shiftTiming
-            startTime = (staff.workingHours?.startTime ?: staff.shiftTiming?.startTime)?.split(":")?.get(0) ?: ""
-            endTime = (staff.workingHours?.endTime ?: staff.shiftTiming?.endTime)?.split(":")?.get(0) ?: ""
+            startTime = (staff.workingHours?.startTime ?: staff.shiftTiming?.startTime) ?: ""
+            endTime = (staff.workingHours?.endTime ?: staff.shiftTiming?.endTime) ?: ""
             
             status = when (staff.status.name.lowercase()) {
                 "active" -> "active"

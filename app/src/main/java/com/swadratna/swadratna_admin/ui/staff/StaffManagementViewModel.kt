@@ -2,12 +2,15 @@ package com.swadratna.swadratna_admin.ui.staff
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.swadratna.swadratna_admin.data.model.Activity
+import com.swadratna.swadratna_admin.data.model.ActivityType
 import com.swadratna.swadratna_admin.data.model.CreateStaffRequest
 import com.swadratna.swadratna_admin.data.model.ShiftTiming
 import com.swadratna.swadratna_admin.data.model.Staff
 import com.swadratna.swadratna_admin.data.model.StaffStatus
 import com.swadratna.swadratna_admin.data.model.UpdateStaffRequest
 import com.swadratna.swadratna_admin.data.model.WorkingHours
+import com.swadratna.swadratna_admin.data.repository.ActivityRepository
 import com.swadratna.swadratna_admin.data.repository.StaffRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +23,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class StaffManagementViewModel @Inject constructor(
-    private val staffRepository: StaffRepository
+    private val staffRepository: StaffRepository,
+    private val activityRepository: ActivityRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(StaffManagementUiState())
     val uiState: StateFlow<StaffManagementUiState> = _uiState.asStateFlow()
@@ -93,6 +97,13 @@ class StaffManagementViewModel @Inject constructor(
             
             staffRepository.createStaff(request)
                 .onSuccess { response ->
+                    // Add activity tracking
+                    activityRepository.addActivity(
+                        ActivityType.STAFF_CREATED,
+                        "New staff member added",
+                        "Staff member '$name' has been successfully added with role '$role'"
+                    )
+                    
                     _uiState.update { 
                         it.copy(
                             isLoading = false,
@@ -147,6 +158,13 @@ class StaffManagementViewModel @Inject constructor(
             
             staffRepository.updateStaff(staffId, request)
                 .onSuccess { response ->
+                    // Add activity tracking
+                    activityRepository.addActivity(
+                        ActivityType.STAFF_UPDATED,
+                        "Staff member updated",
+                        "Staff member '$name' has been successfully updated with role '$role'"
+                    )
+                    
                     _uiState.update { 
                         it.copy(
                             isLoading = false,
@@ -176,9 +194,11 @@ class StaffManagementViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             
+            // Find the staff member before deletion for activity tracking
+            val staffToDelete = _allStaff.find { it.id == staffId }
+            
             staffRepository.deleteStaff(staffId)
                 .onSuccess {
-                    // Remove from local list and update UI
                     _allStaff.removeIf { it.id == staffId }
                     applyFiltersAndSort()
                     _uiState.update { 

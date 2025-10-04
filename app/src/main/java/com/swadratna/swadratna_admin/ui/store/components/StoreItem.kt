@@ -1,5 +1,6 @@
 package com.swadratna.swadratna_admin.ui.store.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -24,7 +25,8 @@ fun StoreItem(
 ) {
     Card(
         modifier = modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .clickable { onManage(store.id.toString()) },
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(
@@ -103,19 +105,12 @@ fun StoreItem(
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = "Created on: ${store.createdAt}",
+                    text = "Created on: ${store.getFormattedCreationDate()}",
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
             
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            TextButton(
-                onClick = { onManage(store.id.toString()) },
-                modifier = Modifier.align(Alignment.End)
-            ) {
-                Text("Manage")
-            }
+
         }
     }
 }

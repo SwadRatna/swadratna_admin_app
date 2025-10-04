@@ -2,9 +2,12 @@ package com.swadratna.swadratna_admin.ui.store
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.swadratna.swadratna_admin.data.model.Activity
+import com.swadratna.swadratna_admin.data.model.ActivityType
 import com.swadratna.swadratna_admin.data.model.Store
 import com.swadratna.swadratna_admin.data.model.StoreAddressRequest
 import com.swadratna.swadratna_admin.data.model.StoreRequest
+import com.swadratna.swadratna_admin.data.repository.ActivityRepository
 import com.swadratna.swadratna_admin.data.repository.StoreRepository
 import com.swadratna.swadratna_admin.utils.SharedPrefsManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,6 +20,7 @@ import javax.inject.Inject
 @HiltViewModel
 class StoreViewModel @Inject constructor(
     private val storeRepository: StoreRepository,
+    private val activityRepository: ActivityRepository,
     private val sharedPrefsManager: SharedPrefsManager
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(StoreUiState())
@@ -159,6 +163,13 @@ class StoreViewModel @Inject constructor(
                 
                 val result = storeRepository.createStore(storeRequest)
                 result.onSuccess { newStore ->
+                    // Add activity tracking
+                    activityRepository.addActivity(
+                        ActivityType.STORE_CREATED,
+                        "New store created",
+                        "Store '${newStore.name}' has been successfully created at ${newStore.getFullAddress()}"
+                    )
+                    
                     // Refresh the store list to include the new store
                     loadStores()
                     _uiState.value = _uiState.value.copy(
@@ -204,6 +215,13 @@ class StoreViewModel @Inject constructor(
                 
                 val result = storeRepository.updateStore(event.storeId, storeRequest)
                 result.onSuccess { updatedStore ->
+                    // Add activity tracking
+                    activityRepository.addActivity(
+                        ActivityType.STORE_UPDATED,
+                        "Store updated",
+                        "Store '${updatedStore.name}' has been successfully updated"
+                    )
+                    
                     // Refresh the store list to reflect the updated store
                     loadStores()
                     _uiState.value = _uiState.value.copy(
@@ -232,7 +250,17 @@ class StoreViewModel @Inject constructor(
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true, error = null)
                 
+                // Find the store name before deletion for activity tracking
+                val storeToDelete = _uiState.value.stores.find { it.id == storeId }
+                
                 storeRepository.deleteStore(storeId).onSuccess {
+                    // Add activity tracking
+                    activityRepository.addActivity(
+                        ActivityType.STORE_DELETED,
+                        "Store deleted",
+                        "Store '${storeToDelete?.name ?: "Unknown"}' has been successfully deleted"
+                    )
+                    
                     // Remove the store from the current list
                     val updatedStores = _uiState.value.stores.filter { it.id != storeId }
                     _uiState.value = _uiState.value.copy(
