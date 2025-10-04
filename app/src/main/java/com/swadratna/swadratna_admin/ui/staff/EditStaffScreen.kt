@@ -16,15 +16,28 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.swadratna.swadratna_admin.data.model.Staff
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddStaffScreen(
-    onNavigateBack: () -> Unit,
+fun EditStaffScreen(
+    staffId: String,
     storeId: String,
-    viewModel: StaffManagementViewModel = hiltViewModel()
+    modifier: Modifier = Modifier,
+    viewModel: StaffManagementViewModel = hiltViewModel(),
+    onNavigateBack: () -> Unit = {}
 ) {
-    // Form state variables matching API requirements
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    
+    // Load staff data when screen initializes
+    LaunchedEffect(storeId) {
+        viewModel.loadStaff(storeId.toIntOrNull() ?: 0)
+    }
+    
+    // Find the staff member to edit
+    val staffToEdit = uiState.staffList.find { it.id == staffId.toIntOrNull() }
+    
+    // Form state variables
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
@@ -40,7 +53,7 @@ fun AddStaffScreen(
     var roleDropdownExpanded by remember { mutableStateOf(false) }
     val roleOptions = listOf("manager", "waiter", "chef", "cashier")
     
-    // Validation states
+    // Error states
     var nameError by remember { mutableStateOf("") }
     var emailError by remember { mutableStateOf("") }
     var phoneError by remember { mutableStateOf("") }
@@ -51,8 +64,38 @@ fun AddStaffScreen(
     var startTimeError by remember { mutableStateOf("") }
     var endTimeError by remember { mutableStateOf("") }
     
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val scrollState = rememberScrollState()
+    // Track if update was initiated to handle navigation
+    var updateInitiated by remember { mutableStateOf(false) }
+    
+    // Initialize form with existing staff data
+    LaunchedEffect(staffToEdit) {
+        staffToEdit?.let { staff ->
+            name = staff.name ?: ""
+            email = staff.email ?: ""
+            phone = staff.phone ?: staff.mobileNumber ?: ""
+            address = staff.address ?: ""
+            role = staff.position ?: ""
+            salary = staff.salary?.toString() ?: ""
+            joinDate = staff.joinDate ?: ""
+            
+            // Handle working hours from either workingHours or shiftTiming
+            startTime = (staff.workingHours?.startTime ?: staff.shiftTiming?.startTime)?.split(":")?.get(0) ?: ""
+            endTime = (staff.workingHours?.endTime ?: staff.shiftTiming?.endTime)?.split(":")?.get(0) ?: ""
+            
+            status = when (staff.status.name.lowercase()) {
+                "active" -> "active"
+                "inactive" -> "inactive"
+                else -> "active"
+            }
+        }
+    }
+    
+    // Navigate back after successful update
+    LaunchedEffect(uiState.isLoading, uiState.error, updateInitiated) {
+        if (updateInitiated && !uiState.isLoading && uiState.error == null) {
+            onNavigateBack()
+        }
+    }
     
     // Validation functions
     fun validateEmail(email: String): Boolean {
@@ -68,102 +111,78 @@ fun AddStaffScreen(
     }
     
     fun validateTime(time: String): Boolean {
-        return time.length <= 2 && time.all { it.isDigit() } && 
-               (time.toIntOrNull() ?: -1) in 0..23
+        val hour = time.toIntOrNull()
+        return hour != null && hour in 0..23
     }
     
     fun validateJoinDate(date: String): Boolean {
-        // Basic validation for DD/MM/YYYY format
-        val parts = date.split("/")
-        return parts.size == 3 && 
-               parts[0].length == 2 && parts[0].all { it.isDigit() } &&
-               parts[1].length == 2 && parts[1].all { it.isDigit() } &&
-               parts[2].length == 4 && parts[2].all { it.isDigit() }
+        val regex = Regex("^\\d{2}/\\d{2}/\\d{4}$")
+        return regex.matches(date)
     }
     
     fun validateForm(): Boolean {
         var isValid = true
         
-        // Reset errors
-        nameError = ""
-        emailError = ""
-        phoneError = ""
-        addressError = ""
-        roleError = ""
-        salaryError = ""
-        joinDateError = ""
-        startTimeError = ""
-        endTimeError = ""
-        
-        // Validate name
         if (name.isBlank()) {
             nameError = "Name is required"
             isValid = false
         }
         
-        // Validate email
         if (email.isBlank()) {
             emailError = "Email is required"
             isValid = false
         } else if (!validateEmail(email)) {
-            emailError = "Invalid email format"
+            emailError = "Please enter a valid email"
             isValid = false
         }
         
-        // Validate phone
         if (phone.isBlank()) {
             phoneError = "Phone is required"
             isValid = false
         } else if (!validatePhone(phone)) {
-            phoneError = "Phone must be at least 10 digits"
+            phoneError = "Please enter a valid 10-digit phone number"
             isValid = false
         }
         
-        // Validate address
         if (address.isBlank()) {
             addressError = "Address is required"
             isValid = false
         }
         
-        // Validate role
         if (role.isBlank()) {
             roleError = "Role is required"
             isValid = false
         }
         
-        // Validate salary
         if (salary.isBlank()) {
             salaryError = "Salary is required"
             isValid = false
         } else if (!validateSalary(salary)) {
-            salaryError = "Invalid salary amount"
+            salaryError = "Please enter a valid salary amount"
             isValid = false
         }
         
-        // Validate join date
         if (joinDate.isBlank()) {
             joinDateError = "Join date is required"
             isValid = false
         } else if (!validateJoinDate(joinDate)) {
-            joinDateError = "Date format should be DD/MM/YYYY"
+            joinDateError = "Please enter date in DD/MM/YYYY format"
             isValid = false
         }
         
-        // Validate start time
         if (startTime.isBlank()) {
             startTimeError = "Start time is required"
             isValid = false
         } else if (!validateTime(startTime)) {
-            startTimeError = "Invalid time (0-23)"
+            startTimeError = "Please enter a valid hour (0-23)"
             isValid = false
         }
         
-        // Validate end time
         if (endTime.isBlank()) {
             endTimeError = "End time is required"
             isValid = false
         } else if (!validateTime(endTime)) {
-            endTimeError = "Invalid time (0-23)"
+            endTimeError = "Please enter a valid hour (0-23)"
             isValid = false
         }
         
@@ -173,7 +192,7 @@ fun AddStaffScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Add New Staff") },
+                title = { Text("Edit Staff") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -183,14 +202,12 @@ fun AddStaffScreen(
         }
     ) { paddingValues ->
         Column(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 16.dp)
-                .verticalScroll(scrollState)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
-            
             // Show error message if any
             val errorMessage = uiState.error
             if (errorMessage != null) {
@@ -451,35 +468,33 @@ fun AddStaffScreen(
             // Submit Button
             Button(
                 onClick = {
-                        if (validateForm()) {
+                    if (validateForm()) {
+                        staffToEdit?.let { staff ->
                             // Safe conversion with validation
                             val salaryValue = salary.toDoubleOrNull()
-                            val storeIdValue = storeId.toIntOrNull()
                             
-                            if (salaryValue != null && storeIdValue != null) {
-                                viewModel.createStaff(
+                            if (salaryValue != null) {
+                                updateInitiated = true
+                                viewModel.updateStaff(
+                                    staffId = staff.id,
                                     name = name,
                                     email = email,
                                     phone = phone,
+                                    mobileNumber = phone,
                                     address = address,
                                     role = role,
                                     salary = salaryValue,
                                     joinDate = joinDate,
                                     startTime = startTime,
                                     endTime = endTime,
-                                    status = status,
-                                    storeId = storeIdValue
+                                    status = status
                                 )
                             }
-                        
-                        // Navigate back on success (will be handled by ViewModel state)
-                        if (!uiState.isLoading && uiState.error == null) {
-                            onNavigateBack()
                         }
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isLoading
+                enabled = !uiState.isLoading && staffToEdit != null
             ) {
                 if (uiState.isLoading) {
                     CircularProgressIndicator(
@@ -488,34 +503,10 @@ fun AddStaffScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                Text("Add Staff")
+                Text("Update Staff")
             }
             
             Spacer(modifier = Modifier.height(16.dp))
         }
-    }
-}
-
-@Composable
-fun StatusRadioButton(
-    text: String,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        RadioButton(
-            selected = selected,
-            onClick = onClick
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge
-        )
     }
 }

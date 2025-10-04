@@ -6,6 +6,10 @@ import com.swadratna.swadratna_admin.data.repository.AuthRepository
 import com.swadratna.swadratna_admin.data.repository.AuthRepositoryImpl
 import com.swadratna.swadratna_admin.data.repository.Repository
 import com.swadratna.swadratna_admin.data.repository.RepositoryImpl
+import com.swadratna.swadratna_admin.data.repository.StaffRepository
+import com.swadratna.swadratna_admin.data.repository.StaffRepositoryImpl
+import com.swadratna.swadratna_admin.data.repository.StoreRepository
+import com.swadratna.swadratna_admin.data.repository.StoreRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -27,4 +31,12 @@ interface RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
+    
+    @Binds
+    @Singleton
+    abstract fun bindStoreRepository(impl: StoreRepositoryImpl): StoreRepository
+    
+    @Binds
+    @Singleton
+    abstract fun bindStaffRepository(impl: StaffRepositoryImpl): StaffRepository
 }

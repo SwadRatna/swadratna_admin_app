@@ -15,6 +15,7 @@ import com.swadratna.swadratna_admin.ui.campaign.CreateCampaignScreen
 import com.swadratna.swadratna_admin.ui.screens.LoginScreen
 import com.swadratna.swadratna_admin.ui.settings.SettingsScreen
 import com.swadratna.swadratna_admin.ui.staff.AddStaffScreen
+import com.swadratna.swadratna_admin.ui.staff.EditStaffScreen
 import com.swadratna.swadratna_admin.ui.staff.StaffManagementScreen
 import com.swadratna.swadratna_admin.ui.store.CreateStoreScreen
 import com.swadratna.swadratna_admin.ui.store.StoreScreen
@@ -111,7 +112,7 @@ fun NavGraph(
                     navController.popBackStack()
                 },
                 onNavigateToStaffManagement = { selectedStoreId ->
-                    navController.navigate(NavRoute.StaffManagement.route)
+                    navController.navigate(NavRoute.StaffManagement.createRoute(selectedStoreId))
                 },
                 onNavigateToMenuManagement = { selectedStoreId ->
                     navController.navigate(NavRoute.Menu.route)
@@ -178,10 +179,15 @@ fun NavGraph(
             )
         }
         
-        composable(NavRoute.StaffManagement.route) {
+        composable(NavRoute.StaffManagement.route) { backStackEntry ->
+            val storeId = backStackEntry.arguments?.getString("storeId") ?: ""
             StaffManagementScreen(
+                storeId = storeId,
                 onNavigateBack = { navController.popBackStack() },
-                onNavigateToAddStaff = { navController.navigate(NavRoute.AddStaff.route) }
+                onNavigateToAddStaff = { navController.navigate(NavRoute.AddStaff.createRoute(storeId)) },
+                onNavigateToEditStaff = { staffId -> 
+                    navController.navigate(NavRoute.EditStaff.createRoute(staffId, storeId))
+                }
             )
         }
 
@@ -189,10 +195,30 @@ fun NavGraph(
             MenuScreen(onBack = { navController.popBackStack() })
         }
         
-        composable(NavRoute.AddStaff.route) {
+        composable(
+            route = NavRoute.AddStaff.route,
+            arguments = listOf(navArgument("storeId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val storeId = backStackEntry.arguments?.getString("storeId") ?: ""
             AddStaffScreen(
                 onNavigateBack = { navController.popBackStack() },
-                storeId = "" // This would typically come from the StaffManagementScreen
+                storeId = storeId
+            )
+        }
+        
+        composable(
+            route = NavRoute.EditStaff.route,
+            arguments = listOf(
+                navArgument("staffId") { type = NavType.IntType },
+                navArgument("storeId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val staffId = backStackEntry.arguments?.getInt("staffId")?.toString() ?: "0"
+            val storeId = backStackEntry.arguments?.getString("storeId") ?: ""
+            EditStaffScreen(
+                staffId = staffId,
+                storeId = storeId,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         

@@ -1,6 +1,7 @@
 package com.swadratna.swadratna_admin.data.remote.api
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import com.swadratna.swadratna_admin.utils.SharedPrefsManager
 import okhttp3.Interceptor
@@ -15,8 +16,12 @@ class AuthInterceptor @Inject constructor(
     override fun intercept(chain: Interceptor.Chain): Response {
         val requestBuilder = chain.request().newBuilder()
 
-        sharedPrefsManager.getAuthToken()?.let {
-            requestBuilder.addHeader("Authorization", "Bearer $it")
+        val token = sharedPrefsManager.getAuthToken()
+        if (token != null) {
+            Log.d("AuthInterceptor", "Adding Bearer token to request: ${token.take(10)}...")
+            requestBuilder.addHeader("Authorization", "Bearer $token")
+        } else {
+            Log.w("AuthInterceptor", "No auth token found in SharedPreferences")
         }
 
         return chain.proceed(requestBuilder.build())

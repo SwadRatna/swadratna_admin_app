@@ -11,8 +11,15 @@ sealed class NavRoute(val route: String) {
     object StoreDetail : NavRoute("store_detail")
     object Settings : NavRoute("settings")
     object Analytics : NavRoute("analytics")
-    object StaffManagement : NavRoute("staff_management")
-    object AddStaff : NavRoute("add_staff")
+    object StaffManagement : NavRoute("staff_management/{storeId}") {
+        fun createRoute(storeId: String) = "staff_management/$storeId"
+    }
+    object AddStaff : NavRoute("add_staff/{storeId}") {
+        fun createRoute(storeId: String) = "add_staff/$storeId"
+    }
+    object EditStaff : NavRoute("edit_staff/{staffId}/{storeId}") {
+        fun createRoute(staffId: Int, storeId: String) = "edit_staff/$staffId/$storeId"
+    }
     object AttendancePayment : NavRoute("attendance_payment")
     object Menu : NavRoute("menu")
 }
