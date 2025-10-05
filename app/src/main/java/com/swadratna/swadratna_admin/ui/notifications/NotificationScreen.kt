@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -183,5 +184,12 @@ private fun getActivityIcon(type: ActivityType): ImageVector {
         ActivityType.STAFF_CREATED -> Icons.Filled.Add
         ActivityType.STAFF_UPDATED -> Icons.Filled.Person
         ActivityType.STAFF_DELETED -> Icons.Filled.Delete
+        ActivityType.MENU_ITEM_CREATED -> Icons.Filled.Add
+        ActivityType.MENU_ITEM_UPDATED -> Icons.Filled.Edit
+        ActivityType.MENU_ITEM_DELETED -> Icons.Filled.Delete
+        ActivityType.MENU_ITEM_AVAILABILITY_CHANGED -> Icons.Filled.Build
+        ActivityType.CATEGORY_CREATED -> Icons.Filled.Search
+        ActivityType.CATEGORY_UPDATED -> Icons.Filled.Edit
+        ActivityType.CATEGORY_DELETED -> Icons.Filled.Delete
     }
 }

@@ -22,6 +22,12 @@ import com.swadratna.swadratna_admin.ui.store.StoreScreen
 import com.swadratna.swadratna_admin.ui.store.StoreDetailScreen
 import com.swadratna.swadratna_admin.ui.attendance.AttendancePaymentScreen
 import com.swadratna.swadratna_admin.ui.menu.MenuScreen
+import com.swadratna.swadratna_admin.ui.menu.MenuManagementScreen
+import com.swadratna.swadratna_admin.ui.menu.AddCategoryScreen
+import com.swadratna.swadratna_admin.ui.menu.AddMenuScreen
+import com.swadratna.swadratna_admin.presentation.screens.menu.MenuItemsScreen
+import com.swadratna.swadratna_admin.presentation.screens.menu.AddMenuItemScreen
+import com.swadratna.swadratna_admin.presentation.screens.menu.EditMenuItemScreen
 import com.swadratna.swadratna_admin.ui.notifications.NotificationScreen
 
 @Composable
@@ -119,7 +125,7 @@ fun NavGraph(
                     navController.navigate(NavRoute.StaffManagement.createRoute(selectedStoreId))
                 },
                 onNavigateToMenuManagement = { selectedStoreId ->
-                    navController.navigate(NavRoute.Menu.route)
+                    navController.navigate(NavRoute.MenuManagement.route)
                 },
                 onNavigateToAttendance = { selectedStoreId ->
                     navController.navigate(NavRoute.AttendancePayment.route)
@@ -196,7 +202,57 @@ fun NavGraph(
         }
 
         composable(NavRoute.Menu.route) {
-            MenuScreen(onBack = { navController.popBackStack() })
+            MenuScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToAddMenu = { navController.navigate(NavRoute.AddMenu.route) }
+            )
+        }
+        
+        composable(NavRoute.MenuManagement.route) {
+            MenuManagementScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToAddCategory = { navController.navigate(NavRoute.AddCategory.route) },
+                onNavigateToAddMenu = { navController.navigate(NavRoute.AddMenu.route) },
+                onNavigateToMenuItems = { navController.navigate(NavRoute.MenuItems.route) }
+            )
+        }
+        
+        composable(NavRoute.AddCategory.route) {
+            AddCategoryScreen(
+                onBack = { navController.popBackStack() },
+                onCategoryAdded = { navController.popBackStack() }
+            )
+        }
+        
+        composable(NavRoute.AddMenu.route) {
+            AddMenuScreen(
+                onBack = { navController.popBackStack() },
+                onMenuAdded = { navController.popBackStack() }
+            )
+        }
+        
+        composable(NavRoute.MenuItems.route) {
+            MenuItemsScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToAddMenuItem = { navController.navigate(NavRoute.AddMenuItem.route) }
+            )
+        }
+        
+        composable(NavRoute.AddMenuItem.route) {
+            AddMenuItemScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        
+        composable(
+            route = NavRoute.EditMenuItem.route,
+            arguments = listOf(navArgument("menuItemId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val menuItemId = backStackEntry.arguments?.getLong("menuItemId") ?: 0L
+            EditMenuItemScreen(
+                menuItemId = menuItemId,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
         
         composable(

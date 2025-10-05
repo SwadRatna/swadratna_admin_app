@@ -18,7 +18,6 @@ class AuthInterceptor @Inject constructor(
 
         val token = sharedPrefsManager.getAuthToken()
         if (token != null) {
-            Log.d("AuthInterceptor", "Adding Bearer token to request: ${token.take(10)}...")
             requestBuilder.addHeader("Authorization", "Bearer $token")
         } else {
             Log.w("AuthInterceptor", "No auth token found in SharedPreferences")

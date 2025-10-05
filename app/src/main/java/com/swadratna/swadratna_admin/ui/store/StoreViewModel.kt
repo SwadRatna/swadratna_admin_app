@@ -37,14 +37,11 @@ class StoreViewModel @Inject constructor(
             try {
                 val result = storeRepository.getStores(page = 1, limit = 20, restaurantId = 1000001)
                 result.onSuccess { response ->
-                    println("DEBUG: API Success - Stores count: ${response.stores.size}")
-                    println("DEBUG: Stores data: ${response.stores}")
                     _uiState.value = _uiState.value.copy(
                         stores = response.stores,
                         isLoading = false
                     )
                     updateFilteredStores()
-                    println("DEBUG: After updateFilteredStores - Filtered count: ${_uiState.value.filteredStores.size}")
                 }.onFailure { exception ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,

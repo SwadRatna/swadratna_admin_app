@@ -1,9 +1,19 @@
 package com.swadratna.swadratna_admin.data.repository
 
+import android.util.Log
 import com.swadratna.swadratna_admin.data.model.MenuItem
 import com.swadratna.swadratna_admin.data.model.MenuCategory
+import com.swadratna.swadratna_admin.data.model.CreateMenuItemRequest
+import com.swadratna.swadratna_admin.data.model.UpdateMenuItemRequest
+import com.swadratna.swadratna_admin.data.model.ToggleAvailabilityRequest
+import com.swadratna.swadratna_admin.data.remote.CreateMenuCategoryDto
+import com.swadratna.swadratna_admin.data.remote.MenuCategoryResponse
+import com.swadratna.swadratna_admin.data.remote.MenuItemResponse
+import com.swadratna.swadratna_admin.data.remote.MenuItemsListResponse
 import com.swadratna.swadratna_admin.data.remote.api.MenuApi
 import com.swadratna.swadratna_admin.data.remote.toDomain
+import com.swadratna.swadratna_admin.data.remote.toCreateDto
+import com.swadratna.swadratna_admin.data.remote.toDto
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -11,30 +21,60 @@ import kotlinx.coroutines.withContext
 class MenuRepository @Inject constructor(
     private val api: MenuApi
 ) {
-    var useMock: Boolean = false
 
-    suspend fun getMenu(category: MenuCategory): List<MenuItem> = withContext(Dispatchers.IO) {
-        if (useMock) return@withContext dummyMenuItemsFor(category)
-
+    suspend fun getMenu(categoryId: Int? = null): Result<List<MenuItem>> = withContext(Dispatchers.IO) {
         runCatching {
-            val categoryParam = category.takeIf { it != MenuCategory.ALL }?.name
-            api.getMenu(categoryParam).map { it.toDomain() }
-        }.getOrElse {
-            dummyMenuItemsFor(category)
+            api.getMenu(categoryId?.toString()).map { it.toDomain() }
         }
     }
 
-    private fun dummyMenuItemsFor(category: MenuCategory): List<MenuItem> {
-        val all = listOf(
-            MenuItem(1, "Classic Margherita Pizza", "Fresh tomato sauce, mozzarella, and basil on", 14.99, "All Day", true),
-            MenuItem(2, "Caesar Salad", "Crisp romaine lettuce, croutons, parmesan,", 9.50, "Lunch & Dinner", true),
-            MenuItem(3, "Chocolate Lava Cake", "Warm chocolate cake with a molten center,", 8.00, "Dinner Only", false),
-            MenuItem(4, "Freshly Squeezed Lemonade", "Classic tangy and sweet lemonade, perfectly", 4.25, "All Day", true)
-        )
-        return when (category) {
-            MenuCategory.ALL -> all
-            MenuCategory.APPETIZERS -> all.filter { it.id <= 2 }
-            MenuCategory.MAIN -> all.filter { it.id > 2 }
+    suspend fun getMenuCategories(): Result<List<MenuCategory>> = withContext(Dispatchers.IO) {
+        runCatching {
+            api.getMenuCategories().map { it.toDomain() }
         }
     }
+
+    suspend fun createMenuCategory(category: MenuCategory): Result<MenuCategoryResponse> = withContext(Dispatchers.IO) {
+        runCatching {
+            api.createMenuCategory(category.toCreateDto())
+        }
+    }
+
+    // Menu Items methods
+    suspend fun getMenuItems(
+        categoryId: Int? = null,
+        isAvailable: Boolean? = null,
+        search: String? = null,
+        page: Int = 1,
+        limit: Int = 20
+    ): Result<MenuItemsListResponse> = withContext(Dispatchers.IO) {
+        runCatching {
+            val response = api.getMenuItems(categoryId, isAvailable, search, page, limit)
+            response
+        }.onFailure { error ->
+            Log.e("MenuRepository", "API call failed with error: ${error.message}", error)
+        }
+    }
+
+    suspend fun createMenuItem(menuItem: CreateMenuItemRequest): Result<MenuItemResponse> = withContext(Dispatchers.IO) {
+        val dto = menuItem.toDto()
+        runCatching {
+            val response = api.createMenuItem(dto)
+            response
+        }
+    }
+
+    suspend fun updateMenuItem(id: Int, menuItem: UpdateMenuItemRequest): Result<MenuItemResponse> = withContext(Dispatchers.IO) {
+        runCatching {
+            api.updateMenuItem(id, menuItem.toDto())
+        }
+    }
+
+    suspend fun toggleMenuItemAvailability(id: Int, availability: ToggleAvailabilityRequest): Result<MenuItemResponse> = withContext(Dispatchers.IO) {
+        runCatching {
+            api.toggleMenuItemAvailability(id, availability.toDto())
+        }
+    }
+
+
 }

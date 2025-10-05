@@ -1,4 +1,4 @@
-package com.swadratna.swadratna_admin.ui.menu
+package com.swadratna.swadratna_admin.presentation.screens.menu
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
@@ -15,22 +15,23 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swadratna.swadratna_admin.presentation.viewmodels.MenuItemsViewModel
+import com.swadratna.swadratna_admin.presentation.viewmodels.MenuItemsUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MenuScreen(
-    viewModel: MenuViewModel = hiltViewModel(),
+fun MenuItemsScreen(
+    viewModel: MenuItemsViewModel = hiltViewModel(),
     onBack: () -> Unit,
-    onNavigateToAddMenu: () -> Unit
+    onNavigateToAddMenuItem: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
     // Handle success messages with Toast
-    LaunchedEffect(uiState) {
-        val currentState = uiState
-        if (currentState is MenuUiState.Success && currentState.successMessage != null) {
-            Toast.makeText(context, currentState.successMessage, Toast.LENGTH_SHORT).show()
+    LaunchedEffect(uiState.successMessage) {
+        uiState.successMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
             viewModel.clearSuccessMessage()
         }
     }
@@ -48,7 +49,7 @@ fun MenuScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onNavigateToAddMenu) {
+                    IconButton(onClick = onNavigateToAddMenuItem) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = "Add Menu Item"
@@ -58,9 +59,8 @@ fun MenuScreen(
             )
         }
     ) { paddingValues ->
-        val currentState = uiState
-        when (currentState) {
-            is MenuUiState.Loading -> {
+        when {
+            uiState.isLoading -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -70,7 +70,20 @@ fun MenuScreen(
                     CircularProgressIndicator()
                 }
             }
-            is MenuUiState.Success -> {
+            uiState.error != null -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = uiState.error ?: "Unknown error",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+            else -> {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -78,32 +91,10 @@ fun MenuScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(currentState.items) { item ->
+                    items(uiState.menuItems) { item ->
                         MenuItemCard(
                             item = item,
-                            onToggleAvailability = { viewModel.toggleAvailability(item) }
-                        )
-                    }
-                }
-            }
-            is MenuUiState.Error -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        )
-                    ) {
-                        Text(
-                            text = currentState.message,
-                            modifier = Modifier.padding(16.dp),
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                            onToggleAvailability = { viewModel.toggleMenuItemAvailability(item) }
                         )
                     }
                 }

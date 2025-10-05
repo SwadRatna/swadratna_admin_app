@@ -36,11 +36,6 @@ fun StoreScreen(
         viewModel.onEvent(StoreEvent.RefreshStores)
     }
     
-    // Debug logging
-    LaunchedEffect(uiState) {
-        println("DEBUG StoreScreen: isLoading=${uiState.isLoading}, stores.size=${uiState.stores.size}, filteredStores.size=${uiState.filteredStores.size}, error=${uiState.error}")
-    }
-    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -50,7 +45,6 @@ fun StoreScreen(
                     TextButton(
                         onClick = { 
                             val tokenStatus = viewModel.checkTokenStatus()
-                            println("DEBUG: Token Status - $tokenStatus")
                         }
                     ) {
                         Text("Debug Token")
