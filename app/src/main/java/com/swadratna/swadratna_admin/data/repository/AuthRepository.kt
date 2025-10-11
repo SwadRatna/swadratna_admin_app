@@ -8,4 +8,5 @@ interface AuthRepository {
     fun getAuthToken(): String?
     fun getRefreshToken(): String?
     fun logout()
+    fun isSessionValid(): Boolean
 }

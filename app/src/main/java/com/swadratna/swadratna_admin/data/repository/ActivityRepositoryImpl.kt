@@ -61,6 +61,7 @@ class ActivityRepositoryImpl @Inject constructor(
         loadActivitiesFromStorage()
         performCleanupIfNeeded()
     }
+
     
     private fun loadActivitiesFromStorage() {
         val activitiesJson = sharedPreferences.getString(ACTIVITIES_KEY, null)
@@ -70,9 +71,10 @@ class ActivityRepositoryImpl @Inject constructor(
                 val activities: List<Activity> = gson.fromJson(activitiesJson, type)
                 _activities.value = activities
             } catch (e: Exception) {
-                // If there's an error parsing, start with empty list
                 _activities.value = emptyList()
             }
+        } else {
+            println("DEBUG ActivityRepository: No activities found in storage, starting with empty list")
         }
     }
     
@@ -110,9 +112,8 @@ class ActivityRepositoryImpl @Inject constructor(
     
     override suspend fun addActivity(activity: Activity) {
         val currentActivities = _activities.value.toMutableList()
-        currentActivities.add(0, activity) // Add to the beginning for latest first
+        currentActivities.add(0, activity)
         
-        // Keep only the latest 100 activities to prevent memory issues
         if (currentActivities.size > 100) {
             currentActivities.removeAt(currentActivities.size - 1)
         }

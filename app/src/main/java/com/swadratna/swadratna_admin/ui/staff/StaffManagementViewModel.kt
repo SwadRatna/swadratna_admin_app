@@ -199,6 +199,13 @@ class StaffManagementViewModel @Inject constructor(
             
             staffRepository.deleteStaff(staffId)
                 .onSuccess {
+                    // Add activity tracking
+                    activityRepository.addActivity(
+                        ActivityType.STAFF_DELETED,
+                        "Staff member deleted",
+                        "Staff member '${staffToDelete?.name ?: "Unknown"}' has been successfully deleted"
+                    )
+                    
                     _allStaff.removeIf { it.id == staffId }
                     applyFiltersAndSort()
                     _uiState.update { 
