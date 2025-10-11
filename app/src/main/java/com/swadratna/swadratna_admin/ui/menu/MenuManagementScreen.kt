@@ -1,39 +1,34 @@
 package com.swadratna.swadratna_admin.ui.menu
 
 import android.widget.Toast
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import com.swadratna.swadratna_admin.R
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swadratna.swadratna_admin.data.model.MenuCategory
-import android.util.Log
+import androidx.compose.ui.res.painterResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MenuManagementScreen(
     viewModel: MenuManagementViewModel = hiltViewModel(),
     onBack: () -> Unit,
-    onNavigateToAddCategory: () -> Unit,
     onNavigateToAddMenu: () -> Unit,
-    onNavigateToMenuItems: () -> Unit
+    onNavigateToMenuItems: () -> Unit,
+    onNavigateToManageCategories: () -> Unit
 ) {
     val categoriesState by viewModel.categoriesState.collectAsState()
     val menuItemsState by viewModel.menuItemsState.collectAsState()
@@ -60,14 +55,6 @@ fun MenuManagementScreen(
                             contentDescription = "Back"
                         )
                     }
-                },
-                actions = {
-                    IconButton(onClick = onNavigateToAddCategory) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Add Category"
-                        )
-                    }
                 }
             )
         }
@@ -78,6 +65,54 @@ fun MenuManagementScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
+            // Management Buttons Row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onNavigateToManageCategories,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_category),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = "Manage Categories",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+                
+                OutlinedButton(
+                    onClick = onNavigateToMenuItems,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_menu),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = "Manage Items",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+            
             // Categories Section
             Text(
                 text = "Categories",
@@ -140,25 +175,12 @@ fun MenuManagementScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             // Menu Items Section
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = selectedCategory?.let { "Menu Items in ${it.name}" } ?: "All Menu Items",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
-                )
-                
-                OutlinedButton(
-                    onClick = onNavigateToMenuItems,
-                    modifier = Modifier.padding(start = 8.dp)
-                ) {
-                    Text("Manage Items")
-                }
-            }
+            Text(
+                text = selectedCategory?.let { "Menu Items in ${it.name}" } ?: "All Menu Items",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
             
             Spacer(modifier = Modifier.height(8.dp))
 

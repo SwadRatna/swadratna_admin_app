@@ -23,8 +23,8 @@ data class CreateMenuCategoryDto(
 )
 
 data class MenuCategoryResponse(
-    val success: Boolean,
-    val message: String,
+    val success: Boolean = true, // Default to true for successful HTTP responses
+    val message: String = "", // Default to empty string to avoid null pointer
     val data: MenuCategoryDto? = null
 )
 

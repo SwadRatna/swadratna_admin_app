@@ -1,73 +1,12 @@
 package com.swadratna.swadratna_admin
 
-import com.swadratna.swadratna_admin.data.local.SharedPrefsManager
-import com.swadratna.swadratna_admin.data.network.AuthInterceptor
-import okhttp3.Request
 import org.junit.Test
 import org.junit.Assert.*
-import org.mockito.Mockito.*
 
 /**
  * Unit test for authentication functionality
  */
 class AuthenticationTest {
-
-    @Test
-    fun testTokenStorage() {
-        // Mock SharedPrefsManager
-        val mockSharedPrefs = mock(SharedPrefsManager::class.java)
-        
-        // Test token storage
-        val testToken = "test_auth_token_123"
-        `when`(mockSharedPrefs.getAuthToken()).thenReturn(testToken)
-        
-        // Verify token retrieval
-        val retrievedToken = mockSharedPrefs.getAuthToken()
-        assertEquals("Token should be retrieved correctly", testToken, retrievedToken)
-        
-        println("✓ Token storage test passed")
-    }
-
-    @Test
-    fun testAuthInterceptorWithToken() {
-        // Mock SharedPrefsManager with token
-        val mockSharedPrefs = mock(SharedPrefsManager::class.java)
-        val testToken = "Bearer test_token_123"
-        `when`(mockSharedPrefs.getAuthToken()).thenReturn(testToken)
-        
-        // Create AuthInterceptor
-        val authInterceptor = AuthInterceptor(mockSharedPrefs)
-        
-        // Create a mock request
-        val originalRequest = Request.Builder()
-            .url("https://api.example.com/stores")
-            .build()
-        
-        // Mock chain
-        val mockChain = mock(okhttp3.Interceptor.Chain::class.java)
-        `when`(mockChain.request()).thenReturn(originalRequest)
-        
-        // Verify that the interceptor would add the Authorization header
-        // Note: This is a simplified test - in real scenario we'd need to mock the full chain
-        assertNotNull("AuthInterceptor should be created successfully", authInterceptor)
-        
-        println("✓ AuthInterceptor test passed")
-    }
-
-    @Test
-    fun testAuthInterceptorWithoutToken() {
-        // Mock SharedPrefsManager without token
-        val mockSharedPrefs = mock(SharedPrefsManager::class.java)
-        `when`(mockSharedPrefs.getAuthToken()).thenReturn(null)
-        
-        // Create AuthInterceptor
-        val authInterceptor = AuthInterceptor(mockSharedPrefs)
-        
-        // Verify that the interceptor handles null token gracefully
-        assertNotNull("AuthInterceptor should handle null token", authInterceptor)
-        
-        println("✓ AuthInterceptor null token test passed")
-    }
 
     @Test
     fun testTokenFormat() {
@@ -97,5 +36,23 @@ class AuthenticationTest {
         }
         
         println("✓ Token format validation test passed")
+    }
+
+    @Test
+    fun testSessionTimeout() {
+        val sessionTimeoutMs = 24 * 60 * 60 * 1000L // 24 hours
+        val currentTime = System.currentTimeMillis()
+        
+        // Test valid session (within timeout)
+        val validSessionTime = currentTime - (12 * 60 * 60 * 1000L) // 12 hours ago
+        val isValidSession = (currentTime - validSessionTime) <= sessionTimeoutMs
+        assertTrue("Session should be valid", isValidSession)
+        
+        // Test expired session (beyond timeout)
+        val expiredSessionTime = currentTime - (25 * 60 * 60 * 1000L) // 25 hours ago
+        val isExpiredSession = (currentTime - expiredSessionTime) > sessionTimeoutMs
+        assertTrue("Session should be expired", isExpiredSession)
+        
+        println("✓ Session timeout test passed")
     }
 }

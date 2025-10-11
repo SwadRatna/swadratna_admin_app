@@ -96,9 +96,9 @@ class MenuManagementViewModel @Inject constructor(
                             )
                         )
                     } else {
-                        _categoriesState.value = MenuCategoriesUiState.Error(
-                            response.message ?: "Error getting response"
-                        )
+                        val errorMessage = response.message ?: "Category creation failed - no error message provided"
+                        Log.d("MenuManagementViewModel", "Category creation failed: going to else condition with message='$errorMessage'")
+                        _categoriesState.value = MenuCategoriesUiState.Error(errorMessage)
                     }
                 }
                 .onFailure { error ->
@@ -152,10 +152,143 @@ class MenuManagementViewModel @Inject constructor(
             _menuItemsState.value = currentState.copy(successMessage = null)
         }
     }
+
+    fun clearCategorySuccessMessage() {
+        val currentState = _categoriesState.value
+        if (currentState is MenuCategoriesUiState.Success) {
+            _categoriesState.value = currentState.copy(successMessage = null)
+        }
+    }
+
+    fun deleteCategory(category: MenuCategory) {
+        viewModelScope.launch {
+            Log.d("MenuManagementViewModel", "Attempting to delete category: ${category.name} (ID: ${category.id})")
+            
+            // Check if category has a valid ID
+            val categoryId = category.id
+            if (categoryId == null) {
+                Log.e("MenuManagementViewModel", "Cannot delete category: ID is null")
+                _categoriesState.value = MenuCategoriesUiState.Error("Cannot delete category: Invalid ID")
+                return@launch
+            }
+            
+            try {
+                // Call the repository to delete the category
+                val result = repository.deleteCategory(categoryId)
+                
+                result.fold(
+                    onSuccess = { response ->
+                        Log.d("MenuManagementViewModel", "Category deleted successfully via API")
+                        
+                        // Add activity tracking
+                        activityRepository.addActivity(
+                            Activity(
+                                id = UUID.randomUUID().toString(),
+                                type = ActivityType.CATEGORY_DELETED,
+                                title = "Category Deleted",
+                                description = "Category '${category.name}' has been deleted successfully",
+                                timestamp = LocalDateTime.now()
+                            )
+                        )
+                        
+                        // Remove from local state
+                        val currentState = _categoriesState.value
+                        if (currentState is MenuCategoriesUiState.Success) {
+                            val updatedCategories = currentState.categories.filter { it.id != category.id }
+                            _categoriesState.value = MenuCategoriesUiState.Success(
+                                categories = updatedCategories,
+                                successMessage = "Category '${category.name}' deleted successfully"
+                            )
+                        }
+                    },
+                    onFailure = { error ->
+                        Log.e("MenuManagementViewModel", "Failed to delete category: ${error.message}", error)
+                        _categoriesState.value = MenuCategoriesUiState.Error(
+                            "Failed to delete category: ${error.message ?: "Unknown error"}"
+                        )
+                    }
+                )
+                
+            } catch (e: Exception) {
+                Log.e("MenuManagementViewModel", "Failed to delete category: ${e.message}", e)
+                _categoriesState.value = MenuCategoriesUiState.Error(
+                    "Failed to delete category: ${e.message ?: "Unknown error"}"
+                )
+            }
+        }
+    }
+
+    fun toggleCategoryAvailability(category: MenuCategory) {
+        viewModelScope.launch {
+            Log.d("MenuManagementViewModel", "Toggling availability for category: ${category.name} (current: ${category.isActive})")
+            
+            // Check if category has a valid ID
+            val categoryId = category.id
+            if (categoryId == null) {
+                Log.e("MenuManagementViewModel", "Cannot toggle category availability: ID is null")
+                _categoriesState.value = MenuCategoriesUiState.Error("Cannot toggle category availability: Invalid ID")
+                return@launch
+            }
+            
+            try {
+                val newAvailability = !category.isActive
+                val toggleRequest = ToggleAvailabilityRequest(isAvailable = newAvailability)
+                
+                // Call the repository to toggle category availability
+                val result = repository.toggleCategoryAvailability(categoryId, toggleRequest)
+                
+                result.fold(
+                    onSuccess = { response ->
+                        Log.d("MenuManagementViewModel", "Category availability toggled successfully via API")
+                        
+                        // Add activity tracking
+                        activityRepository.addActivity(
+                            Activity(
+                                id = UUID.randomUUID().toString(),
+                                type = ActivityType.CATEGORY_UPDATED,
+                                title = "Category Availability Updated",
+                                description = "Category '${category.name}' has been ${if (newAvailability) "activated" else "deactivated"}",
+                                timestamp = LocalDateTime.now()
+                            )
+                        )
+                        
+                        // Update local state
+                        val currentState = _categoriesState.value
+                        if (currentState is MenuCategoriesUiState.Success) {
+                            val updatedCategories = currentState.categories.map { cat ->
+                                if (cat.id == category.id) {
+                                    cat.copy(isActive = newAvailability)
+                                } else {
+                                    cat
+                                }
+                            }
+                            val statusText = if (newAvailability) "activated" else "deactivated"
+                            _categoriesState.value = MenuCategoriesUiState.Success(
+                                categories = updatedCategories,
+                                successMessage = "Category '${category.name}' ${statusText} successfully"
+                            )
+                        }
+                    },
+                    onFailure = { error ->
+                        Log.e("MenuManagementViewModel", "Failed to toggle category availability: ${error.message}", error)
+                        _categoriesState.value = MenuCategoriesUiState.Error(
+                            "Failed to toggle category availability: ${error.message ?: "Unknown error"}"
+                        )
+                    }
+                )
+                
+            } catch (e: Exception) {
+                Log.e("MenuManagementViewModel", "Failed to toggle category availability: ${e.message}", e)
+                _categoriesState.value = MenuCategoriesUiState.Error(
+                    "Failed to toggle category availability: ${e.message ?: "Unknown error"}"
+                )
+            }
+        }
+    }
 }
 
 sealed class MenuCategoriesUiState {
     object Loading : MenuCategoriesUiState()
-    data class Success(val categories: List<MenuCategory>) : MenuCategoriesUiState()
+    data class Success(val categories: List<MenuCategory>, val successMessage: String? = null) : MenuCategoriesUiState()
     data class Error(val message: String) : MenuCategoriesUiState()
 }

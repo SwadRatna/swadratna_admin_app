@@ -14,6 +14,7 @@ import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.PATCH
+import retrofit2.http.DELETE
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -30,6 +31,17 @@ interface MenuApi {
     @POST("api/v1/admin/menu/categories")
     suspend fun createMenuCategory(
         @Body category: CreateMenuCategoryDto
+    ): MenuCategoryResponse
+    
+    @PATCH("api/v1/admin/menu/categories/{id}/toggle")
+    suspend fun toggleCategoryAvailability(
+        @Path("id") id: Int,
+        @Body availability: ToggleAvailabilityDto
+    ): MenuCategoryResponse
+    
+    @DELETE("api/v1/admin/menu/categories/{id}")
+    suspend fun deleteCategory(
+        @Path("id") id: Int
     ): MenuCategoryResponse
     
     // Menu Items endpoints
@@ -57,5 +69,10 @@ interface MenuApi {
     suspend fun toggleMenuItemAvailability(
         @Path("id") id: Int,
         @Body availability: ToggleAvailabilityDto
+    ): MenuItemResponse
+    
+    @DELETE("api/v1/admin/menu/items/{id}")
+    suspend fun deleteMenuItem(
+        @Path("id") id: Int
     ): MenuItemResponse
 }

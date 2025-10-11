@@ -39,17 +39,7 @@ fun StoreScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Manage Stores") },
-                actions = {
-                    // Debug button to check token status
-                    TextButton(
-                        onClick = { 
-                            val tokenStatus = viewModel.checkTokenStatus()
-                        }
-                    ) {
-                        Text("Debug Token")
-                    }
-                }
+                title = { Text("Manage Stores") }
             )
         },
         floatingActionButton = {

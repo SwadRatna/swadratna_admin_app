@@ -280,15 +280,7 @@ class StoreViewModel @Inject constructor(
         }
     }
     
-    // Debug method to check token status
-    fun checkTokenStatus(): String {
-        val token = sharedPrefsManager.getAuthToken()
-        return if (token != null) {
-            "Token exists: ${token.take(10)}... (length: ${token.length})"
-        } else {
-            "No token found in SharedPreferences"
-        }
-    }
+
 }
 
 data class StoreUiState(

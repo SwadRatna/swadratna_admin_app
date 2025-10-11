@@ -40,6 +40,18 @@ class MenuRepository @Inject constructor(
         }
     }
 
+    suspend fun toggleCategoryAvailability(id: Int, availability: ToggleAvailabilityRequest): Result<MenuCategoryResponse> = withContext(Dispatchers.IO) {
+        runCatching {
+            api.toggleCategoryAvailability(id, availability.toDto())
+        }
+    }
+
+    suspend fun deleteCategory(id: Int): Result<MenuCategoryResponse> = withContext(Dispatchers.IO) {
+        runCatching {
+            api.deleteCategory(id)
+        }
+    }
+
     // Menu Items methods
     suspend fun getMenuItems(
         categoryId: Int? = null,
@@ -76,5 +88,10 @@ class MenuRepository @Inject constructor(
         }
     }
 
+    suspend fun deleteMenuItem(id: Int): Result<MenuItemResponse> = withContext(Dispatchers.IO) {
+        runCatching {
+            api.deleteMenuItem(id)
+        }
+    }
 
 }

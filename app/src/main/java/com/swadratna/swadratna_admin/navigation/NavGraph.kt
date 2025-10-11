@@ -1,7 +1,11 @@
 package com.swadratna.swadratna_admin.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -28,17 +32,41 @@ import com.swadratna.swadratna_admin.ui.menu.AddMenuScreen
 import com.swadratna.swadratna_admin.presentation.screens.menu.MenuItemsScreen
 import com.swadratna.swadratna_admin.presentation.screens.menu.AddMenuItemScreen
 import com.swadratna.swadratna_admin.presentation.screens.menu.EditMenuItemScreen
+import com.swadratna.swadratna_admin.presentation.screens.menu.ManageCategoriesScreen
 import com.swadratna.swadratna_admin.ui.notifications.NotificationScreen
+import com.swadratna.swadratna_admin.ui.viewmodels.AuthViewModel
 
 @Composable
 fun NavGraph(
     navController: NavHostController,
     startDestination: String = NavRoute.Login.route,
     modifier: Modifier = Modifier,
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
+    val authState by authViewModel.authState.collectAsState()
+    
+    // Handle session expiration
+    LaunchedEffect(authState.sessionExpired) {
+        if (authState.sessionExpired) {
+            navController.navigate(NavRoute.Login.route) {
+                popUpTo(0) { inclusive = true }
+            }
+            authViewModel.resetSessionExpired()
+        }
+    }
+    
+    // Determine the actual start destination based on authentication state
+    val actualStartDestination = if (authState.isLoading) {
+        NavRoute.Login.route // Show login while loading
+    } else if (authState.isAuthenticated) {
+        NavRoute.Dashboard.route
+    } else {
+        NavRoute.Login.route
+    }
+    
     NavHost(
         navController = navController,
-        startDestination = startDestination,
+        startDestination = actualStartDestination,
         modifier = modifier
     ) {
         composable(NavRoute.Login.route) {
@@ -181,9 +209,9 @@ fun NavGraph(
                     }
                 },
                 onLogout = {
-                    // Handle logout logic here
-                    navController.navigate(NavRoute.Dashboard.route) {
-                        popUpTo(navController.graph.id) { inclusive = true }
+                    authViewModel.logout()
+                    navController.navigate(NavRoute.Login.route) {
+                        popUpTo(0) { inclusive = true }
                     }
                 }
             )
@@ -211,9 +239,16 @@ fun NavGraph(
         composable(NavRoute.MenuManagement.route) {
             MenuManagementScreen(
                 onBack = { navController.popBackStack() },
-                onNavigateToAddCategory = { navController.navigate(NavRoute.AddCategory.route) },
                 onNavigateToAddMenu = { navController.navigate(NavRoute.AddMenu.route) },
-                onNavigateToMenuItems = { navController.navigate(NavRoute.MenuItems.route) }
+                onNavigateToMenuItems = { navController.navigate(NavRoute.MenuItems.route) },
+                onNavigateToManageCategories = { navController.navigate(NavRoute.ManageCategories.route) }
+            )
+        }
+        
+        composable(NavRoute.ManageCategories.route) {
+            ManageCategoriesScreen(
+                onBack = { navController.popBackStack() },
+                onNavigateToAddCategory = { navController.navigate(NavRoute.AddCategory.route) }
             )
         }
         
