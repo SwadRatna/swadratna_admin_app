@@ -114,19 +114,5 @@ fun LoginScreen(
                 Text("Login")
             }
         }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Test Login Button (for debugging)
-        OutlinedButton(
-            onClick = { 
-                // Use test credentials
-                viewModel.login("admin2@tenant1.com", "password123")
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !isLoading
-        ) {
-            Text("Test Login (Debug)")
-        }
     }
 }

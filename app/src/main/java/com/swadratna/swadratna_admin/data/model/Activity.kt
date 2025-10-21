@@ -36,13 +36,20 @@ enum class ActivityType(val displayName: String, val icon: String) {
     STORE_DELETED("Store Deleted", "delete"),
     STAFF_CREATED("Staff Added", "person_add"),
     STAFF_UPDATED("Staff Updated", "person"),
-    STAFF_DELETED("Staff Removed", "person_remove");
+    STAFF_DELETED("Staff Removed", "person_remove"),
+    MENU_ITEM_CREATED("Menu Item Added", "restaurant_menu"),
+    MENU_ITEM_UPDATED("Menu Item Updated", "edit"),
+    MENU_ITEM_DELETED("Menu Item Removed", "delete"),
+    MENU_ITEM_AVAILABILITY_CHANGED("Menu Item Availability Changed", "visibility"),
+    CATEGORY_CREATED("Category Added", "category"),
+    CATEGORY_UPDATED("Category Updated", "edit"),
+    CATEGORY_DELETED("Category Removed", "delete");
     
     fun getColor(): Long {
         return when (this) {
-            STORE_CREATED, STAFF_CREATED -> 0xFF4CAF50 // Green
-            STORE_UPDATED, STAFF_UPDATED -> 0xFF2196F3 // Blue
-            STORE_DELETED, STAFF_DELETED -> 0xFFF44336 // Red
+            STORE_CREATED, STAFF_CREATED, MENU_ITEM_CREATED, CATEGORY_CREATED -> 0xFF4CAF50 // Green
+            STORE_UPDATED, STAFF_UPDATED, MENU_ITEM_UPDATED, CATEGORY_UPDATED, MENU_ITEM_AVAILABILITY_CHANGED -> 0xFF2196F3 // Blue
+            STORE_DELETED, STAFF_DELETED, MENU_ITEM_DELETED, CATEGORY_DELETED -> 0xFFF44336 // Red
         }
     }
 }

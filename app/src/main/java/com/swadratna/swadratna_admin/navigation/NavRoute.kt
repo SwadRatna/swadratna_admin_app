@@ -22,5 +22,14 @@ sealed class NavRoute(val route: String) {
     }
     object AttendancePayment : NavRoute("attendance_payment")
     object Menu : NavRoute("menu")
+    object MenuManagement : NavRoute("menu_management")
+    object ManageCategories : NavRoute("manage_categories")
+    object AddCategory : NavRoute("add_category")
+    object AddMenu : NavRoute("add_menu")
+    object MenuItems : NavRoute("menu_items")
+    object AddMenuItem : NavRoute("add_menu_item")
+    object EditMenuItem : NavRoute("edit_menu_item/{menuItemId}") {
+        fun createRoute(menuItemId: Long) = "edit_menu_item/$menuItemId"
+    }
     object Notifications : NavRoute("notifications")
 }

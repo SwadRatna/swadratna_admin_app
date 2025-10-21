@@ -1,4 +1,4 @@
-package com.swadratna.swadratna_admin.ui.menu
+package com.swadratna.swadratna_admin.presentation.screens.menu
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,22 +16,25 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.swadratna.swadratna_admin.presentation.viewmodels.MenuItemsViewModel
+import com.swadratna.swadratna_admin.presentation.viewmodels.MenuItemsUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MenuScreen(
-    viewModel: MenuViewModel = hiltViewModel(),
+fun MenuItemsScreen(
+    viewModel: MenuItemsViewModel = hiltViewModel(),
     onBack: () -> Unit,
-    onNavigateToAddMenu: () -> Unit
+    onNavigateToAddMenuItem: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var itemToDelete by remember { mutableStateOf<com.swadratna.swadratna_admin.data.model.MenuItem?>(null) }
 
     // Handle success messages with Toast
-    LaunchedEffect(uiState) {
-        val currentState = uiState
-        if (currentState is MenuUiState.Success && currentState.successMessage != null) {
-            Toast.makeText(context, currentState.successMessage, Toast.LENGTH_SHORT).show()
+    LaunchedEffect(uiState.successMessage) {
+        uiState.successMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
             viewModel.clearSuccessMessage()
         }
     }
@@ -48,7 +52,7 @@ fun MenuScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onNavigateToAddMenu) {
+                    IconButton(onClick = onNavigateToAddMenuItem) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = "Add Menu Item"
@@ -58,9 +62,8 @@ fun MenuScreen(
             )
         }
     ) { paddingValues ->
-        val currentState = uiState
-        when (currentState) {
-            is MenuUiState.Loading -> {
+        when {
+            uiState.isLoading -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -70,7 +73,20 @@ fun MenuScreen(
                     CircularProgressIndicator()
                 }
             }
-            is MenuUiState.Success -> {
+            uiState.error != null -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = uiState.error ?: "Unknown error",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+            else -> {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
@@ -78,44 +94,62 @@ fun MenuScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(currentState.items) { item ->
+                    items(uiState.menuItems) { item ->
                         MenuItemCard(
                             item = item,
-                            onToggleAvailability = { viewModel.toggleAvailability(item) }
-                        )
-                    }
-                }
-            }
-            is MenuUiState.Error -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        )
-                    ) {
-                        Text(
-                            text = currentState.message,
-                            modifier = Modifier.padding(16.dp),
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                            onDeleteClick = { 
+                                itemToDelete = item
+                                showDeleteDialog = true
+                            }
                         )
                     }
                 }
             }
         }
     }
+
+    // Delete Confirmation Dialog
+    if (showDeleteDialog && itemToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { 
+                showDeleteDialog = false
+                itemToDelete = null
+            },
+            title = { Text("Delete Menu Item") },
+            text = { 
+                Text("Are you sure you want to delete '${itemToDelete?.name}'? This action cannot be undone.") 
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        itemToDelete?.let { item ->
+                            viewModel.deleteMenuItem(item)
+                        }
+                        showDeleteDialog = false
+                        itemToDelete = null
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        itemToDelete = null
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 @Composable
 private fun MenuItemCard(
     item: com.swadratna.swadratna_admin.data.model.MenuItem,
-    onToggleAvailability: () -> Unit
+    onDeleteClick: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -157,10 +191,17 @@ private fun MenuItemCard(
                         modifier = Modifier.padding(top = 8.dp)
                     )
                 }
-                Switch(
-                    checked = item.isAvailable,
-                    onCheckedChange = { onToggleAvailability() }
-                )
+                IconButton(
+                    onClick = onDeleteClick,
+                    colors = IconButtonDefaults.iconButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Delete Menu Item"
+                    )
+                }
             }
         }
     }

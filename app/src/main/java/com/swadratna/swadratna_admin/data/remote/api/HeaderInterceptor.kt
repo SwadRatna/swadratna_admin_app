@@ -16,10 +16,6 @@ class HeaderInterceptor @Inject constructor() : Interceptor {
             .header("X-Key", ApiConstants.API_KEY)
             .method(originalRequest.method, originalRequest.body)
             .build()
-            
-        // Log the request for debugging
-        println("API Request: ${newRequest.url}")
-        println("API Headers: ${newRequest.headers}")
         
         return chain.proceed(newRequest)
     }
