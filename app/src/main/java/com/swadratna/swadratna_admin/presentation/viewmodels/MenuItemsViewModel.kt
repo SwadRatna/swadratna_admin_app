@@ -231,47 +231,55 @@ class MenuItemsViewModel @Inject constructor(
     fun deleteMenuItem(menuItem: MenuItem) {
         viewModelScope.launch {
             Log.d("MenuItemsViewModel", "Starting delete process for menu item: ${menuItem.name} (ID: ${menuItem.id})")
-            
-            // For now, since API is not available, we'll simulate the delete operation
-            // TODO: Replace this with actual API call when available
-            try {
-                // Simulate API call delay
-                kotlinx.coroutines.delay(1000)
-                
-                Log.d("MenuItemsViewModel", "Simulating successful delete for menu item: ${menuItem.name}")
-                
-                // Add activity tracking for delete
-                activityRepository.addActivity(
-                    Activity(
-                        id = UUID.randomUUID().toString(),
-                        type = ActivityType.MENU_ITEM_UPDATED, // Using existing type, can create MENU_ITEM_DELETED later
-                        title = "Menu Item Deleted",
-                        description = "Menu item '${menuItem.name}' has been deleted successfully",
-                        timestamp = LocalDateTime.now()
-                    )
-                )
-                
-                // Remove item from local state
-                val updatedItems = _uiState.value.menuItems.filter { item ->
-                    item.id != menuItem.id
-                }
-                
+
+            val id = menuItem.id
+            if (id == null) {
+                Log.e("MenuItemsViewModel", "Cannot delete menu item: ID is null")
                 _uiState.value = _uiState.value.copy(
-                    menuItems = updatedItems,
-                    total = _uiState.value.total - 1,
-                    successMessage = "Menu item '${menuItem.name}' deleted successfully",
-                    error = null
-                )
-                
-                Log.d("MenuItemsViewModel", "Menu item deleted successfully. Remaining items: ${updatedItems.size}")
-                
-            } catch (e: Exception) {
-                Log.e("MenuItemsViewModel", "Failed to delete menu item: ${e.message}", e)
-                _uiState.value = _uiState.value.copy(
-                    error = "Failed to delete menu item: ${e.message}",
+                    error = "Cannot delete menu item: Invalid ID",
                     successMessage = null
                 )
+                return@launch
             }
+
+            repository.deleteMenuItem(id)
+                .onSuccess { response ->
+                    Log.d("MenuItemsViewModel", "Menu item deleted successfully via API: ${menuItem.name} (ID: $id)")
+
+                    // Track activity for delete
+                    activityRepository.addActivity(
+                        Activity(
+                            id = UUID.randomUUID().toString(),
+                            type = ActivityType.MENU_ITEM_DELETED,
+                            title = "Menu Item Deleted",
+                            description = "Menu item '${menuItem.name}' has been deleted successfully",
+                            timestamp = LocalDateTime.now()
+                        )
+                    )
+
+                    // Remove item from local state
+                    val updatedItems = _uiState.value.menuItems.filter { item ->
+                        item.id != id
+                    }
+
+                    val newTotal = (_uiState.value.total - 1).coerceAtLeast(0)
+
+                    _uiState.value = _uiState.value.copy(
+                        menuItems = updatedItems,
+                        total = newTotal,
+                        successMessage = "Menu item '${menuItem.name}' deleted successfully",
+                        error = null
+                    )
+
+                    Log.d("MenuItemsViewModel", "Menu item deleted successfully. Remaining items: ${updatedItems.size}")
+                }
+                .onFailure { error ->
+                    Log.e("MenuItemsViewModel", "Failed to delete menu item via API: ${error.message}", error)
+                    _uiState.value = _uiState.value.copy(
+                        error = error.message ?: "Failed to delete menu item",
+                        successMessage = null
+                    )
+                }
         }
     }
 

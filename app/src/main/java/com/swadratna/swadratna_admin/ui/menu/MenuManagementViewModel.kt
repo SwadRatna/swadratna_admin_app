@@ -202,10 +202,26 @@ class MenuManagementViewModel @Inject constructor(
                         }
                     },
                     onFailure = { error ->
-                        Log.e("MenuManagementViewModel", "Failed to delete category: ${error.message}", error)
-                        _categoriesState.value = MenuCategoriesUiState.Error(
-                            "Failed to delete category: ${error.message ?: "Unknown error"}"
-                        )
+                        // Try to parse server-provided error details for a friendlier message
+                        var errorMessage = error.message ?: "Failed to delete category"
+                        if (error is retrofit2.HttpException) {
+                            val raw = error.response()?.errorBody()?.string()
+                            if (!raw.isNullOrBlank()) {
+                                try {
+                                    val obj = org.json.JSONObject(raw)
+                                    val serverMsg = obj.optString("error").ifBlank { null }
+                                    val itemsCount = if (obj.has("items_count")) obj.optInt("items_count", -1) else -1
+                                    errorMessage = serverMsg ?: errorMessage
+                                    if (itemsCount >= 0 && (serverMsg?.contains("associated menu items", ignoreCase = true) == true)) {
+                                        errorMessage = "Cannot delete category: it has $itemsCount associated menu item(s)"
+                                    }
+                                } catch (_: Throwable) {
+                                    // keep default message if parsing fails
+                                }
+                            }
+                        }
+                        Log.e("MenuManagementViewModel", "Failed to delete category: $errorMessage", error)
+                        _categoriesState.value = MenuCategoriesUiState.Error(errorMessage)
                     }
                 )
                 
@@ -214,6 +230,107 @@ class MenuManagementViewModel @Inject constructor(
                 _categoriesState.value = MenuCategoriesUiState.Error(
                     "Failed to delete category: ${e.message ?: "Unknown error"}"
                 )
+            }
+        }
+    }
+
+    // Cascade delete: delete all associated items first, then delete the category.
+    fun deleteCategoryCascade(category: MenuCategory) {
+        viewModelScope.launch {
+            Log.d("MenuManagementViewModel", "Cascade delete requested for category: ${category.name} (ID: ${category.id})")
+
+            val categoryId = category.id
+            if (categoryId == null) {
+                Log.e("MenuManagementViewModel", "Cannot cascade delete category: ID is null")
+                _categoriesState.value = MenuCategoriesUiState.Error("Cannot delete category: Invalid ID")
+                return@launch
+            }
+
+            try {
+                // Fetch all items for this category (use a high limit to get most/all)
+                val itemsResult = repository.getMenuItems(categoryId = categoryId, page = 1, limit = 1000)
+                val items = itemsResult.getOrNull()?.items?.map { it.toDomain() } ?: emptyList()
+
+                // Delete items one-by-one
+                val failures = mutableListOf<String>()
+                for (item in items) {
+                    val itemId = item.id
+                    if (itemId == null) {
+                        failures.add("${item.name} (invalid ID)")
+                        continue
+                    }
+                    val delRes = repository.deleteMenuItem(itemId)
+                    delRes.onFailure { err ->
+                        val msg = err.message ?: "Unknown error"
+                        failures.add("${item.name} ($msg)")
+                    }
+                }
+
+                if (failures.isNotEmpty()) {
+                    val msg = buildString {
+                        append("Failed to delete some items: ")
+                        append(failures.joinToString(limit = 5) { it })
+                        if (failures.size > 5) append(" and ${failures.size - 5} more")
+                    }
+                    Log.e("MenuManagementViewModel", msg)
+                    _categoriesState.value = MenuCategoriesUiState.Error("Cannot delete category: ${msg}")
+                    return@launch
+                }
+
+                // Now delete the category
+                val catDelRes = repository.deleteCategory(categoryId)
+                catDelRes.fold(
+                    onSuccess = {
+                        // Track activity once for category
+                        activityRepository.addActivity(
+                            Activity(
+                                id = UUID.randomUUID().toString(),
+                                type = ActivityType.CATEGORY_DELETED,
+                                title = "Category Deleted",
+                                description = "Category '${category.name}' and ${items.size} associated item(s) deleted",
+                                timestamp = LocalDateTime.now()
+                            )
+                        )
+
+                        // Update categories local state
+                        val currentState = _categoriesState.value
+                        if (currentState is MenuCategoriesUiState.Success) {
+                            val updatedCategories = currentState.categories.filter { it.id != categoryId }
+                            _categoriesState.value = MenuCategoriesUiState.Success(
+                                categories = updatedCategories,
+                                successMessage = "Deleted category '${category.name}' and ${items.size} associated item(s)"
+                            )
+                        } else {
+                            // Fallback success message
+                            _categoriesState.value = MenuCategoriesUiState.Success(
+                                categories = emptyList(),
+                                successMessage = "Deleted category '${category.name}' and ${items.size} associated item(s)"
+                            )
+                        }
+
+                        // Optionally clear items in menuItemsState if it's currently showing this category
+                        val menuState = _menuItemsState.value
+                        if (menuState is MenuUiState.Success) {
+                            _menuItemsState.value = MenuUiState.Success(items = emptyList(), successMessage = null)
+                        }
+                    },
+                    onFailure = { err ->
+                        val rawBody = (err as? retrofit2.HttpException)?.response()?.errorBody()?.string()
+                        var errorMessage = err.message ?: "Failed to delete category"
+                        if (!rawBody.isNullOrBlank()) {
+                            try {
+                                val obj = org.json.JSONObject(rawBody)
+                                val serverMsg = obj.optString("error").ifBlank { null }
+                                errorMessage = serverMsg ?: errorMessage
+                            } catch (_: Throwable) {}
+                        }
+                        Log.e("MenuManagementViewModel", "Failed to delete category after deleting items: $errorMessage", err)
+                        _categoriesState.value = MenuCategoriesUiState.Error(errorMessage)
+                    }
+                )
+            } catch (e: Exception) {
+                Log.e("MenuManagementViewModel", "Cascade delete failed: ${e.message}", e)
+                _categoriesState.value = MenuCategoriesUiState.Error("Failed to delete category: ${e.message ?: "Unknown error"}")
             }
         }
     }

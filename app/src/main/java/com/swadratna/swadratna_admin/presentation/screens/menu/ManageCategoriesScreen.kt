@@ -19,6 +19,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.swadratna.swadratna_admin.data.model.MenuCategory
 import com.swadratna.swadratna_admin.ui.menu.MenuManagementViewModel
 import com.swadratna.swadratna_admin.ui.menu.MenuCategoriesUiState
+import com.swadratna.swadratna_admin.ui.menu.MenuUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,6 +29,7 @@ fun ManageCategoriesScreen(
     viewModel: MenuManagementViewModel = hiltViewModel()
 ) {
     val categoriesState by viewModel.categoriesState.collectAsState()
+    val menuItemsState by viewModel.menuItemsState.collectAsState()
     val context = LocalContext.current
     var showDeleteDialog by remember { mutableStateOf(false) }
     var categoryToDelete by remember { mutableStateOf<MenuCategory?>(null) }
@@ -111,6 +113,8 @@ fun ManageCategoriesScreen(
                                     category = category,
                                     onDeleteClick = {
                                         categoryToDelete = category
+                                        // Prefetch items for this category to show in the dialog
+                                        category.id?.let { viewModel.loadMenuItems(it) }
                                         showDeleteDialog = true
                                     },
                                     onToggleAvailability = { viewModel.toggleCategoryAvailability(category) }
@@ -147,13 +151,63 @@ fun ManageCategoriesScreen(
             },
             title = { Text("Delete Category") },
             text = {
-                Text("Are you sure you want to delete \"${categoryToDelete!!.name}\"? This action cannot be undone.")
+                Column {
+                    Text(
+                        text = "Are you sure you want to delete \"${categoryToDelete!!.name}\"? This action cannot be undone.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    when (menuItemsState) {
+                        is MenuUiState.Loading -> {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Checking associated items...")
+                            }
+                        }
+                        is MenuUiState.Error -> {
+                            val err = menuItemsState as MenuUiState.Error
+                            Text(
+                                text = err.message,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        is MenuUiState.Success -> {
+                            val items = (menuItemsState as MenuUiState.Success).items
+                            if (items.isNotEmpty()) {
+                                Text(
+                                    text = "The following item(s) will also be deleted:",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                // Show up to 5 item names
+                                val preview = items.take(5)
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    preview.forEach { item ->
+                                        Text("• ${item.name}", style = MaterialTheme.typography.bodySmall)
+                                    }
+                                }
+                                if (items.size > 5) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "and ${items.size - 5} more...",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             },
             confirmButton = {
                 TextButton(
                     onClick = {
                         categoryToDelete?.let { category ->
-                            viewModel.deleteCategory(category)
+                            // Perform cascade delete: delete associated items first, then category
+                            viewModel.deleteCategoryCascade(category)
                         }
                         showDeleteDialog = false
                         categoryToDelete = null

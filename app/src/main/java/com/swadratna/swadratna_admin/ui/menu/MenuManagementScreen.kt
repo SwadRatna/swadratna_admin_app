@@ -107,7 +107,7 @@ fun MenuManagementScreen(
                         )
                         Text(
                             text = "Manage Items",
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }
