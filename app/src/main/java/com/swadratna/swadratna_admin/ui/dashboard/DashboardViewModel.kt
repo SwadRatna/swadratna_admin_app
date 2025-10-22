@@ -4,18 +4,24 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swadratna.swadratna_admin.data.repository.ActivityRepository
 import com.swadratna.swadratna_admin.data.repository.DashboardRepository
+import com.swadratna.swadratna_admin.data.repository.CampaignRepository
+import com.swadratna.swadratna_admin.data.repository.StoreRepository
+import com.swadratna.swadratna_admin.utils.SharedPrefsManager
+import com.swadratna.swadratna_admin.data.wrapper.Result
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val dashboardRepository: DashboardRepository,
-    private val activityRepository: ActivityRepository
+    private val activityRepository: ActivityRepository,
+    private val campaignRepository: CampaignRepository,
+    private val storeRepository: StoreRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
@@ -25,8 +31,55 @@ class DashboardViewModel @Inject constructor(
     }
 
     private fun loadDashboardData() {
+        // Load dashboard summary cards from backend
         viewModelScope.launch {
-            // Load recent activities from ActivityRepository
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            try {
+                val response = dashboardRepository.getDashboardData()
+                _uiState.update {
+                    it.copy(
+                        campaignsChange = "0 % changes since last month",
+                        storeChange = "0 % changes since last 3 months",
+                        topSeller = response.topSeller,
+                        topSellerMetric = response.topSellerMetric,
+                        newUsers = response.newUsers,
+                        newUsersChange = response.newUsersChange,
+                        topStore = response.topStore.map { StoreItem(name = it.name, revenue = it.revenue) },
+                        isLoading = false
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+
+        viewModelScope.launch {
+            when (val res = campaignRepository.adminListCampaigns(status = null, type = null, search = null, page = null, limit = 1000)) {
+                is Result.Success -> {
+                    val count = res.data.campaigns.size
+                    _uiState.update { it.copy(totalCampaigns = count) }
+                }
+                is Result.Error -> {
+                    // Keep existing value on error
+                }
+                is Result.Loading -> {
+                    // no-op
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            val restaurantId = 1000001 // TODO: replace with dynamic restaurant id
+            val result = storeRepository.getStores(page = 1, limit = 1000, restaurantId = restaurantId)
+            result.onSuccess { resp ->
+                val activeCount = resp.stores.count { it.status.equals("active", ignoreCase = true) }
+                _uiState.update { it.copy(activeStore = activeCount) }
+            }.onFailure {
+                // Keep existing value on error
+            }
+        }
+
+        viewModelScope.launch {
             activityRepository.getRecentActivities(3).collect { recentActivities ->
                 val activityItems = recentActivities.map { activity ->
                     ActivityItem(
@@ -34,21 +87,7 @@ class DashboardViewModel @Inject constructor(
                         time = activity.getFormattedTime()
                     )
                 }
-                
-                _uiState.value = _uiState.value.copy(
-                     recentActivities = activityItems
-                 )
-            }
-        }
-    }
-
-    fun handleEvent(event: DashboardEvent) {
-        when (event) {
-            is DashboardEvent.SearchQueryChanged -> {
-                _uiState.value = _uiState.value.copy(searchQuery = event.query)
-            }
-            DashboardEvent.RefreshData -> {
-                // TODO: Implement refresh logic
+                _uiState.update { it.copy(recentActivities = activityItems) }
             }
         }
     }

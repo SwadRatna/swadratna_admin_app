@@ -1,8 +1,6 @@
 package com.swadratna.swadratna_admin.data.repository
 
-import com.swadratna.swadratna_admin.data.model.ActivityItemResponse
 import com.swadratna.swadratna_admin.data.model.DashboardResponse
-import com.swadratna.swadratna_admin.data.model.StoreItemResponse
 import com.swadratna.swadratna_admin.data.remote.api.DashboardApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
