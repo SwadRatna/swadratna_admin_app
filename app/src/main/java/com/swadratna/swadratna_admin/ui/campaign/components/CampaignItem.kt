@@ -11,21 +11,27 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.swadratna.swadratna_admin.data.model.Campaign
 import com.swadratna.swadratna_admin.data.model.CampaignStatus
+import androidx.compose.foundation.clickable
+import java.time.LocalDate
 
 @Composable
 fun CampaignItem(
     campaign: Campaign,
-    onViewDetails: (String) -> Unit,
+    onViewDetails: (String) -> Unit = {},
     onEdit: (String) -> Unit = {},
     onDelete: (String) -> Unit = {},
+    onChangeStatus: (String, CampaignStatus) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
+    var showStatusDialog by remember { mutableStateOf(false) }
     Card(
         modifier = modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .clickable { onEdit(campaign.id) },
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(
@@ -33,6 +39,7 @@ fun CampaignItem(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
+            // removed duplicate showStatusDialog
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -70,6 +77,14 @@ fun CampaignItem(
                             }
                         )
                         DropdownMenuItem(
+                            text = { Text("Change Status") },
+                            onClick = { 
+                                expanded = false
+                                // open status selection
+                                showStatusDialog = true
+                            }
+                        )
+                        DropdownMenuItem(
                             text = { Text("Duplicate") },
                             onClick = { expanded = false }
                         )
@@ -104,36 +119,70 @@ fun CampaignItem(
                 style = MaterialTheme.typography.bodyMedium
             )
             
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             
-            if (campaign.status != CampaignStatus.SCHEDULED && campaign.status != CampaignStatus.DRAFT) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Outlined.AccountBox,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
+            // Show "Delete" text button only when the campaign has reached its end date or status is Completed
+            val now = LocalDate.now()
+            val showDeleteTextButton = (campaign.status == CampaignStatus.COMPLETED) || !now.isBefore(campaign.endDate)
+            if (showDeleteTextButton) {
+                TextButton(
+                    onClick = { onDelete(campaign.id) },
+                    modifier = Modifier.align(Alignment.End)
+                ) {
                     Text(
-                        text = "Performance: CTR: 5.2% (+0.8%)",
-                        style = MaterialTheme.typography.bodyMedium
+                        text = "Delete",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        textDecoration = TextDecoration.Underline
                     )
                 }
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            TextButton(
-                onClick = { onViewDetails(campaign.id) },
-                modifier = Modifier.align(Alignment.End)
-            ) {
-                Text("View Details")
-            }
         }
+    }
+    if (showStatusDialog) {
+        AlertDialog(
+            onDismissRequest = { showStatusDialog = false },
+            confirmButton = {
+                // handled via selection list
+            },
+            dismissButton = {
+                TextButton(onClick = { showStatusDialog = false }) { Text("Close") }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Change Status", style = MaterialTheme.typography.titleMedium)
+                    Divider()
+                    StatusOptionItem("Active", CampaignStatus.ACTIVE) {
+                        onChangeStatus(campaign.id, CampaignStatus.ACTIVE)
+                        showStatusDialog = false
+                    }
+                    StatusOptionItem("Scheduled", CampaignStatus.SCHEDULED) {
+                        onChangeStatus(campaign.id, CampaignStatus.SCHEDULED)
+                        showStatusDialog = false
+                    }
+                    StatusOptionItem("Completed", CampaignStatus.COMPLETED) {
+                        onChangeStatus(campaign.id, CampaignStatus.COMPLETED)
+                        showStatusDialog = false
+                    }
+                    StatusOptionItem("Draft", CampaignStatus.DRAFT) {
+                        onChangeStatus(campaign.id, CampaignStatus.DRAFT)
+                        showStatusDialog = false
+                    }
+                }
+            }
+        )
     }
 }
 
+@Composable
+private fun StatusOptionItem(label: String, status: CampaignStatus, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        AssistChip(onClick = onClick, label = { Text(label) })
+    }
+}
 @Composable
 fun CampaignStatusChip(status: CampaignStatus) {
     val (backgroundColor, contentColor) = when (status) {

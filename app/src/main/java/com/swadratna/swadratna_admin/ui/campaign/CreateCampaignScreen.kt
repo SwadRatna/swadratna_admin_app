@@ -2,6 +2,7 @@ package com.swadratna.swadratna_admin.ui.campaign
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -25,6 +26,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -42,6 +44,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,7 +58,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.swadratna.swadratna_admin.R
+import com.swadratna.swadratna_admin.data.model.CampaignStatus
+import com.swadratna.swadratna_admin.ui.menu.MenuCategoriesUiState
+import com.swadratna.swadratna_admin.ui.menu.MenuManagementViewModel
+import com.swadratna.swadratna_admin.ui.store.StoreViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -64,16 +72,46 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun CreateCampaignScreen(
     onNavigateBack: () -> Unit = {},
-    viewModel: CampaignViewModel = hiltViewModel()
+    campaignId: String? = null,
+    viewModel: CampaignViewModel = hiltViewModel(),
+    navController: NavController
 ) {
+    LaunchedEffect(campaignId) {
+        if (campaignId != null) {
+            viewModel.handleEvent(CampaignEvent.EditCampaign(campaignId))
+        }
+    }
+
     val uiState by viewModel.uiState.collectAsState()
     val isEditMode = uiState.isEditMode
     val campaignToEdit = uiState.campaignToEdit
+
+    // Track selected status locally for immediate visual feedback
+    var selectedStatus by remember { mutableStateOf(campaignToEdit?.status) }
+    LaunchedEffect(campaignToEdit?.status) { selectedStatus = campaignToEdit?.status }
+
+    // Track status change action to auto-navigate after update completes
+    var statusChangeInitiated by remember { mutableStateOf(false) }
+
+    // Track save action to avoid premature navigation
+    var navigateAfterSave by remember { mutableStateOf(false) }
+    val storeViewModel: StoreViewModel = hiltViewModel()
+    val storeUiState by storeViewModel.uiState.collectAsState()
+
+    val menuViewModel: MenuManagementViewModel = hiltViewModel()
+    val categoriesState by menuViewModel.categoriesState.collectAsState()
+    // Add state to track selected category IDs loaded from server
+    var selectedCategoryIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
+    // Remove explicit loadStores() call since StoreViewModel loads in init; keep categories loading only
+    LaunchedEffect(Unit) {
+        menuViewModel.loadCategories()
+    }
     
     var campaignTitle by remember { mutableStateOf(campaignToEdit?.title ?: "") }
     var campaignDescription by remember { mutableStateOf(campaignToEdit?.description ?: "") }
-    var selectedFranchises by remember { mutableStateOf(campaignToEdit?.targetStores ?: "All") }
     var expandedFranchiseDropdown by remember { mutableStateOf(false) }
+    var selectedStoreId by remember { mutableStateOf<Int?>(null) }
+    var selectedStoreName by remember { mutableStateOf("All Stores") }
 
     var startDate by remember { mutableStateOf(campaignToEdit?.startDate) }
     var endDate by remember { mutableStateOf(campaignToEdit?.endDate) }
@@ -87,8 +125,27 @@ fun CreateCampaignScreen(
     var vegGravyChecked by remember { mutableStateOf(savedCategories.contains("Veg Gravy")) }
     var chineseChecked by remember { mutableStateOf(savedCategories.contains("Chinese")) }
     var nonVegChecked by remember { mutableStateOf(savedCategories.contains("Non Veg")) }
-    
-    var isProcessing by remember { mutableStateOf(false) }
+
+    // Auto-populate when campaignToEdit is loaded/updated (e.g., after server fetch)
+    LaunchedEffect(campaignToEdit, storeUiState.stores) {
+        if (isEditMode && campaignToEdit != null) {
+            campaignTitle = campaignToEdit.title
+            campaignDescription = campaignToEdit.description
+            startDate = campaignToEdit.startDate
+            endDate = campaignToEdit.endDate
+            selectedCategoryIds = campaignToEdit.targetCategoryIds.toSet()
+
+            val ids = campaignToEdit.targetFranchiseIds
+            if (ids.isEmpty()) {
+                selectedStoreId = null
+                selectedStoreName = "All Stores"
+            } else {
+                selectedStoreId = ids.firstOrNull()
+                selectedStoreName = storeUiState.stores.find { it.id == selectedStoreId }?.name
+                    ?: ("Store #${selectedStoreId}")
+            }
+        }
+    }
 
     val scroll = rememberScrollState()
 
@@ -104,12 +161,21 @@ fun CreateCampaignScreen(
         TopAppBar(
             title = { Text(if (isEditMode) "Edit Campaign" else "Create Campaign") },
             navigationIcon = {
-                IconButton(onClick = onNavigateBack) {
+                // Prevent navigating back while a request is processing
+                IconButton(onClick = onNavigateBack, enabled = !uiState.isLoading) {
                     Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                 }
             },
             windowInsets = WindowInsets(0.dp)
         )
+
+        // Auto navigate back when status update completes successfully
+        LaunchedEffect(uiState.isLoading, uiState.error, statusChangeInitiated) {
+            if (statusChangeInitiated && !uiState.isLoading && uiState.error == null) {
+                statusChangeInitiated = false
+                onNavigateBack()
+            }
+        }
 
         Column(
             modifier = Modifier
@@ -118,6 +184,44 @@ fun CreateCampaignScreen(
                 .padding(horizontal = 16.dp)
                 .padding(top = 16.dp, bottom = 24.dp)
         ) {
+            // Enable/Disable controls when editing
+            if (isEditMode && campaignToEdit != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = {
+                            selectedStatus = CampaignStatus.ACTIVE
+                            statusChangeInitiated = true
+                            viewModel.handleEvent(
+                                CampaignEvent.UpdateCampaignStatus(campaignToEdit.id, CampaignStatus.ACTIVE)
+                            )
+                        },
+                        enabled = !uiState.isLoading,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (selectedStatus == CampaignStatus.ACTIVE) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent,
+                            contentColor = if (selectedStatus == CampaignStatus.ACTIVE) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        ),
+                        border = BorderStroke(1.dp, if (selectedStatus == CampaignStatus.ACTIVE) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
+                    ) { Text("Enable") }
+
+                    OutlinedButton(
+                        onClick = {
+                            selectedStatus = CampaignStatus.COMPLETED
+                            statusChangeInitiated = true
+                            viewModel.handleEvent(
+                                CampaignEvent.UpdateCampaignStatus(campaignToEdit.id, CampaignStatus.COMPLETED)
+                            )
+                        },
+                        enabled = !uiState.isLoading,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (selectedStatus == CampaignStatus.COMPLETED) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent,
+                            contentColor = if (selectedStatus == CampaignStatus.COMPLETED) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        ),
+                        border = BorderStroke(1.dp, if (selectedStatus == CampaignStatus.COMPLETED) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
+                    ) { Text("Disable") }
+                }
+                Spacer(Modifier.height(16.dp))
+            }
+
             Text("Campaign Title*", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(
@@ -267,7 +371,7 @@ fun CreateCampaignScreen(
                 onExpandedChange = { expandedFranchiseDropdown = it }
             ) {
                 OutlinedTextField(
-                    value = selectedFranchises,
+                    value = selectedStoreName,
                     onValueChange = {},
                     readOnly = true,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedFranchiseDropdown) },
@@ -281,11 +385,20 @@ fun CreateCampaignScreen(
                     expanded = expandedFranchiseDropdown,
                     onDismissRequest = { expandedFranchiseDropdown = false }
                 ) {
-                    listOf("All", "North Region", "South Region", "East Region", "West Region").forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text("All Stores") },
+                        onClick = {
+                            selectedStoreId = null
+                            selectedStoreName = "All Stores"
+                            expandedFranchiseDropdown = false
+                        }
+                    )
+                    storeUiState.stores.forEach { store ->
                         DropdownMenuItem(
-                            text = { Text(option) },
+                            text = { Text(store.name) },
                             onClick = {
-                                selectedFranchises = option
+                                selectedStoreId = store.id
+                                selectedStoreName = store.name
                                 expandedFranchiseDropdown = false
                             }
                         )
@@ -297,32 +410,31 @@ fun CreateCampaignScreen(
 
             Text("Select Menu Category*", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = snacksChecked, onCheckedChange = { snacksChecked = it })
-                        Text("Snacks")
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = vegGravyChecked, onCheckedChange = { vegGravyChecked = it })
-                        Text("Veg Gravy")
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = nonVegChecked, onCheckedChange = { nonVegChecked = it })
-                        Text("Non Veg")
-                    }
+            when (categoriesState) {
+                is MenuCategoriesUiState.Loading -> {
+                    Text("Loading categories...")
                 }
-                Column(Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = southIndianChecked, onCheckedChange = { southIndianChecked = it })
-                        Text("South Indian")
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = chineseChecked, onCheckedChange = { chineseChecked = it })
-                        Text("Chinese")
+                is MenuCategoriesUiState.Error -> {
+                    val msg = (categoriesState as MenuCategoriesUiState.Error).message
+                    Text(msg)
+                }
+                is MenuCategoriesUiState.Success -> {
+                    val categories = (categoriesState as MenuCategoriesUiState.Success).categories
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        categories.forEach { cat ->
+                            val id = cat.id
+                            if (id != null) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Checkbox(
+                                        checked = selectedCategoryIds.contains(id),
+                                        onCheckedChange = {
+                                            selectedCategoryIds = if (it) selectedCategoryIds + id else selectedCategoryIds - id
+                                        }
+                                    )
+                                    Text(cat.name)
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -369,60 +481,56 @@ fun CreateCampaignScreen(
 
                 Button(
                 onClick = {
-                    val selectedCategories = buildList {
-                        if (snacksChecked) add("Snacks")
-                        if (southIndianChecked) add("South Indian")
-                        if (vegGravyChecked) add("Veg Gravy")
-                        if (chineseChecked) add("Chinese")
-                        if (nonVegChecked) add("Non Veg")
-                    }
-                    
-                    val isCategorySelected = selectedCategories.isNotEmpty()
-                    isProcessing = true
-                    
-                    if (campaignTitle.isNotBlank() && campaignDescription.isNotBlank()
-                        && startDate != null && endDate != null && isCategorySelected
-                    ) {
-                        if (isEditMode && campaignToEdit != null) {
-                            viewModel.handleEvent(
-                                CampaignEvent.UpdateCampaign(
-                                    id = campaignToEdit.id,
-                                    title = campaignTitle,
-                                    description = campaignDescription,
-                                    startDate = startDate!!,
-                                    endDate = endDate!!,
-                                    type = campaignToEdit.type,
-                                    discount = campaignToEdit.discount,
-                                    menuCategories = selectedCategories,
-                                    targetFranchises = selectedFranchises,
-                                    imageUrl = campaignToEdit.imageUrl
-                                )
+                    val targetCategoryIds = selectedCategoryIds.toList()
+                    val targetFranchiseIds = selectedStoreId?.let { listOf(it) } ?: emptyList()
+                    if (isEditMode && campaignToEdit != null) {
+                        viewModel.handleEvent(
+                            CampaignEvent.UpdateCampaign(
+                                id = campaignToEdit.id,
+                                title = campaignTitle,
+                                description = campaignDescription,
+                                startDate = startDate!!,
+                                endDate = endDate!!,
+                                type = campaignToEdit.type,
+                                discount = campaignToEdit.discount,
+                                targetCategoryIds = targetCategoryIds,
+                                targetFranchiseIds = targetFranchiseIds,
+                                imageUrl = campaignToEdit.imageUrl
                             )
-                        } else {
-                            viewModel.handleEvent(
-                                CampaignEvent.CreateCampaign(
-                                    title = campaignTitle,
-                                    description = campaignDescription,
-                                    startDate = startDate!!,
-                                    endDate = endDate!!,
-                                    menuCategories = selectedCategories,
-                                    targetFranchises = selectedFranchises,
-                                    imageUrl = null
-                                )
+                        )
+                    } else {
+                        viewModel.handleEvent(
+                            CampaignEvent.CreateCampaign(
+                                title = campaignTitle,
+                                description = campaignDescription,
+                                startDate = startDate!!,
+                                endDate = endDate!!,
+                                targetCategoryIds = targetCategoryIds,
+                                targetFranchiseIds = targetFranchiseIds,
+                                imageUrl = null
                             )
-                        }
-                        onNavigateBack()
+                        )
                     }
+                    navigateAfterSave = true
                 },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = campaignTitle.isNotBlank() && campaignDescription.isNotBlank()
                         && startDate != null && endDate != null
-                        && (snacksChecked || southIndianChecked || vegGravyChecked || chineseChecked || nonVegChecked)
-                        && !isProcessing
-            ) { Text(if (isEditMode) "Update Campaign" else "Create Campaign") }
+                        && selectedCategoryIds.isNotEmpty()
+                        && !uiState.isLoading
+            ) { Text(if (isEditMode) "Save Campaign" else "Create Campaign") }
             }
 
             Spacer(Modifier.height(24.dp))
+        }
+
+        if (navigateAfterSave && !uiState.isLoading && uiState.error == null) {
+            navController.previousBackStackEntry
+                ?.savedStateHandle
+                ?.set("refreshCampaigns", true)
+
+            onNavigateBack()
+            navigateAfterSave = false
         }
     }
 }

@@ -35,6 +35,8 @@ import com.swadratna.swadratna_admin.presentation.screens.menu.EditMenuItemScree
 import com.swadratna.swadratna_admin.presentation.screens.menu.ManageCategoriesScreen
 import com.swadratna.swadratna_admin.ui.notifications.NotificationScreen
 import com.swadratna.swadratna_admin.ui.viewmodels.AuthViewModel
+import com.swadratna.swadratna_admin.ui.campaign.CampaignViewModel
+import com.swadratna.swadratna_admin.ui.campaign.CampaignEvent
 
 @Composable
 fun NavGraph(
@@ -44,6 +46,14 @@ fun NavGraph(
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val authState by authViewModel.authState.collectAsState()
+
+    // Kick off a one-time automatic completion of expired campaigns when authenticated
+    val campaignsAutoVM: CampaignViewModel = hiltViewModel()
+    LaunchedEffect(authState.isAuthenticated) {
+        if (authState.isAuthenticated) {
+            campaignsAutoVM.autoCompleteExpiredCampaignsIfNeeded()
+        }
+    }
     
     // Handle session expiration
     LaunchedEffect(authState.sessionExpired) {
@@ -93,7 +103,23 @@ fun NavGraph(
             HomeScreen()
         }
         composable(NavRoute.Campaigns.route) {
+            // Share the same VM instance with CampaignScreen and observe navigation result for refresh
+            val campaignsViewModel: CampaignViewModel = hiltViewModel()
+            // Observe a flag set by CreateCampaign screens to trigger refresh when popping back
+            val needsRefresh by (navController.currentBackStackEntry?.savedStateHandle
+                ?.getStateFlow("refreshCampaigns", false)
+                ?: kotlinx.coroutines.flow.MutableStateFlow(false))
+                .collectAsState(initial = false)
+
+            LaunchedEffect(needsRefresh) {
+                if (needsRefresh) {
+                    campaignsViewModel.handleEvent(CampaignEvent.RefreshData)
+                    navController.currentBackStackEntry?.savedStateHandle?.set("refreshCampaigns", false)
+                }
+            }
+
             CampaignScreen(
+                viewModel = campaignsViewModel,
                 onNavigateToDetails = { campaignId ->
                     // TODO: Navigate to campaign details when implemented
                 },
@@ -109,8 +135,11 @@ fun NavGraph(
         composable(NavRoute.CreateCampaign.route) {
             CreateCampaignScreen(
                 onNavigateBack = {
+                    // Signal Campaigns screen to refresh after popping back
+                    navController.previousBackStackEntry?.savedStateHandle?.set("refreshCampaigns", true)
                     navController.popBackStack()
-                }
+                },
+                navController = navController
             )
         }
         
@@ -121,8 +150,12 @@ fun NavGraph(
             val campaignId = backStackEntry.arguments?.getString("campaignId")
             CreateCampaignScreen(
                 onNavigateBack = {
+                    // Signal Campaigns screen to refresh after popping back
+                    navController.previousBackStackEntry?.savedStateHandle?.set("refreshCampaigns", true)
                     navController.popBackStack()
-                }
+                },
+                campaignId = campaignId,
+                navController = navController
             )
         }
         composable(NavRoute.Store.route) {
