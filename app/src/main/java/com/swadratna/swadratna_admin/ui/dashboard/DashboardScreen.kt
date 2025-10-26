@@ -42,18 +42,21 @@ fun DashboardScreen(
                     Row(
                         modifier = Modifier.padding(end = 16.dp)
                     ) {
+                        val showProfileIcon = false
+                        if (showProfileIcon) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .align(Alignment.CenterVertically)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                                    .clickable { onNavigateToSettings() }
+                            )
+                            Spacer(Modifier.width(8.dp))
+                        }
                         IconButton(onClick = onNavigateToNotifications) {
                             Icon(Icons.Default.Notifications, contentDescription = "Notifications")
                         }
-                        Spacer(Modifier.width(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .align(Alignment.CenterVertically)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                                .clickable { onNavigateToSettings() }
-                        )
                     }
                 },
             )
@@ -158,15 +161,30 @@ fun StatCard(
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = value,
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold
-                )
+                style = if (title == "Top Seller") {
+                    MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Bold
+                    )
+                } else {
+                    MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
             )
             Spacer(modifier = Modifier.height(4.dp))
+
+            val changeColor = when {
+                change.trim().startsWith("-") -> MaterialTheme.colorScheme.error
+                change.trim().firstOrNull()?.isDigit() == true || change.trim().startsWith("+") -> Color(0xFF4CAF50)
+                else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            }
+
             Text(
                 text = change,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                color = changeColor
             )
         }
     }

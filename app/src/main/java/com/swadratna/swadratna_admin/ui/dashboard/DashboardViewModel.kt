@@ -1,13 +1,16 @@
 package com.swadratna.swadratna_admin.ui.dashboard
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
+import kotlin.math.roundToInt
 import androidx.lifecycle.viewModelScope
 import com.swadratna.swadratna_admin.data.repository.ActivityRepository
-import com.swadratna.swadratna_admin.data.repository.DashboardRepository
 import com.swadratna.swadratna_admin.data.repository.CampaignRepository
+import com.swadratna.swadratna_admin.data.repository.DashboardRepository
 import com.swadratna.swadratna_admin.data.repository.StoreRepository
-import com.swadratna.swadratna_admin.utils.SharedPrefsManager
 import com.swadratna.swadratna_admin.data.wrapper.Result
+import com.swadratna.swadratna_admin.utils.SharedPrefsManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,11 +20,13 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
+@RequiresApi(Build.VERSION_CODES.O)
 class DashboardViewModel @Inject constructor(
     private val dashboardRepository: DashboardRepository,
     private val activityRepository: ActivityRepository,
     private val campaignRepository: CampaignRepository,
     private val storeRepository: StoreRepository,
+    private val sharedPrefsManager: SharedPrefsManager
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
@@ -31,15 +36,12 @@ class DashboardViewModel @Inject constructor(
     }
 
     private fun loadDashboardData() {
-        // Load dashboard summary cards from backend
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
                 val response = dashboardRepository.getDashboardData()
                 _uiState.update {
                     it.copy(
-                        campaignsChange = "0 % changes since last month",
-                        storeChange = "0 % changes since last 3 months",
                         topSeller = response.topSeller,
                         topSellerMetric = response.topSellerMetric,
                         newUsers = response.newUsers,
@@ -57,7 +59,16 @@ class DashboardViewModel @Inject constructor(
             when (val res = campaignRepository.adminListCampaigns(status = null, type = null, search = null, page = null, limit = 1000)) {
                 is Result.Success -> {
                     val count = res.data.campaigns.size
-                    _uiState.update { it.copy(totalCampaigns = count) }
+                    val prev = sharedPrefsManager.getPrevTotalCampaigns()
+                    val percentText = if (prev == null) {
+                        sharedPrefsManager.savePrevTotalCampaigns(count)
+                        "100 % changes since last month"
+                    } else {
+                        val diff = count - prev
+                        val pct = if (prev == 0) 100 else ((diff.toDouble() / prev.toDouble()) * 100).roundToInt()
+                        "${pct} % changes since last month"
+                    }
+                    _uiState.update { it.copy(totalCampaigns = count, campaignsChange = percentText) }
                 }
                 is Result.Error -> {
                     // Keep existing value on error
@@ -69,13 +80,36 @@ class DashboardViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val restaurantId = 1000001 // TODO: replace with dynamic restaurant id
+            val restaurantId = 1000001
             val result = storeRepository.getStores(page = 1, limit = 1000, restaurantId = restaurantId)
             result.onSuccess { resp ->
                 val activeCount = resp.stores.count { it.status.equals("active", ignoreCase = true) }
-                _uiState.update { it.copy(activeStore = activeCount) }
+                sharedPrefsManager.saveStores(resp.stores)
+                val prev = sharedPrefsManager.getPrevActiveStores()
+                val hasLocalStores = sharedPrefsManager.getStores().isNotEmpty()
+                val percentText = if (prev == null || !hasLocalStores) {
+                    sharedPrefsManager.savePrevActiveStores(activeCount)
+                    "100 % changes since last 3 months"
+                } else {
+                    val diff = activeCount - prev
+                    val pct = if (prev == 0) 100 else ((diff.toDouble() / prev.toDouble()) * 100).roundToInt()
+                    "${pct} % changes since last 3 months"
+                }
+                val topSellerName = if (resp.stores.size == 1) resp.stores.first().name else "N/A"
+                _uiState.update { it.copy(activeStore = activeCount, storeChange = percentText, topSeller = topSellerName) }
             }.onFailure {
-                // Keep existing value on error
+                val cachedStores = sharedPrefsManager.getStores()
+                val activeCount = cachedStores.count { it.status.equals("active", ignoreCase = true) }
+                val prev = sharedPrefsManager.getPrevActiveStores()
+                val percentText = if (prev == null || cachedStores.isEmpty()) {
+                    "100 % changes since last 3 months"
+                } else {
+                    val diff = activeCount - prev
+                    val pct = if (prev == 0) 100 else ((diff.toDouble() / prev.toDouble()) * 100).roundToInt()
+                    "${pct} % changes since last 3 months"
+                }
+                val topSellerName = if (cachedStores.size == 1) cachedStores.first().name else "N/A"
+                _uiState.update { it.copy(activeStore = activeCount, storeChange = percentText, topSeller = topSellerName) }
             }
         }
 
