@@ -254,28 +254,37 @@ fun TopPerformingStoreSection(storeItem: List<StoreItem>) {
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
-        Spacer(modifier = Modifier.height(16.dp))
-        storeItem.forEachIndexed { index, store ->
-            StoreItem(
-                store = store,
-                color = when (index) {
-                    0 -> Color(0xFFE8F5E9)
-                    1 -> Color(0xFFFFEBEE)
-                    else -> Color(0xFFF3E5F5)
-                }
+        if (storeItem.size <= 1) {
+            Text(
+                text = "No data available",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        } else {
+            Spacer(modifier = Modifier.height(16.dp))
+            storeItem.forEachIndexed { index, store ->
+                StoreItem(
+                    store = store,
+                    color = when (index) {
+                        0 -> Color(0xFFE8F5E9)
+                        1 -> Color(0xFFFFEBEE)
+                        else -> Color(0xFFF3E5F5)
+                    }
+                )
+            }
+            Text(
+                text = "View Full Leaderboard",
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    textDecoration = TextDecoration.Underline
+                ),
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .clickable { /* TODO */ }
             )
         }
-        Text(
-            text = "View Full Leaderboard",
-            style = MaterialTheme.typography.labelLarge.copy(
-                fontWeight = FontWeight.Bold,
-                textDecoration = TextDecoration.Underline
-            ),
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .padding(top = 8.dp)
-                .clickable { /* TODO */ }
-        )
     }
 }
 
