@@ -1,5 +1,6 @@
 package com.swadratna.swadratna_admin.ui.staff
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swadratna.swadratna_admin.data.model.Activity
@@ -40,13 +41,27 @@ class StaffManagementViewModel @Inject constructor(
                     _allStaff.clear()
                     response.staff?.let { staffList ->
                         _allStaff.addAll(staffList)
-                    }
-                    _uiState.update { 
-                        it.copy(
-                            isLoading = false,
-                            staffList = _allStaff,
-                            error = null
-                        )
+                        // Capture any passwords provided by backend in staff list
+                        val passwordsFromList = staffList.mapNotNull { s ->
+                            val pwd = s.password
+                            if (!pwd.isNullOrBlank()) s.id to pwd else null
+                        }.toMap()
+                        _uiState.update { 
+                            it.copy(
+                                isLoading = false,
+                                staffList = _allStaff,
+                                error = null,
+                                passwordsByStaffId = it.passwordsByStaffId + passwordsFromList
+                            )
+                        }
+                    } ?: run {
+                        _uiState.update { 
+                            it.copy(
+                                isLoading = false,
+                                staffList = emptyList(),
+                                error = null
+                            )
+                        }
                     }
                     applyFiltersAndSort()
                 }
@@ -104,13 +119,29 @@ class StaffManagementViewModel @Inject constructor(
                         "Staff member '$name' has been successfully added with role '$role'"
                     )
                     
-                    _uiState.update { 
-                        it.copy(
-                            isLoading = false,
-                            error = null
-                        )
+                    Log.d("StaffManagementVM", "CreateStaff success: message='${response.message}'")
+                    val extractedPassword = response.password ?: extractPasswordFromMessage(response.message)
+                    val staffIdFromResponse = response.staff?.id
+                    if (!extractedPassword.isNullOrBlank() && staffIdFromResponse != null) {
+                        _uiState.update { it.copy(passwordsByStaffId = it.passwordsByStaffId + (staffIdFromResponse to extractedPassword)) }
                     }
-                    // Reload staff list to include the new staff member
+                    if (extractedPassword != null) {
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                error = null,
+                                generatedPassword = extractedPassword,
+                                isPasswordDialogVisible = true
+                            )
+                        }
+                    } else {
+                        _uiState.update { 
+                            it.copy(
+                                isLoading = false,
+                                error = null
+                            )
+                        }
+                    }
                     loadStaff(storeId)
                 }
                 .onFailure { exception ->
@@ -122,6 +153,28 @@ class StaffManagementViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    // Helper to extract password from a free-form message string
+    private fun extractPasswordFromMessage(message: String?): String? {
+        if (message.isNullOrBlank()) return null
+        // Common patterns: "password is <pwd>", "password: <pwd>", "Password=<pwd>"
+        val patterns = listOf(
+            Regex("(?i)password\\s*(?:is|:|=)\\s*([\\S]+)"), // captures non-whitespace token after indicator
+            Regex("(?i)pass\\s*(?:is|:|=)\\s*([\\S]+)")
+        )
+        for (pattern in patterns) {
+            val match = pattern.find(message)
+            val pwd = match?.groups?.get(1)?.value
+            if (!pwd.isNullOrBlank()) return pwd.trim()
+        }
+        // Try to find quoted password if present
+        val quoted = Regex("(?i)password[^\"]*\"([^\"]+)\"").find(message)?.groups?.get(1)?.value
+        return quoted?.trim()
+    }
+
+    fun dismissPasswordDialog() {
+        _uiState.update { it.copy(isPasswordDialogVisible = false, generatedPassword = null) }
     }
     
     fun updateStaff(
@@ -164,6 +217,12 @@ class StaffManagementViewModel @Inject constructor(
                         "Staff member updated",
                         "Staff member '$name' has been successfully updated with role '$role'"
                     )
+                    
+                    val updatedPwd = response.password
+                    val updatedStaffId = response.staff?.id ?: staffId
+                    if (!updatedPwd.isNullOrBlank()) {
+                        _uiState.update { it.copy(passwordsByStaffId = it.passwordsByStaffId + (updatedStaffId to updatedPwd)) }
+                    }
                     
                     _uiState.update { 
                         it.copy(
@@ -292,7 +351,10 @@ data class StaffManagementUiState(
     val isFilterMenuVisible: Boolean = false,
     val isSortMenuVisible: Boolean = false,
     val selectedFilter: String? = null,
-    val selectedSortOrder: String = "NAME_ASC"
+    val selectedSortOrder: String = "NAME_ASC",
+    val passwordsByStaffId: Map<Int, String> = emptyMap(),
+    val generatedPassword: String? = null,
+    val isPasswordDialogVisible: Boolean = false
 )
 
 sealed interface StaffEvent {

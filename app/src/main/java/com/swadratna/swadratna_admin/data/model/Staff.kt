@@ -15,6 +15,8 @@ data class Staff(
     val position: String?,
     val email: String? = null,
     val phone: String? = null,
+    // Added to support backend sending password with staff objects
+    val password: String? = null,
     @SerializedName("mobile_number") val mobileNumber: String? = null,
     val address: String? = null,
     val salary: Double? = null,
@@ -98,5 +100,6 @@ data class UpdateStaffRequest(
 data class StaffOperationResponse(
     val success: Boolean,
     val message: String,
+    val password: String? = null,
     val staff: Staff? = null
 )

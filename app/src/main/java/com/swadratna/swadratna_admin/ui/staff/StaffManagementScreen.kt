@@ -11,6 +11,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
@@ -31,6 +33,7 @@ import com.swadratna.swadratna_admin.data.model.Staff
 import com.swadratna.swadratna_admin.data.model.StaffStatus
 import com.swadratna.swadratna_admin.ui.components.AppSearchField
 import com.swadratna.swadratna_admin.ui.store.StoreEvent
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +46,7 @@ fun StaffManagementScreen(
     onNavigateToEditStaff: (Int) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
     
     // Load staff data when screen is first displayed
     LaunchedEffect(storeId) {
@@ -87,7 +91,8 @@ fun StaffManagementScreen(
                     tint = MaterialTheme.colorScheme.onPrimary
                 )
             }
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Column(
             modifier = modifier
@@ -129,11 +134,11 @@ fun StaffManagementScreen(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Sort")
                 }
-            }
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Box(modifier = Modifier.fillMaxSize()) {
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Box(modifier = Modifier.fillMaxSize()) {
                 when {
                     uiState.isLoading -> {
                         Box(
@@ -210,7 +215,9 @@ fun StaffManagementScreen(
                                 StaffItem(
                                     staff = staff,
                                     onEdit = { staffId -> onNavigateToEditStaff(staffId) },
-                                    onDelete = { staffId -> viewModel.deleteStaff(staffId) }
+                                    onDelete = { staffId -> viewModel.deleteStaff(staffId) },
+                                    snackbarHostState = snackbarHostState,
+                                    password = staff.password ?: uiState.passwordsByStaffId[staff.id]
                                 )
                             }
                         }
@@ -243,7 +250,9 @@ fun StaffManagementScreen(
 fun StaffItem(
     staff: Staff,
     onEdit: (Int) -> Unit,
-    onDelete: (Int) -> Unit
+    onDelete: (Int) -> Unit,
+    snackbarHostState: SnackbarHostState,
+    password: String?
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -321,14 +330,27 @@ fun StaffItem(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                TextButton(onClick = { onEdit(staff.id) }) {
-                    Text("Edit")
+                val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+                val coroutineScope = rememberCoroutineScope()
+                IconButton(onClick = {
+                    val email = staff.email ?: ""
+                    val pwd = password ?: ""
+                    val text = "Email: $email" + if (pwd.isNotBlank()) "\nPassword: $pwd" else ""
+                    clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(text))
+                    coroutineScope.launch {
+                        val msg = if (pwd.isBlank()) "Login details copied. Password may not be available." else "Login details copied"
+                        snackbarHostState.showSnackbar(msg)
+                    }
+                }) {
+                    Icon(painter = painterResource(R.drawable.ic_copy_content), contentDescription = "Copy login details")
                 }
-                
                 Spacer(modifier = Modifier.width(8.dp))
-                
-                TextButton(onClick = { onDelete(staff.id) }) {
-                    Text("Delete", color = Color.Red)
+                IconButton(onClick = { onEdit(staff.id) }) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit")
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(onClick = { onDelete(staff.id) }) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
                 }
             }
         }
