@@ -103,6 +103,16 @@ fun NavGraph(
         composable(NavRoute.Home.route) {
             HomeScreen()
         }
+        composable(NavRoute.Notifications.route) {
+            com.swadratna.swadratna_admin.ui.notifications.NotificationScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(NavRoute.AttendancePayment.route) {
+            com.swadratna.swadratna_admin.ui.attendance.AttendancePaymentScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
         composable(NavRoute.Campaigns.route) {
             // Share the same VM instance with CampaignScreen and observe navigation result for refresh
             val campaignsViewModel: CampaignViewModel = hiltViewModel()
