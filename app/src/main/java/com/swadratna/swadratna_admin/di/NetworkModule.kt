@@ -6,6 +6,7 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import com.swadratna.swadratna_admin.data.LocalDateAdapter
 import com.swadratna.swadratna_admin.data.remote.api.AnalyticsApi
+import com.swadratna.swadratna_admin.data.remote.api.AssetApi
 import com.swadratna.swadratna_admin.data.remote.api.AuthApiService
 import com.swadratna.swadratna_admin.data.remote.api.AuthInterceptor
 import com.swadratna.swadratna_admin.data.remote.api.CampaignApi
@@ -150,4 +151,9 @@ object NetworkModule {
     @Singleton
     fun provideStaffApiService(retrofit: Retrofit): StaffApiService =
         retrofit.create(StaffApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAssetApi(retrofit: Retrofit): AssetApi =
+        retrofit.create(AssetApi::class.java)
 }

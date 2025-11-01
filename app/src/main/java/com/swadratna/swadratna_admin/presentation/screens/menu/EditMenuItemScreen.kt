@@ -18,6 +18,7 @@ import com.swadratna.swadratna_admin.data.model.MenuItem
 import com.swadratna.swadratna_admin.data.model.UpdateMenuItemRequest
 import com.swadratna.swadratna_admin.presentation.viewmodels.MenuItemsViewModel
 import com.swadratna.swadratna_admin.ui.menu.MenuCategoriesUiState
+import com.swadratna.swadratna_admin.ui.assets.AssetUploader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -215,6 +216,13 @@ fun EditMenuItemScreen(
                     supportingText = { Text("Optional: Separate multiple allergens with commas") }
                 )
 
+                // Image Uploader
+                AssetUploader(
+                    onConfirmed = { asset ->
+                        image = asset.cdnUrl ?: asset.url ?: ""
+                    }
+                )
+
                 // Image URL Field
                 OutlinedTextField(
                     value = image,
@@ -351,7 +359,7 @@ fun EditMenuItemScreen(
                     }
                     Text("Update Menu Item")
                 }
-
+                
                 // Required fields note
                 Text(
                     text = "* Required fields",

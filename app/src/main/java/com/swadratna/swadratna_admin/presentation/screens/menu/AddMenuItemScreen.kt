@@ -18,6 +18,7 @@ import com.swadratna.swadratna_admin.data.model.MenuCategory
 import com.swadratna.swadratna_admin.data.model.CreateMenuItemRequest
 import com.swadratna.swadratna_admin.presentation.viewmodels.MenuItemsViewModel
 import com.swadratna.swadratna_admin.ui.menu.MenuCategoriesUiState
+import com.swadratna.swadratna_admin.ui.assets.AssetUploader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -166,6 +167,13 @@ fun AddMenuItemScreen(
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 supportingText = { Text("Optional: Order in menu") }
+            )
+
+            // Image Uploader
+            AssetUploader(
+                onConfirmed = { asset ->
+                    image = asset.cdnUrl ?: asset.url ?: ""
+                }
             )
 
            // Image URL Field
