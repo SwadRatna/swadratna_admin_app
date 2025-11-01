@@ -36,6 +36,11 @@ fun AddMenuItemScreen(
     var discountPercentage by remember { mutableStateOf("") }
     var displayOrder by remember { mutableStateOf("") }
     var allergenInfo by remember { mutableStateOf("") }
+    var image by remember { mutableStateOf("") }
+   var ingredientsText by remember { mutableStateOf("") }
+   var isVegetarian by remember { mutableStateOf(true) }
+   var spicyLevelText by remember { mutableStateOf("") }
+   var unavailableReason by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf<MenuCategory?>(null) }
     var expanded by remember { mutableStateOf(false) }
     var creationInitiated by remember { mutableStateOf(false) }
@@ -162,7 +167,54 @@ fun AddMenuItemScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 supportingText = { Text("Optional: Order in menu") }
             )
-            
+
+           // Image URL Field
+           OutlinedTextField(
+               value = image,
+               onValueChange = { image = it },
+               label = { Text("Image URL") },
+               modifier = Modifier.fillMaxWidth(),
+               supportingText = { Text("Optional: Provide a URL to the item image") }
+           )
+
+           // Ingredients Field
+           OutlinedTextField(
+               value = ingredientsText,
+               onValueChange = { ingredientsText = it },
+               label = { Text("Ingredients") },
+               modifier = Modifier.fillMaxWidth(),
+               supportingText = { Text("Optional: Separate multiple ingredients with commas") }
+           )
+
+           // Vegetarian Toggle
+           Row(
+               modifier = Modifier.fillMaxWidth(),
+               verticalAlignment = Alignment.CenterVertically,
+               horizontalArrangement = Arrangement.SpaceBetween
+           ) {
+               Text("Vegetarian")
+               Switch(checked = isVegetarian, onCheckedChange = { isVegetarian = it })
+           }
+
+           // Spicy Level Field
+           OutlinedTextField(
+               value = spicyLevelText,
+               onValueChange = { spicyLevelText = it },
+               label = { Text("Spicy Level") },
+               modifier = Modifier.fillMaxWidth(),
+               keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+               supportingText = { Text("Optional: Numeric spicy level") }
+           )
+
+           // Unavailable Reason Field
+           OutlinedTextField(
+               value = unavailableReason,
+               onValueChange = { unavailableReason = it },
+               label = { Text("Unavailable Reason") },
+               modifier = Modifier.fillMaxWidth(),
+               supportingText = { Text("Optional: Provide reason if unavailable") }
+           )
+
             // Allergen Info Field
             OutlinedTextField(
                 value = allergenInfo,
@@ -198,21 +250,32 @@ fun AddMenuItemScreen(
                         } else {
                             emptyList()
                         }
-                        
-                        val selectedCat = selectedCategory
-                        val categoryId = selectedCat?.id
-                        if (priceValue != null && priceValue > 0 && categoryId != null) {
-                            val createRequest = CreateMenuItemRequest(
-                                categoryId = categoryId,
-                                name = name,
-                                description = description,
-                                price = priceValue,
-                                discountPercentage = discountValue.toDouble(),
-                                displayOrder = orderValue,
-                                allergenInfo = allergens
-                            )
-                            viewModel.createMenuItem(createRequest)
-                        }
+                       val ingredientsParsed = if (ingredientsText.isNotBlank()) {
+                           ingredientsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                       } else {
+                           emptyList()
+                       }
+                       val spicyLevelInt = spicyLevelText.toIntOrNull() ?: 0
+                         
+                         val selectedCat = selectedCategory
+                         val categoryId = selectedCat?.id
+                         if (priceValue != null && priceValue > 0 && categoryId != null) {
+                             val createRequest = CreateMenuItemRequest(
+                                 categoryId = categoryId,
+                                 name = name,
+                                 description = description,
+                                 price = priceValue,
+                                 discountPercentage = discountValue,
+                                 displayOrder = orderValue,
+                                allergenInfo = allergens,
+                                image = if (image.isNotBlank()) image else null,
+                                ingredients = ingredientsParsed,
+                                isVegetarian = isVegetarian,
+                                spicyLevel = spicyLevelInt,
+                                unavailableReason = unavailableReason.ifBlank { "" }
+                             )
+                             viewModel.createMenuItem(createRequest)
+                         }
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),

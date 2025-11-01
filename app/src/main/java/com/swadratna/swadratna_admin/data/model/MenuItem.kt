@@ -47,8 +47,8 @@ data class CreateMenuItemRequest(
     val description: String,
     val price: Double,
     val currency: String = "INR",
-    val discountPercentage: Double? = null,
-    val discountedPrice: Double? = null,
+    val discountPercentage: Double = 0.0,
+    val discountedPrice: Double = 0.0,
     val displayOrder: Int,
     val image: String? = null,
     val isAvailable: Boolean = true,
@@ -56,7 +56,15 @@ data class CreateMenuItemRequest(
     val nutritionalInfo: NutritionalInfo? = null,
     val preparationTime: Int? = null,
     val spiceLevel: String? = null,
-    val tags: List<String> = emptyList()
+    val spicyLevel: Int = 0,
+    val tags: List<String> = emptyList(),
+    val id: Int = 0,
+    val tenantId: Int = 0,
+    val createdAt: String = "",
+    val updatedAt: String = "",
+    val ingredients: List<String> = emptyList(),
+    val isVegetarian: Boolean = true,
+    val unavailableReason: String = ""
 )
 
 data class UpdateMenuItemRequest(
@@ -78,7 +86,11 @@ data class UpdateMenuItemRequest(
     val nutritionalInfo: NutritionalInfo?,
     val preparationTime: Int?,
     val spiceLevel: String?,
-    val tags: List<String>
+    val tags: List<String>,
+    val ingredients: List<String>,
+    val isVegetarian: Boolean,
+    val spicyLevel: Int,
+    val unavailableReason: String
 )
 
 data class ToggleAvailabilityRequest(

@@ -58,9 +58,9 @@ data class CreateMenuItemDto(
     val price: Double,
     val currency: String = "INR",
     @SerializedName("discount_percentage")
-    val discountPercentage: Double? = null,
+    val discountPercentage: Double = 0.0,
     @SerializedName("discounted_price")
-    val discountedPrice: Double? = null,
+    val discountedPrice: Double = 0.0,
     @SerializedName("display_order")
     val displayOrder: Int,
     val image: String? = null,
@@ -74,7 +74,21 @@ data class CreateMenuItemDto(
     val preparationTime: Int? = null,
     @SerializedName("spice_level")
     val spiceLevel: String? = null,
-    val tags: List<String> = emptyList()
+    @SerializedName("spicy_level")
+    val spicyLevel: Int = 0,
+    val tags: List<String> = emptyList(),
+    val id: Int = 0,
+    @SerializedName("tenant_id")
+    val tenantId: Int = 0,
+    @SerializedName("created_at")
+    val createdAt: String = "",
+    @SerializedName("updated_at")
+    val updatedAt: String = "",
+    val ingredients: List<String> = emptyList(),
+    @SerializedName("is_vegetarian")
+    val isVegetarian: Boolean = true,
+    @SerializedName("unavailable_reason")
+    val unavailableReason: String = ""
 )
 
 data class UpdateMenuItemDto(
@@ -108,7 +122,14 @@ data class UpdateMenuItemDto(
     val preparationTime: Int?,
     @SerializedName("spice_level")
     val spiceLevel: String?,
-    val tags: List<String>
+    val tags: List<String>,
+    val ingredients: List<String>,
+    @SerializedName("is_vegetarian")
+    val isVegetarian: Boolean,
+    @SerializedName("spicy_level")
+    val spicyLevel: Int,
+    @SerializedName("unavailable_reason")
+    val unavailableReason: String
 )
 
 data class ToggleAvailabilityDto(
@@ -183,7 +204,15 @@ fun CreateMenuItemRequest.toDto() = CreateMenuItemDto(
     nutritionalInfo = nutritionalInfo,
     preparationTime = preparationTime,
     spiceLevel = spiceLevel,
-    tags = tags
+    spicyLevel = spicyLevel,
+    tags = tags,
+    id = id,
+    tenantId = tenantId,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    ingredients = ingredients,
+    isVegetarian = isVegetarian,
+    unavailableReason = unavailableReason
 )
 
 fun UpdateMenuItemRequest.toDto() = UpdateMenuItemDto(
@@ -205,7 +234,11 @@ fun UpdateMenuItemRequest.toDto() = UpdateMenuItemDto(
     nutritionalInfo = nutritionalInfo,
     preparationTime = preparationTime,
     spiceLevel = spiceLevel,
-    tags = tags
+    tags = tags,
+    ingredients = ingredients,
+    isVegetarian = isVegetarian,
+    spicyLevel = spicyLevel,
+    unavailableReason = unavailableReason
 )
 
 fun ToggleAvailabilityRequest.toDto() = ToggleAvailabilityDto(
@@ -232,5 +265,9 @@ fun MenuItem.toDto() = MenuItemDto(
     preparationTime = preparationTime,
     spiceLevel = spiceLevel,
     tags = tags,
-    categoryName = categoryName
+    categoryName = categoryName,
+    ingredients = ingredients,
+    isVegetarian = isVegetarian,
+    spicyLevel = spicyLevel,
+    unavailableReason = unavailableReason
 )
