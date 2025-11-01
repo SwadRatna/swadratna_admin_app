@@ -25,6 +25,9 @@ sealed class NavRoute(val route: String) {
     object MenuManagement : NavRoute("menu_management")
     object ManageCategories : NavRoute("manage_categories")
     object AddCategory : NavRoute("add_category")
+    object EditCategory : NavRoute("edit_category/{categoryId}") {
+        fun createRoute(categoryId: Long) = "edit_category/$categoryId"
+    }
     object AddMenu : NavRoute("add_menu")
     object MenuItems : NavRoute("menu_items")
     object AddMenuItem : NavRoute("add_menu_item")
