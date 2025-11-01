@@ -7,7 +7,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,14 +25,14 @@ import com.swadratna.swadratna_admin.presentation.viewmodels.MenuItemsUiState
 fun MenuItemsScreen(
     viewModel: MenuItemsViewModel = hiltViewModel(),
     onBack: () -> Unit,
-    onNavigateToAddMenuItem: () -> Unit
+    onNavigateToAddMenuItem: () -> Unit,
+    onNavigateToEditMenuItem: (Long) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     var showDeleteDialog by remember { mutableStateOf(false) }
     var itemToDelete by remember { mutableStateOf<com.swadratna.swadratna_admin.data.model.MenuItem?>(null) }
 
-    // Handle success messages with Toast
     LaunchedEffect(uiState.successMessage) {
         uiState.successMessage?.let { message ->
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -97,6 +98,9 @@ fun MenuItemsScreen(
                     items(uiState.menuItems) { item ->
                         MenuItemCard(
                             item = item,
+                            onEditClick = {
+                                item.id?.let { onNavigateToEditMenuItem(it.toLong()) }
+                            },
                             onDeleteClick = { 
                                 itemToDelete = item
                                 showDeleteDialog = true
@@ -149,6 +153,7 @@ fun MenuItemsScreen(
 @Composable
 private fun MenuItemCard(
     item: com.swadratna.swadratna_admin.data.model.MenuItem,
+    onEditClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
     Card(
@@ -191,16 +196,32 @@ private fun MenuItemCard(
                         modifier = Modifier.padding(top = 8.dp)
                     )
                 }
-                IconButton(
-                    onClick = onDeleteClick,
-                    colors = IconButtonDefaults.iconButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalAlignment = Alignment.End
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Delete Menu Item"
-                    )
+                    IconButton(
+                        onClick = onDeleteClick,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete Menu Item"
+                        )
+                    }
+                    IconButton(
+                        onClick = onEditClick,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Menu Item"
+                        )
+                    }
                 }
             }
         }

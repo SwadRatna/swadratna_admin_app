@@ -15,84 +15,71 @@ import com.swadratna.swadratna_admin.data.model.MenuCategory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddCategoryScreen(
-    viewModel: MenuManagementViewModel = hiltViewModel(),
-    onBack: () -> Unit,
-    onCategoryAdded: () -> Unit
+fun EditCategoryScreen(
+    categoryId: Long,
+    onNavigateBack: () -> Unit,
+    viewModel: MenuManagementViewModel = hiltViewModel()
 ) {
-    var name by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var displayOrder by remember { mutableStateOf("1") }
-    var isActive by remember { mutableStateOf(true) }
+    val categoriesState by viewModel.categoriesState.collectAsState()
+
+    // Find the category from the loaded list
+    val existingCategory: MenuCategory? = remember(categoriesState, categoryId) {
+        val success = categoriesState as? MenuCategoriesUiState.Success
+        success?.categories?.firstOrNull { it.id?.toLong() == categoryId }
+    }
+
+    var name by remember(existingCategory) { mutableStateOf(existingCategory?.name ?: "") }
+    var description by remember(existingCategory) { mutableStateOf(existingCategory?.description ?: "") }
+    var displayOrder by remember(existingCategory) { mutableStateOf((existingCategory?.displayOrder ?: 1).toString()) }
+    var isActive by remember(existingCategory) { mutableStateOf(existingCategory?.isActive ?: true) }
+
     var nameError by remember { mutableStateOf<String?>(null) }
     var descriptionError by remember { mutableStateOf<String?>(null) }
     var displayOrderError by remember { mutableStateOf<String?>(null) }
-    var creationInitiated by remember { mutableStateOf(false) }
-
-    val isCreating by viewModel.isCreatingCategory.collectAsState()
-    val categoriesState by viewModel.categoriesState.collectAsState()
-    val categorySuccessMessage = when (categoriesState) {
-        is MenuCategoriesUiState.Success -> (categoriesState as MenuCategoriesUiState.Success).successMessage
-        else -> null
-    }
-    
-    LaunchedEffect(categorySuccessMessage, creationInitiated, isCreating) {
-        if (creationInitiated && !isCreating && categorySuccessMessage != null) {
-            onCategoryAdded()
-        }
-    }
 
     fun validateForm(): Boolean {
         var isValid = true
-        
-        if (name.isBlank()) {
-            nameError = "Category name is required"
-            isValid = false
-        }
-        
-        if (description.isBlank()) {
-            descriptionError = "Description is required"
-            isValid = false
-        }
-        
+        if (name.isBlank()) { nameError = "Category name is required"; isValid = false }
+        if (description.isBlank()) { descriptionError = "Description is required"; isValid = false }
         if (displayOrder.isBlank()) {
-            displayOrderError = "Display order is required"
-            isValid = false
+            displayOrderError = "Display order is required"; isValid = false
         } else {
             try {
                 val order = displayOrder.toInt()
                 if (order < 1) {
-                    displayOrderError = "Display order must be a positive number"
-                    isValid = false
+                    displayOrderError = "Display order must be a positive number"; isValid = false
                 }
-            } catch (e: NumberFormatException) {
-                displayOrderError = "Display order must be a valid number"
-                isValid = false
+            } catch (_: NumberFormatException) {
+                displayOrderError = "Display order must be a valid number"; isValid = false
             }
         }
-        
         return isValid
     }
 
     fun handleSubmit() {
+        if (existingCategory?.id == null) {
+            // If not found yet, avoid submitting
+            return
+        }
         if (validateForm()) {
-            val category = MenuCategory(
+            val updated = MenuCategory(
+                id = existingCategory.id,
                 name = name.trim(),
                 description = description.trim(),
                 displayOrder = displayOrder.toInt(),
                 isActive = isActive
             )
-            creationInitiated = true
-            viewModel.createCategory(category)
+            viewModel.updateCategory(updated)
+            onNavigateBack()
         }
     }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Add Category") },
+                title = { Text("Edit Category") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
@@ -109,13 +96,14 @@ fun AddCategoryScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Category Name Field
+            if (existingCategory == null) {
+                // Loading or not found message
+                Text("Loading category details...")
+            }
+
             OutlinedTextField(
                 value = name,
-                onValueChange = { 
-                    name = it
-                    nameError = null
-                },
+                onValueChange = { name = it; nameError = null },
                 label = { Text("Category Name") },
                 placeholder = { Text("e.g., Chinese, Italian, Desserts") },
                 isError = nameError != null,
@@ -124,13 +112,9 @@ fun AddCategoryScreen(
                 singleLine = true
             )
 
-            // Description Field
             OutlinedTextField(
                 value = description,
-                onValueChange = { 
-                    description = it
-                    descriptionError = null
-                },
+                onValueChange = { description = it; descriptionError = null },
                 label = { Text("Description") },
                 placeholder = { Text("Brief description of the category") },
                 isError = descriptionError != null,
@@ -140,13 +124,9 @@ fun AddCategoryScreen(
                 maxLines = 4
             )
 
-            // Display Order Field
             OutlinedTextField(
                 value = displayOrder,
-                onValueChange = { 
-                    displayOrder = it
-                    displayOrderError = null
-                },
+                onValueChange = { displayOrder = it; displayOrderError = null },
                 label = { Text("Display Order") },
                 placeholder = { Text("1, 2, 3...") },
                 isError = displayOrderError != null,
@@ -156,7 +136,6 @@ fun AddCategoryScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
 
-            // Active Status Switch
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -181,20 +160,12 @@ fun AddCategoryScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Submit Button
             Button(
                 onClick = { handleSubmit() },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !isCreating
+                enabled = existingCategory != null
             ) {
-                if (isCreating) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-                Text(if (isCreating) "Creating..." else "Create Category")
+                Text("Save Changes")
             }
         }
     }

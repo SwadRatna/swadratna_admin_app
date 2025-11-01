@@ -6,6 +6,7 @@ import com.swadratna.swadratna_admin.data.remote.MenuCategoryResponse
 import com.swadratna.swadratna_admin.data.remote.MenuItemDto
 import com.swadratna.swadratna_admin.data.remote.CreateMenuItemDto
 import com.swadratna.swadratna_admin.data.remote.UpdateMenuItemDto
+import com.swadratna.swadratna_admin.data.remote.UpdateMenuCategoryDto
 import com.swadratna.swadratna_admin.data.remote.ToggleAvailabilityDto
 import com.swadratna.swadratna_admin.data.remote.MenuItemResponse
 import com.swadratna.swadratna_admin.data.remote.MenuItemsListResponse
@@ -75,4 +76,10 @@ interface MenuApi {
     suspend fun deleteMenuItem(
         @Path("id") id: Int
     ): MenuItemResponse
+    
+    @PUT("api/v1/admin/menu/categories/{id}")
+    suspend fun updateMenuCategory(
+        @Path("id") id: Int,
+        @Body category: UpdateMenuCategoryDto
+    ): MenuCategoryResponse
 }

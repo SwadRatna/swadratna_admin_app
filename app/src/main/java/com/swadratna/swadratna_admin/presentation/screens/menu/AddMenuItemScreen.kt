@@ -40,9 +40,9 @@ fun AddMenuItemScreen(
     var expanded by remember { mutableStateOf(false) }
     var creationInitiated by remember { mutableStateOf(false) }
     
-    LaunchedEffect(isCreating, creationInitiated, uiState.error) {
-        if (creationInitiated && !isCreating && uiState.error == null) {
-            kotlinx.coroutines.delay(500)
+    LaunchedEffect(uiState.successMessage, creationInitiated, isCreating) {
+        if (creationInitiated && !isCreating && uiState.successMessage != null) {
+            Log.d("AddMenuItem", "Navigating back after successful creation")
             onNavigateBack()
         }
     }

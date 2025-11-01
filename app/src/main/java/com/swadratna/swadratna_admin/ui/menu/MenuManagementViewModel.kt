@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import android.util.Log
+import com.swadratna.swadratna_admin.data.remote.toCreateDto
 
 @HiltViewModel
 class MenuManagementViewModel @Inject constructor(
@@ -85,20 +86,33 @@ class MenuManagementViewModel @Inject constructor(
             repository.createMenuCategory(category)
                 .onSuccess { response ->
                     if (response.success) {
-                        loadCategories()
                         activityRepository.addActivity(
                             Activity(
                                 id = UUID.randomUUID().toString(),
                                 type = ActivityType.CATEGORY_CREATED,
-                                title = "Category Created",
-                                description = "Category '${category.name}' has been created successfully",
+                                title = "Category Added",
+                                description = "Category '${category.name}' has been successfully added",
                                 timestamp = LocalDateTime.now()
                             )
                         )
+                        
+                        // Refresh categories and set success message so UI can navigate after data is up-to-date
+                        repository.getMenuCategories()
+                            .onSuccess { categories ->
+                                _categoriesState.value = MenuCategoriesUiState.Success(
+                                    categories = categories,
+                                    successMessage = "Category '${category.name}' created successfully"
+                                )
+                            }
+                            .onFailure { error ->
+                                _categoriesState.value = MenuCategoriesUiState.Error(
+                                    error.message ?: "Failed to refresh categories"
+                                )
+                            }
                     } else {
-                        val errorMessage = response.message ?: "Category creation failed - no error message provided"
-                        Log.d("MenuManagementViewModel", "Category creation failed: going to else condition with message='$errorMessage'")
-                        _categoriesState.value = MenuCategoriesUiState.Error(errorMessage)
+                        _categoriesState.value = MenuCategoriesUiState.Error(
+                            response.message.ifBlank { "Failed to create category" }
+                        )
                     }
                 }
                 .onFailure { error ->
@@ -398,6 +412,60 @@ class MenuManagementViewModel @Inject constructor(
                 Log.e("MenuManagementViewModel", "Failed to toggle category availability: ${e.message}", e)
                 _categoriesState.value = MenuCategoriesUiState.Error(
                     "Failed to toggle category availability: ${e.message ?: "Unknown error"}"
+                )
+            }
+        }
+    }
+
+    fun updateCategory(category: MenuCategory) {
+        viewModelScope.launch {
+            val categoryId = category.id
+            if (categoryId == null) {
+                _categoriesState.value = MenuCategoriesUiState.Error("Cannot update category: Invalid ID")
+                return@launch
+            }
+            try {
+                val result = repository.updateCategory(categoryId, category)
+                result.fold(
+                    onSuccess = { response ->
+                        if (response.success) {
+                            // Update local state list with edited values
+                            val currentState = _categoriesState.value
+                            if (currentState is MenuCategoriesUiState.Success) {
+                                val updated = currentState.categories.map { c ->
+                                    if (c.id == categoryId) category.copy(id = categoryId) else c
+                                }
+                                _categoriesState.value = MenuCategoriesUiState.Success(
+                                    categories = updated,
+                                    successMessage = "Category '${category.name}' updated successfully"
+                                )
+                            } else {
+                                loadCategories()
+                            }
+                            activityRepository.addActivity(
+                                Activity(
+                                    id = java.util.UUID.randomUUID().toString(),
+                                    type = ActivityType.CATEGORY_UPDATED,
+                                    title = "Category Updated",
+                                    description = "Category '${category.name}' has been updated",
+                                    timestamp = java.time.LocalDateTime.now()
+                                )
+                            )
+                        } else {
+                            _categoriesState.value = MenuCategoriesUiState.Error(
+                                response.message.ifBlank { "Failed to update category" }
+                            )
+                        }
+                    },
+                    onFailure = { error ->
+                        _categoriesState.value = MenuCategoriesUiState.Error(
+                            error.message ?: "Failed to update category"
+                        )
+                    }
+                )
+            } catch (e: Exception) {
+                _categoriesState.value = MenuCategoriesUiState.Error(
+                    e.message ?: "Failed to update category"
                 )
             }
         }
