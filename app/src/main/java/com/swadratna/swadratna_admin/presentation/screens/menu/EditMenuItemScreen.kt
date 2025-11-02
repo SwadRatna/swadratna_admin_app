@@ -30,6 +30,7 @@ fun EditMenuItemScreen(
     val uiState by viewModel.uiState.collectAsState()
     val categoriesState by viewModel.categoriesState.collectAsState()
     val isUpdating by viewModel.isUpdatingMenuItem.collectAsState()
+    val selectedItem by viewModel.selectedMenuItem.collectAsState()
 
     var menuItem by remember { mutableStateOf<MenuItem?>(null) }
     var name by remember { mutableStateOf("") }
@@ -48,29 +49,51 @@ fun EditMenuItemScreen(
     var updateInitiated by remember { mutableStateOf(false) }
     var isInitialized by remember { mutableStateOf(false) }
 
-    // Navigation logic
     LaunchedEffect(isUpdating, updateInitiated) {
         if (updateInitiated && !isUpdating && uiState.error == null) {
             onNavigateBack()
         }
     }
 
-    // Load categories and find the menu item
     LaunchedEffect(Unit) {
         viewModel.loadCategories()
-        viewModel.loadMenuItems()
+        viewModel.loadMenuItemById(menuItemId)
     }
 
-    // Initialize form fields when menu item is found
+    // Initialize form fields when selected item is loaded
+    LaunchedEffect(selectedItem, categoriesState) {
+        if (!isInitialized && selectedItem != null) {
+            val item = selectedItem
+            menuItem = item
+            name = item!!.name
+            description = item.description
+            price = item.price.toString()
+            discountPercentage = item.discountPercentage?.toString() ?: ""
+            displayOrder = item.displayOrder.toString()
+            allergenInfo = item.allergenInfo.joinToString(", ")
+            image = item.image ?: ""
+            ingredientsText = item.ingredients.joinToString(", ")
+            isVegetarian = item.isVegetarian ?: true
+            spicyLevelText = (item.spicyLevel ?: 0).toString()
+            unavailableReason = item.unavailableReason ?: ""
+            selectedCategory = when (val catState = categoriesState) {
+                is MenuCategoriesUiState.Success -> catState.categories.find { it.id == item.categoryId }
+                else -> null
+            }
+            isInitialized = true
+        }
+    }
+
+    // Fallback initialization from admin list if selectedItem not available
     LaunchedEffect(uiState.menuItems, categoriesState) {
-        if (!isInitialized && uiState.menuItems.isNotEmpty()) {
+        if (!isInitialized && selectedItem == null && uiState.menuItems.isNotEmpty()) {
             val item = uiState.menuItems.find { it.id?.toLong() == menuItemId }
             if (item != null) {
                 menuItem = item
                 name = item.name
                 description = item.description
                 price = item.price.toString()
-                discountPercentage = item.discountPercentage.toString()
+                discountPercentage = item.discountPercentage?.toString() ?: ""
                 displayOrder = item.displayOrder.toString()
                 allergenInfo = item.allergenInfo.joinToString(", ")
                 image = item.image ?: ""
