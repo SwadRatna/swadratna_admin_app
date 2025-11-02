@@ -32,6 +32,7 @@ import com.swadratna.swadratna_admin.ui.menu.MenuViewModel
 import com.swadratna.swadratna_admin.ui.screens.LoginScreen
 import com.swadratna.swadratna_admin.ui.settings.SettingsScreen
 import com.swadratna.swadratna_admin.ui.staff.AddStaffScreen
+import com.swadratna.swadratna_admin.ui.staff.EditStaffScreen
 import com.swadratna.swadratna_admin.ui.staff.StaffManagementScreen
 import com.swadratna.swadratna_admin.ui.store.CreateStoreScreen
 import com.swadratna.swadratna_admin.ui.store.StoreDetailScreen
@@ -285,9 +286,22 @@ fun NavGraph(
         }
 
         composable(
-            route = NavRoute.EditCategory.route,
-            arguments = listOf(navArgument("categoryId") { type = NavType.LongType })
+            route = NavRoute.EditStaff.route,
+            arguments = listOf(
+                navArgument("staffId") { type = NavType.IntType },
+                navArgument("storeId") { type = NavType.StringType }
+            )
         ) { backStackEntry ->
+            val staffId = backStackEntry.arguments?.getInt("staffId") ?: 0
+            val storeId = backStackEntry.arguments?.getString("storeId") ?: ""
+            EditStaffScreen(
+                staffId = staffId.toString(),
+                storeId = storeId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(NavRoute.EditCategory.route, arguments = listOf(navArgument("categoryId") { type = NavType.LongType })) { backStackEntry ->
             val categoryId = backStackEntry.arguments?.getLong("categoryId") ?: 0L
             com.swadratna.swadratna_admin.ui.menu.EditCategoryScreen(
                 categoryId = categoryId,

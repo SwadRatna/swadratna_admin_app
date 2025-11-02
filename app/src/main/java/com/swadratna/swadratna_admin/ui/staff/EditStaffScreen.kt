@@ -29,12 +29,10 @@ fun EditStaffScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
-    // Load staff data when screen initializes
     LaunchedEffect(storeId) {
         viewModel.loadStaff(storeId.toIntOrNull() ?: 0)
     }
     
-    // Find the staff member to edit
     val staffToEdit = uiState.staffList.find { it.id == staffId.toIntOrNull() }
     
     // Form state variables
@@ -77,8 +75,6 @@ fun EditStaffScreen(
             role = staff.position ?: ""
             salary = staff.salary?.toString() ?: ""
             joinDate = staff.joinDate ?: ""
-            
-            // Handle working hours from either workingHours or shiftTiming
             startTime = (staff.workingHours?.startTime ?: staff.shiftTiming?.startTime) ?: ""
             endTime = (staff.workingHours?.endTime ?: staff.shiftTiming?.endTime) ?: ""
             
@@ -470,9 +466,7 @@ fun EditStaffScreen(
                 onClick = {
                     if (validateForm()) {
                         staffToEdit?.let { staff ->
-                            // Safe conversion with validation
                             val salaryValue = salary.toDoubleOrNull()
-                            
                             if (salaryValue != null) {
                                 updateInitiated = true
                                 viewModel.updateStaff(
