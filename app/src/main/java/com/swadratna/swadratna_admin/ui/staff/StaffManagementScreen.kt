@@ -34,6 +34,7 @@ import com.swadratna.swadratna_admin.data.model.StaffStatus
 import com.swadratna.swadratna_admin.ui.components.AppSearchField
 import com.swadratna.swadratna_admin.ui.store.StoreEvent
 import kotlinx.coroutines.launch
+import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -217,7 +218,8 @@ fun StaffManagementScreen(
                                     onEdit = { staffId -> onNavigateToEditStaff(staffId) },
                                     onDelete = { staffId -> viewModel.deleteStaff(staffId) },
                                     snackbarHostState = snackbarHostState,
-                                    password = staff.password ?: uiState.passwordsByStaffId[staff.id]
+                                    password = staff.password ?: uiState.passwordsByStaffId[staff.id],
+                                    localImageUrl = uiState.imagesByStaffId[staff.id]
                                 )
                             }
                         }
@@ -252,7 +254,8 @@ fun StaffItem(
     onEdit: (Int) -> Unit,
     onDelete: (Int) -> Unit,
     snackbarHostState: SnackbarHostState,
-    password: String?
+    password: String?,
+    localImageUrl: String? = null
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -272,12 +275,22 @@ fun StaffItem(
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
                     ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_home),
-                            contentDescription = "${staff.name}'s profile",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
+                        val displayImageUrl = localImageUrl ?: staff.imageUrl
+                        if (!displayImageUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = displayImageUrl,
+                                contentDescription = "${staff.name}'s profile image",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_person),
+                                contentDescription = "${staff.name}'s profile",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
                     }
                     
                     Spacer(modifier = Modifier.width(16.dp))
@@ -355,7 +368,7 @@ fun StaffItem(
             }
         }
     }
-}
+ }
 
 @Composable
 fun FilterMenu(

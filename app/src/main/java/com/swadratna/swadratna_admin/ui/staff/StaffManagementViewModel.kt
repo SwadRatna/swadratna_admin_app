@@ -22,6 +22,10 @@ import kotlinx.coroutines.launch
 import java.time.LocalTime
 import javax.inject.Inject
 
+import com.swadratna.swadratna_admin.utils.ApiConstants
+
+private data class PendingStaffImage(val name: String, val email: String, val phone: String, val imageUrl: String)
+
 @HiltViewModel
 class StaffManagementViewModel @Inject constructor(
     private val staffRepository: StaffRepository,
@@ -31,6 +35,7 @@ class StaffManagementViewModel @Inject constructor(
     val uiState: StateFlow<StaffManagementUiState> = _uiState.asStateFlow()
     
     private val _allStaff = mutableListOf<Staff>()
+    private val pendingImages = mutableListOf<PendingStaffImage>()
     
     fun loadStaff(storeId: Int) {
         viewModelScope.launch {
@@ -41,6 +46,29 @@ class StaffManagementViewModel @Inject constructor(
                     _allStaff.clear()
                     response.staff?.let { staffList ->
                         _allStaff.addAll(staffList)
+                        // Attach any pending uploaded image URLs to matched staff entries
+                        if (pendingImages.isNotEmpty()) {
+                            val newMappings = mutableMapOf<Int, String>()
+                            val remaining = mutableListOf<PendingStaffImage>()
+                            for (p in pendingImages) {
+                                val match = _allStaff.find { s ->
+                                    val nameMatches = (s.name ?: "") == p.name
+                                    val emailMatches = s.email?.equals(p.email, ignoreCase = true) == true
+                                    val phoneMatches = s.phone == p.phone || s.mobileNumber == p.phone
+                                    nameMatches && (emailMatches || phoneMatches)
+                                }
+                                if (match != null) {
+                                    newMappings[match.id] = p.imageUrl
+                                } else {
+                                    remaining.add(p)
+                                }
+                            }
+                            pendingImages.clear()
+                            pendingImages.addAll(remaining)
+                            if (newMappings.isNotEmpty()) {
+                                _uiState.update { it.copy(imagesByStaffId = it.imagesByStaffId + newMappings) }
+                            }
+                        }
                         // Capture any passwords provided by backend in staff list
                         val passwordsFromList = staffList.mapNotNull { s ->
                             val pwd = s.password
@@ -92,6 +120,7 @@ class StaffManagementViewModel @Inject constructor(
         startTime: String,
         endTime: String,
         status: String,
+        imageUrl: String?,
         storeId: Int
     ) {
         viewModelScope.launch {
@@ -106,6 +135,7 @@ class StaffManagementViewModel @Inject constructor(
                 role = role,
                 salary = salary,
                 shiftTiming = ShiftTiming(startTime, endTime),
+                imageUrl = imageUrl,
                 status = status,
                 storeId = storeId
             )
@@ -124,6 +154,15 @@ class StaffManagementViewModel @Inject constructor(
                     val staffIdFromResponse = response.staff?.id
                     if (!extractedPassword.isNullOrBlank() && staffIdFromResponse != null) {
                         _uiState.update { it.copy(passwordsByStaffId = it.passwordsByStaffId + (staffIdFromResponse to extractedPassword)) }
+                    }
+                    // Cache uploaded image URL locally for display in list if backend doesn't return it
+                    if (!imageUrl.isNullOrBlank() && staffIdFromResponse != null) {
+                        val normalized = normalizeUrl(imageUrl) ?: imageUrl
+                        _uiState.update { it.copy(imagesByStaffId = it.imagesByStaffId + (staffIdFromResponse to normalized)) }
+                    }
+                    // If backend does not return the created staff id, store pending match to attach after next load
+                    if (staffIdFromResponse == null && !imageUrl.isNullOrBlank()) {
+                        pendingImages.add(PendingStaffImage(name = name, email = email, phone = phone, imageUrl = imageUrl))
                     }
                     if (extractedPassword != null) {
                         _uiState.update {
@@ -190,6 +229,7 @@ class StaffManagementViewModel @Inject constructor(
         startTime: String,
         endTime: String,
         status: String,
+        imageUrl: String? = null,
         password: String? = null
     ) {
         viewModelScope.launch {
@@ -205,6 +245,7 @@ class StaffManagementViewModel @Inject constructor(
                 role = role,
                 salary = salary,
                 shiftTiming = ShiftTiming(startTime, endTime),
+                imageUrl = imageUrl,
                 status = status,
                 password = password
             )
@@ -222,6 +263,11 @@ class StaffManagementViewModel @Inject constructor(
                     val updatedStaffId = response.staff?.id ?: staffId
                     if (!updatedPwd.isNullOrBlank()) {
                         _uiState.update { it.copy(passwordsByStaffId = it.passwordsByStaffId + (updatedStaffId to updatedPwd)) }
+                    }
+                    // Cache uploaded image URL locally for display in list if backend doesn't return it
+                    if (!imageUrl.isNullOrBlank()) {
+                        val normalized = normalizeUrl(imageUrl) ?: imageUrl
+                        _uiState.update { it.copy(imagesByStaffId = it.imagesByStaffId + (updatedStaffId to normalized)) }
                     }
                     
                     _uiState.update { 
@@ -295,13 +341,34 @@ class StaffManagementViewModel @Inject constructor(
         applyFiltersAndSort()
     }
     
+    // Normalize URLs (handles relative paths from backend)
+    private fun normalizeUrl(url: String?): String? {
+        if (url.isNullOrBlank()) return null
+        val trimmed = url.trim()
+        return if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+            trimmed
+        } else {
+            val base = ApiConstants.BASE_URL.trimEnd('/')
+            val path = trimmed.trimStart('/')
+            "$base/$path"
+        }
+    }
+
     private fun applyFiltersAndSort() {
         val searchQuery = _uiState.value.searchQuery.lowercase()
         val selectedFilter = _uiState.value.selectedFilter
         val sortOrder = _uiState.value.selectedSortOrder
         
+        // Overlay any locally cached image URLs onto the fetched staff list
+        val imagesById = _uiState.value.imagesByStaffId
+        val staffWithImages = _allStaff.map { s ->
+            val rawUrl = imagesById[s.id] ?: s.imageUrl
+            val normalized = normalizeUrl(rawUrl)
+            if (!normalized.isNullOrBlank()) s.copy(imageUrl = normalized) else s
+        }
+        
         // First apply filters
-        val filteredStaff = _allStaff.filter { staff ->
+        val filteredStaff = staffWithImages.filter { staff ->
             // Apply search filter
             val matchesSearch = searchQuery.isEmpty() || 
                 staff.name?.lowercase()?.contains(searchQuery) == true || 
@@ -353,6 +420,7 @@ data class StaffManagementUiState(
     val selectedFilter: String? = null,
     val selectedSortOrder: String = "NAME_ASC",
     val passwordsByStaffId: Map<Int, String> = emptyMap(),
+    val imagesByStaffId: Map<Int, String> = emptyMap(),
     val generatedPassword: String? = null,
     val isPasswordDialogVisible: Boolean = false
 )

@@ -79,6 +79,7 @@ data class CreateStaffRequest(
     val role: String,
     val salary: Double,
     @SerializedName("shift_timing") val shiftTiming: ShiftTiming,
+    @SerializedName("image_url") val imageUrl: String? = null,
     val status: String,
     @SerializedName("store_id") val storeId: Int
 )
@@ -93,6 +94,7 @@ data class UpdateStaffRequest(
     val role: String,
     val salary: Double,
     @SerializedName("shift_timing") val shiftTiming: ShiftTiming,
+    @SerializedName("image_url") val imageUrl: String? = null,
     val status: String,
     val password: String? = null
 )

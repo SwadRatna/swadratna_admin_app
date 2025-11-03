@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.swadratna.swadratna_admin.data.model.Staff
+import com.swadratna.swadratna_admin.ui.assets.AssetUploader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +47,7 @@ fun EditStaffScreen(
     var startTime by remember { mutableStateOf("") }
     var endTime by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("active") }
+    var imageUrl by remember { mutableStateOf<String?>(null) }
     
     // Dropdown state for role selection
     var roleDropdownExpanded by remember { mutableStateOf(false) }
@@ -77,6 +79,7 @@ fun EditStaffScreen(
             joinDate = staff.joinDate ?: ""
             startTime = (staff.workingHours?.startTime ?: staff.shiftTiming?.startTime) ?: ""
             endTime = (staff.workingHours?.endTime ?: staff.shiftTiming?.endTime) ?: ""
+            imageUrl = staff.imageUrl
             
             status = when (staff.status.name.lowercase()) {
                 "active" -> "active"
@@ -295,7 +298,17 @@ fun EditStaffScreen(
             )
             
             Spacer(modifier = Modifier.height(16.dp))
-            
+
+            // Staff Image upload (optional)
+            Text(text = "Staff Image", style = MaterialTheme.typography.titleMedium)
+            AssetUploader(
+                onConfirmed = { asset ->
+                    imageUrl = asset.cdnUrl ?: asset.url
+                }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Role field - Dropdown
             ExposedDropdownMenuBox(
                 expanded = roleDropdownExpanded,
@@ -481,7 +494,8 @@ fun EditStaffScreen(
                                     joinDate = joinDate,
                                     startTime = startTime,
                                     endTime = endTime,
-                                    status = status
+                                    status = status,
+                                    imageUrl = imageUrl
                                 )
                             }
                         }
