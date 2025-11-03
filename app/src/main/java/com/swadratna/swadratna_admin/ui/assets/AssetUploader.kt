@@ -75,13 +75,12 @@ fun AssetUploader(
     }
 
     Column(
-        modifier = modifier.fillMaxWidth().padding(16.dp),
+        modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalAlignment = Alignment.Start
     ) {
         Text(text = "Upload Image (Optional)", style = MaterialTheme.typography.titleMedium)
 
-        // Upload card styled like create campaign screen
         val shape = RoundedCornerShape(8.dp)
         val preview = uiState.uploadedAsset?.cdnUrl ?: uiState.uploadedAsset?.url ?: uiState.localPreviewUri
         Box(

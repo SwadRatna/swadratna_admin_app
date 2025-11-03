@@ -176,14 +176,6 @@ fun AddMenuItemScreen(
                 }
             )
 
-           // Image URL Field
-           OutlinedTextField(
-               value = image,
-               onValueChange = { image = it },
-               label = { Text("Image URL") },
-               modifier = Modifier.fillMaxWidth(),
-               supportingText = { Text("Optional: Provide a URL to the item image") }
-           )
 
            // Ingredients Field
            OutlinedTextField(
