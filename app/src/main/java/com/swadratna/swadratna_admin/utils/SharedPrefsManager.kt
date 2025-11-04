@@ -3,6 +3,7 @@ package com.swadratna.swadratna_admin.utils
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
@@ -73,6 +74,25 @@ class SharedPrefsManager @Inject constructor(
         return gson.fromJson(campaignsJson, type)
     }
 
+    // Save and retrieve previous totals for dashboard percentage change calculations
+    fun savePrevTotalCampaigns(count: Int) {
+        sharedPreferences.edit { putInt(KEY_PREV_TOTAL_CAMPAIGNS, count) }
+    }
+
+    fun getPrevTotalCampaigns(): Int? {
+        val value = sharedPreferences.getInt(KEY_PREV_TOTAL_CAMPAIGNS, -1)
+        return if (value >= 0) value else null
+    }
+
+    fun savePrevActiveStores(count: Int) {
+        sharedPreferences.edit { putInt(KEY_PREV_ACTIVE_STORES, count) }
+    }
+
+    fun getPrevActiveStores(): Int? {
+        val value = sharedPreferences.getInt(KEY_PREV_ACTIVE_STORES, -1)
+        return if (value >= 0) value else null
+    }
+
     fun saveAuthToken(token: String) {
         sharedPreferences.edit { putString(KEY_AUTH_TOKEN, token) }
     }
@@ -102,5 +122,8 @@ class SharedPrefsManager @Inject constructor(
         private const val KEY_CAMPAIGNS = "campaigns"
         private const val KEY_AUTH_TOKEN = "auth_token"
         private const val KEY_REFRESH_TOKEN = "refresh_token"
+        // Baseline keys to persist previous dashboard totals
+        private const val KEY_PREV_TOTAL_CAMPAIGNS = "prev_total_campaigns"
+        private const val KEY_PREV_ACTIVE_STORES = "prev_active_stores"
     }
 }
