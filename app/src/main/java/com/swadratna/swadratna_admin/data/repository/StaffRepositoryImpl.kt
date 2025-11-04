@@ -40,7 +40,8 @@ class StaffRepositoryImpl @Inject constructor(
             val response = staffApiService.createStaff(request)
             Result.success(response)
         } catch (e: HttpException) {
-            val errorMessage = when (e.code()) {
+            val errorBody = e.response()?.errorBody()?.string()
+            var errorMessage = when (e.code()) {
                 400 -> "Invalid staff data. Please check all required fields."
                 401 -> "Authentication failed. Please login again."
                 403 -> "Access denied. You don't have permission to create staff."
@@ -48,6 +49,9 @@ class StaffRepositoryImpl @Inject constructor(
                 422 -> "Validation failed. Please check your input data."
                 500 -> "Server error: Failed to create staff. Please try again later."
                 else -> "Failed to create staff. Error code: ${e.code()}"
+            }
+            if (!errorBody.isNullOrBlank()) {
+                errorMessage = "${errorMessage} Details: ${errorBody}"
             }
             Result.failure(Exception(errorMessage))
         } catch (e: IOException) {
@@ -62,7 +66,8 @@ class StaffRepositoryImpl @Inject constructor(
             val response = staffApiService.updateStaff(staffId, request)
             Result.success(response)
         } catch (e: HttpException) {
-            val errorMessage = when (e.code()) {
+            val errorBody = e.response()?.errorBody()?.string()
+            var errorMessage = when (e.code()) {
                 400 -> "Invalid staff data. Please check all required fields."
                 401 -> "Authentication failed. Please login again."
                 403 -> "Access denied. You don't have permission to update staff."
@@ -71,6 +76,9 @@ class StaffRepositoryImpl @Inject constructor(
                 422 -> "Validation failed. Please check your input data."
                 500 -> "Server error: Failed to update staff. Please try again later."
                 else -> "Failed to update staff. Error code: ${e.code()}"
+            }
+            if (!errorBody.isNullOrBlank()) {
+                errorMessage = "${errorMessage} Details: ${errorBody}"
             }
             Result.failure(Exception(errorMessage))
         } catch (e: IOException) {

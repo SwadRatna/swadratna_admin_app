@@ -27,10 +27,10 @@ class AssetUploadViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(localPreviewUri = previewUri)
     }
 
-    fun upload(bytes: ByteArray, fileName: String, mimeType: String) {
+    fun upload(bytes: ByteArray, fileName: String, mimeType: String, context: String = "store", type: String = "image") {
         _uiState.value = _uiState.value.copy(isUploading = true, error = null)
         viewModelScope.launch {
-            repository.uploadAsset(bytes, fileName, mimeType)
+            repository.uploadAsset(bytes, fileName, mimeType, context, type)
                 .onSuccess { asset ->
                     _uiState.value = _uiState.value.copy(
                         isUploading = false,

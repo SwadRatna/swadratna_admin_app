@@ -1,7 +1,11 @@
 package com.swadratna.swadratna_admin.ui.assets
 
 import android.database.Cursor
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
 import android.net.Uri
+import android.os.Build
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -45,15 +49,18 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.swadratna.swadratna_admin.data.model.Asset
+import java.io.ByteArrayOutputStream
 
 @Composable
 fun AssetUploader(
     modifier: Modifier = Modifier,
     viewModel: AssetUploadViewModel = hiltViewModel(),
-    onConfirmed: (Asset) -> Unit = {}
+    onConfirmed: (Asset) -> Unit = {},
+    context: String = "store",
+    type: String = "image"
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
+    val androidContext = LocalContext.current
 
     var selectedUri by remember { mutableStateOf<Uri?>(null) }
     var fileName by remember { mutableStateOf("") }
@@ -63,13 +70,16 @@ fun AssetUploader(
         selectedUri = uri
         viewModel.setLocalPreview(previewUri = uri?.toString())
         if (uri != null) {
-            val resolver = context.contentResolver
+            val resolver = androidContext.contentResolver
             mimeType = resolver.getType(uri) ?: "image/*"
             fileName = queryDisplayName(resolver, uri) ?: "asset_${System.currentTimeMillis()}"
-            // Auto-upload on selection
-            val bytes = readBytes(resolver, uri)
-            if (bytes != null) {
-                viewModel.upload(bytes, fileName, mimeType)
+            // Auto-upload on selection with compression to avoid HTTP 413
+            val compressed = compressImage(resolver, uri)
+            if (compressed != null) {
+                val (bytes, compressedMime) = compressed
+                mimeType = compressedMime
+                fileName = ensureJpegExtension(fileName)
+                viewModel.upload(bytes, fileName, mimeType, context, type)
             }
         }
     }
@@ -127,6 +137,68 @@ fun AssetUploader(
             }
         }
     }
+}
+
+private const val MAX_UPLOAD_BYTES = 1_000_000 // 1MB cap to avoid 413
+private const val MAX_DIMENSION = 1280 // Max width/height for uploaded images
+
+private fun compressImage(resolver: android.content.ContentResolver, uri: Uri): Pair<ByteArray, String>? {
+    return try {
+        val sourceBitmap: Bitmap? = if (Build.VERSION.SDK_INT >= 28) {
+            ImageDecoder.decodeBitmap(ImageDecoder.createSource(resolver, uri))
+        } else {
+            resolver.openInputStream(uri)?.use { input -> BitmapFactory.decodeStream(input) }
+        }
+        val bitmap = sourceBitmap ?: return null
+        var currentBitmap = bitmap
+
+        // Initial downscale if needed
+        fun scaleToMaxDimension(bmp: Bitmap, maxDim: Int): Bitmap {
+            val w = bmp.width
+            val h = bmp.height
+            val maxSide = maxOf(w, h)
+            val scale = if (maxSide > maxDim) maxDim.toFloat() / maxSide.toFloat() else 1f
+            val targetW = (w * scale).toInt()
+            val targetH = (h * scale).toInt()
+            return if (scale < 1f) Bitmap.createScaledBitmap(bmp, targetW, targetH, true) else bmp
+        }
+
+        currentBitmap = scaleToMaxDimension(currentBitmap, MAX_DIMENSION)
+
+        // Try quality compression first
+        var quality = 85
+        var outBytes: ByteArray
+        fun compressWithQuality(bmp: Bitmap, q: Int): ByteArray {
+            val baos = ByteArrayOutputStream()
+            bmp.compress(Bitmap.CompressFormat.JPEG, q, baos)
+            return baos.toByteArray()
+        }
+        do {
+            outBytes = compressWithQuality(currentBitmap, quality)
+            quality -= 10
+        } while (outBytes.size > MAX_UPLOAD_BYTES && quality >= 50)
+
+        // If still too big, progressively downscale dimensions and re-compress
+        var maxDim = MAX_DIMENSION
+        while (outBytes.size > MAX_UPLOAD_BYTES && maxDim > 480) {
+            maxDim = (maxDim * 0.8).toInt()
+            currentBitmap = scaleToMaxDimension(currentBitmap, maxDim)
+            quality = 80
+            do {
+                outBytes = compressWithQuality(currentBitmap, quality)
+                quality -= 10
+            } while (outBytes.size > MAX_UPLOAD_BYTES && quality >= 50)
+        }
+
+        Pair(outBytes, "image/jpeg")
+    } catch (e: Exception) {
+        null
+    }
+}
+
+private fun ensureJpegExtension(fileName: String): String {
+    val base = fileName.substringBeforeLast('.')
+    return "$base.jpg"
 }
 
 private fun queryDisplayName(resolver: android.content.ContentResolver, uri: Uri): String? {

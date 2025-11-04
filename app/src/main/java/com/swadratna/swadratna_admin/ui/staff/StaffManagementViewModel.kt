@@ -126,17 +126,20 @@ class StaffManagementViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             
+            val sanitizedImage = sanitizeImageUrl(imageUrl)
+            val startTimeSanitized = sanitizeTime(startTime)
+            val endTimeSanitized = sanitizeTime(endTime)
             val request = CreateStaffRequest(
-                address = address,
-                email = email,
-                joinDate = joinDate,
-                name = name,
-                phone = phone,
-                role = role,
+                address = sanitizeText(address),
+                email = sanitizeText(email),
+                joinDate = sanitizeDate(joinDate),
+                name = sanitizeText(name),
+                phone = sanitizePhoneNumber(phone),
+                role = sanitizeText(role),
                 salary = salary,
-                shiftTiming = ShiftTiming(startTime, endTime),
-                imageUrl = imageUrl,
-                status = status,
+                shiftTiming = ShiftTiming(startTimeSanitized, endTimeSanitized),
+                imageUrl = sanitizedImage,
+                status = sanitizeText(status),
                 storeId = storeId
             )
             
@@ -156,13 +159,13 @@ class StaffManagementViewModel @Inject constructor(
                         _uiState.update { it.copy(passwordsByStaffId = it.passwordsByStaffId + (staffIdFromResponse to extractedPassword)) }
                     }
                     // Cache uploaded image URL locally for display in list if backend doesn't return it
-                    if (!imageUrl.isNullOrBlank() && staffIdFromResponse != null) {
-                        val normalized = normalizeUrl(imageUrl) ?: imageUrl
+                    if (!sanitizedImage.isNullOrBlank() && staffIdFromResponse != null) {
+                        val normalized = normalizeUrl(sanitizedImage) ?: sanitizedImage
                         _uiState.update { it.copy(imagesByStaffId = it.imagesByStaffId + (staffIdFromResponse to normalized)) }
                     }
                     // If backend does not return the created staff id, store pending match to attach after next load
-                    if (staffIdFromResponse == null && !imageUrl.isNullOrBlank()) {
-                        pendingImages.add(PendingStaffImage(name = name, email = email, phone = phone, imageUrl = imageUrl))
+                    if (staffIdFromResponse == null && !sanitizedImage.isNullOrBlank()) {
+                        pendingImages.add(PendingStaffImage(name = name, email = email, phone = phone, imageUrl = sanitizedImage))
                     }
                     if (extractedPassword != null) {
                         _uiState.update {
@@ -235,18 +238,21 @@ class StaffManagementViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             
+            val sanitizedImage = sanitizeImageUrl(imageUrl)
+            val startTimeSanitized = sanitizeTime(startTime)
+            val endTimeSanitized = sanitizeTime(endTime)
             val request = UpdateStaffRequest(
-                address = address,
-                email = email,
-                joinDate = joinDate,
-                name = name,
-                phone = phone,
-                mobileNumber = mobileNumber,
-                role = role,
+                address = sanitizeText(address),
+                email = sanitizeText(email),
+                joinDate = sanitizeDate(joinDate),
+                name = sanitizeText(name),
+                phone = sanitizePhoneNumber(phone),
+                mobileNumber = sanitizePhoneNumber(mobileNumber),
+                role = sanitizeText(role),
                 salary = salary,
-                shiftTiming = ShiftTiming(startTime, endTime),
-                imageUrl = imageUrl,
-                status = status,
+                shiftTiming = ShiftTiming(startTimeSanitized, endTimeSanitized),
+                imageUrl = sanitizedImage,
+                status = sanitizeText(status),
                 password = password
             )
             
@@ -265,8 +271,8 @@ class StaffManagementViewModel @Inject constructor(
                         _uiState.update { it.copy(passwordsByStaffId = it.passwordsByStaffId + (updatedStaffId to updatedPwd)) }
                     }
                     // Cache uploaded image URL locally for display in list if backend doesn't return it
-                    if (!imageUrl.isNullOrBlank()) {
-                        val normalized = normalizeUrl(imageUrl) ?: imageUrl
+                    if (!sanitizedImage.isNullOrBlank()) {
+                        val normalized = normalizeUrl(sanitizedImage) ?: sanitizedImage
                         _uiState.update { it.copy(imagesByStaffId = it.imagesByStaffId + (updatedStaffId to normalized)) }
                     }
                     
@@ -351,6 +357,75 @@ class StaffManagementViewModel @Inject constructor(
             val base = ApiConstants.BASE_URL.trimEnd('/')
             val path = trimmed.trimStart('/')
             "$base/$path"
+        }
+    }
+
+    // Remove accidental formatting characters/backticks from URL
+    private fun sanitizeImageUrl(url: String?): String? {
+        if (url.isNullOrBlank()) return null
+        return url?.trim()?.trim('`')?.takeIf { it.isNotBlank() }
+    }
+
+    private fun sanitizeText(value: String): String {
+        // Trim whitespace and strip accidental backticks from generic text fields
+        return value.trim().trim('`')
+    }
+
+    private fun sanitizeTime(value: String): String {
+        val raw = value.trim().trim('`')
+        val hhmm = Regex("^(\\d{1,2}):(\\d{2})$")
+        val hhmmss = Regex("^(\\d{1,2}):(\\d{2}):(\\d{2})$")
+        val justHour = Regex("^\\d{1,2}$")
+        return when {
+            hhmm.matches(raw) -> {
+                val (h, m) = hhmm.find(raw)!!.groupValues.drop(1)
+                val hour = h.toInt().coerceIn(0, 23)
+                val minute = m.toInt().coerceIn(0, 59)
+                "%02d:%02d".format(hour, minute)
+            }
+            hhmmss.matches(raw) -> {
+                val (h, m) = hhmmss.find(raw)!!.groupValues.drop(1)
+                val hour = h.toInt().coerceIn(0, 23)
+                val minute = m.toInt().coerceIn(0, 59)
+                "%02d:%02d".format(hour, minute)
+            }
+            justHour.matches(raw) -> {
+                val hour = raw.toInt().coerceIn(0, 23)
+                "%02d:%02d".format(hour, 0)
+            }
+            else -> {
+                return try {
+                    val t = java.time.LocalTime.parse(raw)
+                    "%02d:%02d".format(t.hour.coerceIn(0, 23), t.minute.coerceIn(0, 59))
+                } catch (e: Exception) {
+                    raw
+                }
+            }
+        }
+    }
+
+    private fun sanitizePhoneNumber(number: String): String {
+        // Keep digits only; backend typically expects numeric mobile numbers
+        val trimmed = number.trim().trim('`')
+        return trimmed.filter { it.isDigit() }
+    }
+
+    private fun sanitizeDate(value: String): String {
+        val raw = value.trim().trim('`')
+        val dmySlash = Regex("^(\\d{2})/(\\d{2})/(\\d{4})$")
+        val dmyDash = Regex("^(\\d{2})-(\\d{2})-(\\d{4})$")
+        val ymdDash = Regex("^(\\d{4})-(\\d{2})-(\\d{2})$")
+        return when {
+            ymdDash.matches(raw) -> raw
+            dmySlash.matches(raw) -> {
+                val (d, m, y) = dmySlash.find(raw)!!.groupValues.drop(1)
+                String.format("%s-%02d-%02d", y, m.toInt(), d.toInt())
+            }
+            dmyDash.matches(raw) -> {
+                val (d, m, y) = dmyDash.find(raw)!!.groupValues.drop(1)
+                String.format("%s-%02d-%02d", y, m.toInt(), d.toInt())
+            }
+            else -> raw // fallback
         }
     }
 
