@@ -61,26 +61,51 @@ class MenuItemsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-            repository.getMenuItems(categoryId, isAvailable, search, page, limit)
-                .onSuccess { response ->
-                    val items = response.items?.map { it.toDomain() } ?: emptyList()
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        menuItems = items,
-                        total = response.pagination?.total ?: 0,
-                        currentPage = response.pagination?.page ?: 1,
-                        limit = response.pagination?.limit ?: 20,
-                        selectedCategoryId = categoryId,
-                        searchQuery = search ?: "",
-                        availabilityFilter = isAvailable
-                    )
-                }
-                .onFailure { error ->
+            val aggregatedItems = mutableListOf<MenuItem>()
+            var currentPage = page
+            var total: Int? = null
+
+            while (true) {
+                val result = repository.getMenuItems(
+                    categoryId = categoryId,
+                    isAvailable = isAvailable,
+                    search = search,
+                    page = currentPage,
+                    limit = limit
+                )
+
+                val response = result.getOrElse { error ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         error = error.message ?: "Failed to load menu items"
                     )
+                    return@launch
                 }
+
+                val items = response.items?.map { it.toDomain() } ?: emptyList()
+                aggregatedItems.addAll(items)
+
+                // Capture total from server if available
+                if (total == null) {
+                    total = response.pagination?.total
+                }
+
+                val hasMore = items.isNotEmpty() && (total == null || aggregatedItems.size < total!!)
+                if (!hasMore) break
+
+                currentPage += 1
+            }
+
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                menuItems = aggregatedItems,
+                total = total ?: aggregatedItems.size,
+                currentPage = 1,
+                limit = limit,
+                selectedCategoryId = categoryId,
+                searchQuery = search ?: "",
+                availabilityFilter = isAvailable
+            )
         }
     }
 

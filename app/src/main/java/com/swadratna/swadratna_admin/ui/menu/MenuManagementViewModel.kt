@@ -62,16 +62,39 @@ class MenuManagementViewModel @Inject constructor(
     fun loadMenuItems(categoryId: Int? = null) {
         viewModelScope.launch {
             _menuItemsState.value = MenuUiState.Loading
-            repository.getMenuItems(categoryId = categoryId)
-                .onSuccess { response ->
-                    val items = response.items?.map { it.toDomain() } ?: emptyList()
-                    _menuItemsState.value =
-                        MenuUiState.Success(items = items, successMessage = null)
+            
+            val aggregatedItems = mutableListOf<MenuItem>()
+            var page = 1
+            val limit = 100 // fetch in batches to ensure we load all items
+            var total = -1
+
+            while (true) {
+                val result = repository.getMenuItems(
+                    categoryId = categoryId,
+                    isAvailable = null,
+                    search = null,
+                    page = page,
+                    limit = limit
+                )
+
+                val response = result.getOrElse { error ->
+                    _menuItemsState.value = MenuUiState.Error(error.message ?: "Failed to load menu items")
+                    return@launch
                 }
-                .onFailure { error ->
-                    _menuItemsState.value =
-                        MenuUiState.Error(error.message ?: "Failed to load menu items")
-                }
+
+                val items = response.items?.map { it.toDomain() } ?: emptyList()
+                aggregatedItems.addAll(items)
+
+                // Determine total from pagination if available, else break when empty
+                total = response.pagination?.total ?: total
+
+                val hasMore = items.isNotEmpty() && (total == -1 || aggregatedItems.size < total)
+                if (!hasMore) break
+
+                page += 1
+            }
+
+            _menuItemsState.value = MenuUiState.Success(items = aggregatedItems, successMessage = null)
         }
     }
 
