@@ -6,6 +6,7 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import com.swadratna.swadratna_admin.data.LocalDateAdapter
 import com.swadratna.swadratna_admin.data.remote.api.AnalyticsApi
+import com.swadratna.swadratna_admin.data.remote.api.AssetApi
 import com.swadratna.swadratna_admin.data.remote.api.AuthApiService
 import com.swadratna.swadratna_admin.data.remote.api.AuthInterceptor
 import com.swadratna.swadratna_admin.data.remote.api.CampaignApi
@@ -21,15 +22,13 @@ import com.swadratna.swadratna_admin.data.repository.CampaignRepository
 import com.swadratna.swadratna_admin.data.repository.DashboardRepository
 import com.swadratna.swadratna_admin.data.repository.StaffRepository
 import com.swadratna.swadratna_admin.data.repository.StaffRepositoryImpl
-import com.swadratna.swadratna_admin.data.repository.StoreRepository
-import com.swadratna.swadratna_admin.data.repository.StoreRepositoryImpl
+import com.swadratna.swadratna_admin.data.model.ShiftTiming
 import com.swadratna.swadratna_admin.utils.ApiConstants
 import com.swadratna.swadratna_admin.utils.SharedPrefsManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import javax.inject.Provider
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import okhttp3.OkHttpClient
@@ -37,6 +36,8 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.time.LocalDate
+import javax.inject.Inject
+import javax.inject.Provider
 import javax.inject.Singleton
 
 @Module
@@ -150,4 +151,9 @@ object NetworkModule {
     @Singleton
     fun provideStaffApiService(retrofit: Retrofit): StaffApiService =
         retrofit.create(StaffApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAssetApi(retrofit: Retrofit): AssetApi =
+        retrofit.create(AssetApi::class.java)
 }

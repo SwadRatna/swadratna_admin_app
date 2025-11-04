@@ -14,6 +14,7 @@ import com.swadratna.swadratna_admin.data.remote.api.MenuApi
 import com.swadratna.swadratna_admin.data.remote.toDomain
 import com.swadratna.swadratna_admin.data.remote.toCreateDto
 import com.swadratna.swadratna_admin.data.remote.toDto
+import com.swadratna.swadratna_admin.data.remote.toUpdateDto
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -94,4 +95,9 @@ class MenuRepository @Inject constructor(
         }
     }
 
+    suspend fun updateCategory(id: Int, category: MenuCategory): Result<MenuCategoryResponse> = withContext(Dispatchers.IO) {
+        runCatching {
+            api.updateMenuCategory(id, category.toUpdateDto())
+        }
+    }
 }

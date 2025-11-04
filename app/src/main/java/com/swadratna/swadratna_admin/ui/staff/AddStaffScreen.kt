@@ -16,6 +16,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import android.util.Patterns
+import com.swadratna.swadratna_admin.ui.assets.AssetUploader
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,7 +38,7 @@ fun AddStaffScreen(
     var startTime by remember { mutableStateOf("") }
     var endTime by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("active") }
-    
+    var imageUrl by remember { mutableStateOf<String?>(null) }
     // Dropdown state for role selection
     var roleDropdownExpanded by remember { mutableStateOf(false) }
     val roleOptions = listOf("manager", "waiter", "chef", "cashier")
@@ -51,125 +54,71 @@ fun AddStaffScreen(
     var startTimeError by remember { mutableStateOf("") }
     var endTimeError by remember { mutableStateOf("") }
     
+    // Validation function
+    fun validateForm(): Boolean {
+        var valid = true
+        if (name.isBlank()) {
+            nameError = "Name is required"
+            valid = false
+        }
+        if (email.isBlank() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            emailError = "Valid email is required"
+            valid = false
+        }
+        // Require exactly 10 digits for phone
+        if (phone.length != 10 || !phone.all { it.isDigit() }) {
+            phoneError = "Enter a valid 10-digit phone number"
+            valid = false
+        }
+        if (address.isBlank()) {
+            addressError = "Address is required"
+            valid = false
+        }
+        if (role.isBlank()) {
+            roleError = "Role is required"
+            valid = false
+        }
+        val salaryVal = salary.toDoubleOrNull()
+        if (salaryVal == null || salaryVal <= 0.0) {
+            salaryError = "Enter a valid salary"
+            valid = false
+        }
+        val dateRegex = Regex("^\\d{2}/\\d{2}/\\d{4}$")
+        if (joinDate.isBlank() || !dateRegex.matches(joinDate)) {
+            joinDateError = "Enter date as DD/MM/YYYY"
+            valid = false
+        }
+        val startInt = startTime.toIntOrNull()
+        val endInt = endTime.toIntOrNull()
+        if (startInt == null || startInt !in 0..23) {
+            startTimeError = "Enter start hour 0-23"
+            valid = false
+        }
+        if (endInt == null || endInt !in 0..23) {
+            endTimeError = "Enter end hour 0-23"
+            valid = false
+        }
+        if (startInt != null && endInt != null && startInt >= endInt) {
+            endTimeError = "End must be after start"
+            valid = false
+        }
+        return valid
+    }
+
+    // Helper to format hour into server-friendly time string (HH)
+    fun toServerTime(hourStr: String): String {
+        val h = hourStr.toIntOrNull() ?: return hourStr
+        return "%02d".format(h)
+    }
+    
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
     
-    // Validation functions
-    fun validateEmail(email: String): Boolean {
-        return email.contains("@") && email.contains(".")
-    }
-    
-    fun validatePhone(phone: String): Boolean {
-        return phone.length >= 10 && phone.all { it.isDigit() }
-    }
-    
-    fun validateSalary(salary: String): Boolean {
-        return salary.toDoubleOrNull() != null && salary.toDouble() > 0
-    }
-    
-    fun validateTime(time: String): Boolean {
-        return time.length <= 2 && time.all { it.isDigit() } && 
-               (time.toIntOrNull() ?: -1) in 0..23
-    }
-    
-    fun validateJoinDate(date: String): Boolean {
-        // Basic validation for DD/MM/YYYY format
-        val parts = date.split("/")
-        return parts.size == 3 && 
-               parts[0].length == 2 && parts[0].all { it.isDigit() } &&
-               parts[1].length == 2 && parts[1].all { it.isDigit() } &&
-               parts[2].length == 4 && parts[2].all { it.isDigit() }
-    }
-    
-    fun validateForm(): Boolean {
-        var isValid = true
-        
-        // Reset errors
-        nameError = ""
-        emailError = ""
-        phoneError = ""
-        addressError = ""
-        roleError = ""
-        salaryError = ""
-        joinDateError = ""
-        startTimeError = ""
-        endTimeError = ""
-        
-        // Validate name
-        if (name.isBlank()) {
-            nameError = "Name is required"
-            isValid = false
-        }
-        
-        // Validate email
-        if (email.isBlank()) {
-            emailError = "Email is required"
-            isValid = false
-        } else if (!validateEmail(email)) {
-            emailError = "Invalid email format"
-            isValid = false
-        }
-        
-        // Validate phone
-        if (phone.isBlank()) {
-            phoneError = "Phone is required"
-            isValid = false
-        } else if (!validatePhone(phone)) {
-            phoneError = "Phone must be at least 10 digits"
-            isValid = false
-        }
-        
-        // Validate address
-        if (address.isBlank()) {
-            addressError = "Address is required"
-            isValid = false
-        }
-        
-        // Validate role
-        if (role.isBlank()) {
-            roleError = "Role is required"
-            isValid = false
-        }
-        
-        // Validate salary
-        if (salary.isBlank()) {
-            salaryError = "Salary is required"
-            isValid = false
-        } else if (!validateSalary(salary)) {
-            salaryError = "Invalid salary amount"
-            isValid = false
-        }
-        
-        // Validate join date
-        if (joinDate.isBlank()) {
-            joinDateError = "Join date is required"
-            isValid = false
-        } else if (!validateJoinDate(joinDate)) {
-            joinDateError = "Date format should be DD/MM/YYYY"
-            isValid = false
-        }
-        
-        // Validate start time
-        if (startTime.isBlank()) {
-            startTimeError = "Start time is required"
-            isValid = false
-        } else if (!validateTime(startTime)) {
-            startTimeError = "Invalid time (0-23)"
-            isValid = false
-        }
-        
-        // Validate end time
-        if (endTime.isBlank()) {
-            endTimeError = "End time is required"
-            isValid = false
-        } else if (!validateTime(endTime)) {
-            endTimeError = "Invalid time (0-23)"
-            isValid = false
-        }
-        
-        return isValid
-    }
-    
+    // Clipboard and snackbar for copy feedback
+    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -180,7 +129,8 @@ fun AddStaffScreen(
                     }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -282,7 +232,19 @@ fun AddStaffScreen(
             )
             
             Spacer(modifier = Modifier.height(16.dp))
-            
+
+            // Staff Image upload (optional)
+            Text(text = "Staff Image", style = MaterialTheme.typography.titleMedium)
+            AssetUploader(
+                context = "staff",
+                type = "image",
+                onConfirmed = { asset ->
+                    imageUrl = asset.cdnUrl ?: asset.url
+                }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Role field - Dropdown
             ExposedDropdownMenuBox(
                 expanded = roleDropdownExpanded,
@@ -457,6 +419,9 @@ fun AddStaffScreen(
                             val storeIdValue = storeId.toIntOrNull()
                             
                             if (salaryValue != null && storeIdValue != null) {
+                                // Format shift timing to HH:mm:ss as many APIs expect ISO-like time formats
+                                val startFormatted = toServerTime(startTime)
+                                val endFormatted = toServerTime(endTime)
                                 viewModel.createStaff(
                                     name = name,
                                     email = email,
@@ -465,33 +430,60 @@ fun AddStaffScreen(
                                     role = role,
                                     salary = salaryValue,
                                     joinDate = joinDate,
-                                    startTime = startTime,
-                                    endTime = endTime,
+                                    startTime = startFormatted,
+                                    endTime = endFormatted,
                                     status = status,
+                                    imageUrl = imageUrl,
                                     storeId = storeIdValue
                                 )
                             }
-                        
-                        // Navigate back on success (will be handled by ViewModel state)
-                        if (!uiState.isLoading && uiState.error == null) {
+                        }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Create Staff")
+            }
+
+            // Password dialog shown after successful creation
+            val passwordToShow = uiState.generatedPassword
+            if (uiState.isPasswordDialogVisible && passwordToShow != null) {
+                AlertDialog(
+                    onDismissRequest = {
+                        viewModel.dismissPasswordDialog()
+                        onNavigateBack()
+                    },
+                    title = { Text("Staff Password Generated") },
+                    text = {
+                        Column {
+                            Text("Share this password with the staff. It won't be shown again.")
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedTextField(
+                                value = passwordToShow,
+                                onValueChange = {},
+                                readOnly = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(passwordToShow))
+                            viewModel.dismissPasswordDialog()
                             onNavigateBack()
+                        }) {
+                            Text("Copy & Close")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = {
+                            viewModel.dismissPasswordDialog()
+                            onNavigateBack()
+                        }) {
+                            Text("Close")
                         }
                     }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isLoading
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-                Text("Add Staff")
+                )
             }
-            
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

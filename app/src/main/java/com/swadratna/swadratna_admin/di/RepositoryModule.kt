@@ -6,6 +6,8 @@ import com.swadratna.swadratna_admin.data.repository.AnalyticsRepository
 import com.swadratna.swadratna_admin.data.repository.AnalyticsRepositoryImpl
 import com.swadratna.swadratna_admin.data.repository.AuthRepository
 import com.swadratna.swadratna_admin.data.repository.AuthRepositoryImpl
+import com.swadratna.swadratna_admin.data.repository.AssetRepository
+import com.swadratna.swadratna_admin.data.repository.AssetRepositoryImpl
 import com.swadratna.swadratna_admin.data.repository.Repository
 import com.swadratna.swadratna_admin.data.repository.RepositoryImpl
 import com.swadratna.swadratna_admin.data.repository.StaffRepository
@@ -41,6 +43,10 @@ interface RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindActivityRepository(impl: ActivityRepositoryImpl): ActivityRepository
+    
+    @Binds
+    @Singleton
+    abstract fun bindAssetRepository(impl: AssetRepositoryImpl): AssetRepository
     
     @Binds
     @Singleton

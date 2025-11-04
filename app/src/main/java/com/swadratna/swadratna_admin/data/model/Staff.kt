@@ -12,9 +12,11 @@ enum class StaffStatus {
 data class Staff(
     val id: Int,
     val name: String?,
-    val position: String?,
+    @SerializedName(value = "position", alternate = ["role", "designation"]) val position: String?,
     val email: String? = null,
     val phone: String? = null,
+    // Added to support backend sending password with staff objects
+    val password: String? = null,
     @SerializedName("mobile_number") val mobileNumber: String? = null,
     val address: String? = null,
     val salary: Double? = null,
@@ -22,7 +24,7 @@ data class Staff(
     val status: StaffStatus = StaffStatus.ACTIVE,
     @SerializedName("working_hours") val workingHours: WorkingHours? = null,
     @SerializedName("shift_timing") val shiftTiming: ShiftTiming? = null,
-    @SerializedName("image_url") val imageUrl: String? = null,
+    @SerializedName(value = "image_url", alternate = ["profile_image"]) val imageUrl: String? = null,
     @SerializedName("store_id") val storeId: Int? = null,
     @SerializedName("created_at") val createdAt: String? = null,
     @SerializedName("updated_at") val updatedAt: String? = null
@@ -74,9 +76,10 @@ data class CreateStaffRequest(
     @SerializedName("join_date") val joinDate: String,
     val name: String,
     val phone: String,
-    val role: String,
+    @SerializedName("position") val role: String,
     val salary: Double,
     @SerializedName("shift_timing") val shiftTiming: ShiftTiming,
+    @SerializedName("profile_image") val imageUrl: String? = null,
     val status: String,
     @SerializedName("store_id") val storeId: Int
 )
@@ -88,9 +91,10 @@ data class UpdateStaffRequest(
     val name: String,
     val phone: String,
     @SerializedName("mobile_number") val mobileNumber: String,
-    val role: String,
+    @SerializedName("position") val role: String,
     val salary: Double,
     @SerializedName("shift_timing") val shiftTiming: ShiftTiming,
+    @SerializedName("profile_image") val imageUrl: String? = null,
     val status: String,
     val password: String? = null
 )
@@ -98,5 +102,6 @@ data class UpdateStaffRequest(
 data class StaffOperationResponse(
     val success: Boolean,
     val message: String,
+    val password: String? = null,
     val staff: Staff? = null
 )

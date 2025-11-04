@@ -7,7 +7,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +27,7 @@ import com.swadratna.swadratna_admin.ui.menu.MenuUiState
 fun ManageCategoriesScreen(
     onBack: () -> Unit,
     onNavigateToAddCategory: () -> Unit,
+    onNavigateToEditCategory: (Long) -> Unit,
     viewModel: MenuManagementViewModel = hiltViewModel()
 ) {
     val categoriesState by viewModel.categoriesState.collectAsState()
@@ -117,7 +119,10 @@ fun ManageCategoriesScreen(
                                         category.id?.let { viewModel.loadMenuItems(it) }
                                         showDeleteDialog = true
                                     },
-                                    onToggleAvailability = { viewModel.toggleCategoryAvailability(category) }
+                                    onToggleAvailability = { viewModel.toggleCategoryAvailability(category) },
+                                    onEditClick = {
+                                        category.id?.let { onNavigateToEditCategory(it.toLong()) }
+                                    }
                                 )
                             }
                         }
@@ -234,7 +239,8 @@ fun ManageCategoriesScreen(
 fun CategoryCard(
     category: MenuCategory,
     onDeleteClick: () -> Unit,
-    onToggleAvailability: () -> Unit
+    onToggleAvailability: () -> Unit,
+    onEditClick: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -301,14 +307,24 @@ fun CategoryCard(
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                // Delete button
+                // Delete button (top)
                 IconButton(
                     onClick = onDeleteClick
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Close,
+                        imageVector = Icons.Default.Delete,
                         contentDescription = "Delete Category",
                         tint = MaterialTheme.colorScheme.error
+                    )
+                }
+                
+                // Edit button (bottom)
+                IconButton(
+                    onClick = onEditClick
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Edit Category"
                     )
                 }
             }

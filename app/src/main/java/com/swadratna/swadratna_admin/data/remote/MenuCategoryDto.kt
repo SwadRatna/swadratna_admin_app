@@ -22,6 +22,15 @@ data class CreateMenuCategoryDto(
     val isActive: Boolean
 )
 
+data class UpdateMenuCategoryDto(
+    val name: String,
+    val description: String,
+    @SerializedName("display_order")
+    val displayOrder: Int,
+    @SerializedName("is_active")
+    val isActive: Boolean
+)
+
 data class MenuCategoryResponse(
     val success: Boolean = true, // Default to true for successful HTTP responses
     val message: String = "", // Default to empty string to avoid null pointer
@@ -37,6 +46,13 @@ fun MenuCategoryDto.toDomain() = MenuCategory(
 )
 
 fun MenuCategory.toCreateDto() = CreateMenuCategoryDto(
+    name = name,
+    description = description,
+    displayOrder = displayOrder,
+    isActive = isActive
+)
+
+fun MenuCategory.toUpdateDto() = UpdateMenuCategoryDto(
     name = name,
     description = description,
     displayOrder = displayOrder,

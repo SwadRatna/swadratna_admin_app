@@ -254,15 +254,15 @@ fun TopPerformingStoreSection(storeItem: List<StoreItem>) {
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
         )
+        Spacer(modifier = Modifier.height(16.dp))
         if (storeItem.size <= 1) {
             Text(
-                text = "No data available",
+                text = "No comparison available",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 modifier = Modifier.padding(vertical = 8.dp)
             )
         } else {
-            Spacer(modifier = Modifier.height(16.dp))
             storeItem.forEachIndexed { index, store ->
                 StoreItem(
                     store = store,

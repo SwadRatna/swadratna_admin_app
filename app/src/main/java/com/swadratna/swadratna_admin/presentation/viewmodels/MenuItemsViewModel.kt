@@ -42,6 +42,10 @@ class MenuItemsViewModel @Inject constructor(
     private val _isUpdatingMenuItem = MutableStateFlow(false)
     val isUpdatingMenuItem: StateFlow<Boolean> = _isUpdatingMenuItem.asStateFlow()
 
+    // Selected item for edit screen: fetched from full menu endpoint to ensure all fields are populated
+    private val _selectedMenuItem = MutableStateFlow<MenuItem?>(null)
+    val selectedMenuItem: StateFlow<MenuItem?> = _selectedMenuItem.asStateFlow()
+
     init {
         loadCategories()
         loadMenuItems()
@@ -94,12 +98,27 @@ class MenuItemsViewModel @Inject constructor(
         }
     }
 
+    // Fetch a single menu item with full details (including discountPercentage and displayOrder)
+    fun loadMenuItemById(menuItemId: Long) {
+        viewModelScope.launch {
+            repository.getMenu(categoryId = null)
+                .onSuccess { fullMenuItems ->
+                    val found = fullMenuItems.find { it.id?.toLong() == menuItemId }
+                    _selectedMenuItem.value = found
+                }
+                .onFailure { error ->
+                    Log.e("MenuItemsViewModel", "Failed to load full menu for item $menuItemId: ${error.message}")
+                }
+        }
+    }
+
     fun createMenuItem(menuItem: CreateMenuItemRequest) {
         viewModelScope.launch {
             _isCreatingMenuItem.value = true
             repository.createMenuItem(menuItem)
                 .onSuccess { response ->
-                    if (response.success) {
+                    val isSuccessful = response.success || (response.message?.contains("success", ignoreCase = true) == true)
+                    if (isSuccessful) {
                         activityRepository.addActivity(
                             Activity(
                                 id = UUID.randomUUID().toString(),
@@ -111,25 +130,44 @@ class MenuItemsViewModel @Inject constructor(
                         )
 
                         _uiState.value = _uiState.value.copy(
-                            selectedCategoryId = null
+                            selectedCategoryId = null,
+                            successMessage = "Menu item '${menuItem.name}' created successfully"
                         )
-                        loadMenuItems(
-                            categoryId = null,
-                            isAvailable = _uiState.value.availabilityFilter,
-                            search = _uiState.value.searchQuery.takeIf { it.isNotBlank() },
-                            page = 1, // Reset to first page
-                            limit = _uiState.value.limit
-                        )
+                        _isCreatingMenuItem.value = false
+                        
+                        viewModelScope.launch {
+                            repository.getMenuItems(
+                                categoryId = null,
+                                isAvailable = _uiState.value.availabilityFilter,
+                                search = _uiState.value.searchQuery.takeIf { it.isNotBlank() },
+                                page = 1,
+                                limit = _uiState.value.limit
+                            ).onSuccess { menuItemsResponse ->
+                                _uiState.value = _uiState.value.copy(
+                                    isLoading = false,
+                                    menuItems = menuItemsResponse.items?.map { it.toDomain() } ?: emptyList(),
+                                    total = menuItemsResponse.pagination?.total ?: 0,
+                                    currentPage = 1
+                                )
+                            }.onFailure { error ->
+                                _uiState.value = _uiState.value.copy(
+                                    isLoading = false,
+                                    error = error.message ?: "Failed to refresh menu items"
+                                )
+                            }
+                        }
                     } else {
                         _uiState.value = _uiState.value.copy(
                             error = response.message
                         )
+                        _isCreatingMenuItem.value = false
                     }
                 }
                 .onFailure { error ->
                     _uiState.value = _uiState.value.copy(
                         error = error.message ?: "Failed to create menu item"
                     )
+                    _isCreatingMenuItem.value = false
                 }
             _isCreatingMenuItem.value = false
         }
@@ -181,10 +219,10 @@ class MenuItemsViewModel @Inject constructor(
             val request = ToggleAvailabilityRequest(!menuItem.isAvailable)
             repository.toggleMenuItemAvailability(menuItem.id ?: return@launch, request)
                 .onSuccess { response ->
-                    val isSuccessful = response.success || response.message.contains(
+                    val isSuccessful = response.success || (response.message?.contains(
                         "successfully",
                         ignoreCase = true
-                    )
+                    ) == true)
                     if (isSuccessful) {
                         val statusText = if (!menuItem.isAvailable) "enabled" else "disabled"
 

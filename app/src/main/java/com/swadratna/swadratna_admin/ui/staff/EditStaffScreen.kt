@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.swadratna.swadratna_admin.data.model.Staff
+import com.swadratna.swadratna_admin.ui.assets.AssetUploader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,14 +28,42 @@ fun EditStaffScreen(
     viewModel: StaffManagementViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {}
 ) {
+    // Helpers declared at the top to ensure availability before usage
+    fun toUiHour(time: String): String {
+        val raw = time.trim()
+        val hhmm = Regex("^(\\d{1,2}):(\\d{2})(?::\\d{2})?$")
+        val justHour = Regex("^\\d{1,2}$")
+        return when {
+            hhmm.matches(raw) -> "%02d".format(hhmm.find(raw)!!.groupValues[1].toInt().coerceIn(0, 23))
+            justHour.matches(raw) -> "%02d".format(raw.toInt().coerceIn(0, 23))
+            else -> raw
+        }
+    }
+    fun toUiDate(date: String): String {
+        val raw = date.trim()
+        val ymdDash = Regex("^(\\d{4})-(\\d{2})-(\\d{2})$")
+        val dmyDash = Regex("^(\\d{2})-(\\d{2})-(\\d{4})$")
+        val dmySlash = Regex("^(\\d{2})/(\\d{2})/(\\d{4})$")
+        return when {
+            dmySlash.matches(raw) -> raw
+            ymdDash.matches(raw) -> {
+                val (y, m, d) = ymdDash.find(raw)!!.groupValues.drop(1)
+                "%02d/%02d/%s".format(d.toInt(), m.toInt(), y)
+            }
+            dmyDash.matches(raw) -> {
+                val (d, m, y) = dmyDash.find(raw)!!.groupValues.drop(1)
+                "%02d/%02d/%s".format(d.toInt(), m.toInt(), y)
+            }
+            else -> raw
+        }
+    }
+
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
-    // Load staff data when screen initializes
     LaunchedEffect(storeId) {
         viewModel.loadStaff(storeId.toIntOrNull() ?: 0)
     }
     
-    // Find the staff member to edit
     val staffToEdit = uiState.staffList.find { it.id == staffId.toIntOrNull() }
     
     // Form state variables
@@ -48,6 +77,7 @@ fun EditStaffScreen(
     var startTime by remember { mutableStateOf("") }
     var endTime by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("active") }
+    var imageUrl by remember { mutableStateOf<String?>(null) }
     
     // Dropdown state for role selection
     var roleDropdownExpanded by remember { mutableStateOf(false) }
@@ -76,12 +106,11 @@ fun EditStaffScreen(
             address = staff.address ?: ""
             role = staff.position ?: ""
             salary = staff.salary?.toString() ?: ""
-            joinDate = staff.joinDate ?: ""
-            
-            // Handle working hours from either workingHours or shiftTiming
-            startTime = (staff.workingHours?.startTime ?: staff.shiftTiming?.startTime) ?: ""
-            endTime = (staff.workingHours?.endTime ?: staff.shiftTiming?.endTime) ?: ""
-            
+            joinDate = toUiDate(staff.joinDate ?: "")
+            startTime = toUiHour((staff.workingHours?.startTime ?: staff.shiftTiming?.startTime) ?: "")
+            endTime = toUiHour((staff.workingHours?.endTime ?: staff.shiftTiming?.endTime) ?: "")
+            imageUrl = staff.imageUrl
+
             status = when (staff.status.name.lowercase()) {
                 "active" -> "active"
                 "inactive" -> "inactive"
@@ -98,105 +127,34 @@ fun EditStaffScreen(
     }
     
     // Validation functions
-    fun validateEmail(email: String): Boolean {
-        return email.contains("@") && email.contains(".")
-    }
-    
-    fun validatePhone(phone: String): Boolean {
-        return phone.length >= 10 && phone.all { it.isDigit() }
-    }
-    
-    fun validateSalary(salary: String): Boolean {
-        return salary.toDoubleOrNull() != null && salary.toDouble() > 0
-    }
-    
-    fun validateTime(time: String): Boolean {
-        val hour = time.toIntOrNull()
-        return hour != null && hour in 0..23
-    }
-    
-    fun validateJoinDate(date: String): Boolean {
-        val regex = Regex("^\\d{2}/\\d{2}/\\d{4}$")
-        return regex.matches(date)
-    }
-    
+    fun validateEmail(email: String): Boolean = email.contains("@") && email.contains(".")
+    fun validatePhone(phone: String): Boolean = phone.length >= 10 && phone.all { it.isDigit() }
+    fun validateSalary(salary: String): Boolean = salary.toDoubleOrNull() != null && salary.toDouble() > 0
+    fun validateTime(time: String): Boolean = time.toIntOrNull()?.let { it in 0..23 } == true
+    fun validateJoinDate(date: String): Boolean = Regex("^\\d{2}/\\d{2}/\\d{4}$").matches(date)
+
     fun validateForm(): Boolean {
         var isValid = true
         
-        if (name.isBlank()) {
-            nameError = "Name is required"
-            isValid = false
-        }
-        
-        if (email.isBlank()) {
-            emailError = "Email is required"
-            isValid = false
-        } else if (!validateEmail(email)) {
-            emailError = "Please enter a valid email"
-            isValid = false
-        }
-        
-        if (phone.isBlank()) {
-            phoneError = "Phone is required"
-            isValid = false
-        } else if (!validatePhone(phone)) {
-            phoneError = "Please enter a valid 10-digit phone number"
-            isValid = false
-        }
-        
-        if (address.isBlank()) {
-            addressError = "Address is required"
-            isValid = false
-        }
-        
-        if (role.isBlank()) {
-            roleError = "Role is required"
-            isValid = false
-        }
-        
-        if (salary.isBlank()) {
-            salaryError = "Salary is required"
-            isValid = false
-        } else if (!validateSalary(salary)) {
-            salaryError = "Please enter a valid salary amount"
-            isValid = false
-        }
-        
-        if (joinDate.isBlank()) {
-            joinDateError = "Join date is required"
-            isValid = false
-        } else if (!validateJoinDate(joinDate)) {
-            joinDateError = "Please enter date in DD/MM/YYYY format"
-            isValid = false
-        }
-        
-        if (startTime.isBlank()) {
-            startTimeError = "Start time is required"
-            isValid = false
-        } else if (!validateTime(startTime)) {
-            startTimeError = "Please enter a valid hour (0-23)"
-            isValid = false
-        }
-        
-        if (endTime.isBlank()) {
-            endTimeError = "End time is required"
-            isValid = false
-        } else if (!validateTime(endTime)) {
-            endTimeError = "Please enter a valid hour (0-23)"
-            isValid = false
-        }
+        if (name.isBlank()) { nameError = "Name is required"; isValid = false }
+        if (email.isBlank()) { emailError = "Email is required"; isValid = false } else if (!validateEmail(email)) { emailError = "Please enter a valid email"; isValid = false }
+        if (phone.isBlank()) { phoneError = "Phone is required"; isValid = false } else if (!validatePhone(phone)) { phoneError = "Please enter a valid 10-digit phone number"; isValid = false }
+        if (address.isBlank()) { addressError = "Address is required"; isValid = false }
+        if (role.isBlank()) { roleError = "Role is required"; isValid = false }
+        if (salary.isBlank()) { salaryError = "Salary is required"; isValid = false } else if (!validateSalary(salary)) { salaryError = "Please enter a valid salary amount"; isValid = false }
+        if (joinDate.isBlank()) { joinDateError = "Join date is required"; isValid = false } else if (!validateJoinDate(joinDate)) { joinDateError = "Please enter date in DD/MM/YYYY format"; isValid = false }
+        if (startTime.isBlank()) { startTimeError = "Start time is required"; isValid = false } else if (!validateTime(startTime)) { startTimeError = "Please enter a valid hour (0-23)"; isValid = false }
+        if (endTime.isBlank()) { endTimeError = "End time is required"; isValid = false } else if (!validateTime(endTime)) { endTimeError = "Please enter a valid hour (0-23)"; isValid = false }
         
         return isValid
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Edit Staff") },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
+                    IconButton(onClick = onNavigateBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back") }
                 }
             )
         }
@@ -208,7 +166,6 @@ fun EditStaffScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            // Show error message if any
             val errorMessage = uiState.error
             if (errorMessage != null) {
                 Card(
@@ -227,79 +184,62 @@ fun EditStaffScreen(
             // Name field
             OutlinedTextField(
                 value = name,
-                onValueChange = { 
-                    name = it
-                    nameError = ""
-                },
+                onValueChange = { name = it; nameError = "" },
                 label = { Text("Name *") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 isError = nameError.isNotEmpty(),
-                supportingText = if (nameError.isNotEmpty()) {
-                    { Text(nameError) }
-                } else null
+                supportingText = if (nameError.isNotEmpty()) { { Text(nameError) } } else null
             )
-            
             Spacer(modifier = Modifier.height(16.dp))
             
             // Email field
             OutlinedTextField(
                 value = email,
-                onValueChange = { 
-                    email = it
-                    emailError = ""
-                },
+                onValueChange = { email = it; emailError = "" },
                 label = { Text("Email *") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 isError = emailError.isNotEmpty(),
-                supportingText = if (emailError.isNotEmpty()) {
-                    { Text(emailError) }
-                } else null
+                supportingText = if (emailError.isNotEmpty()) { { Text(emailError) } } else null
             )
-            
             Spacer(modifier = Modifier.height(16.dp))
             
             // Phone field
             OutlinedTextField(
                 value = phone,
-                onValueChange = { 
-                    if (it.all { char -> char.isDigit() }) {
-                        phone = it
-                        phoneError = ""
-                    }
-                },
+                onValueChange = { if (it.all { char -> char.isDigit() }) { phone = it; phoneError = "" } },
                 label = { Text("Phone *") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 isError = phoneError.isNotEmpty(),
-                supportingText = if (phoneError.isNotEmpty()) {
-                    { Text(phoneError) }
-                } else null
+                supportingText = if (phoneError.isNotEmpty()) { { Text(phoneError) } } else null
             )
-            
             Spacer(modifier = Modifier.height(16.dp))
             
             // Address field
             OutlinedTextField(
                 value = address,
-                onValueChange = { 
-                    address = it
-                    addressError = ""
-                },
+                onValueChange = { address = it; addressError = "" },
                 label = { Text("Address *") },
                 modifier = Modifier.fillMaxWidth(),
                 maxLines = 3,
                 isError = addressError.isNotEmpty(),
-                supportingText = if (addressError.isNotEmpty()) {
-                    { Text(addressError) }
-                } else null
+                supportingText = if (addressError.isNotEmpty()) { { Text(addressError) } } else null
             )
-            
             Spacer(modifier = Modifier.height(16.dp))
-            
+
+            // Staff Image upload (optional)
+            Text(text = "Staff Image", style = MaterialTheme.typography.titleMedium)
+            AssetUploader(
+                context = "staff",
+                type = "image",
+                onConfirmed = { asset -> imageUrl = asset.cdnUrl ?: asset.url }
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Role field - Dropdown
             ExposedDropdownMenuBox(
                 expanded = roleDropdownExpanded,
@@ -311,202 +251,121 @@ fun EditStaffScreen(
                     onValueChange = { },
                     readOnly = true,
                     label = { Text("Role *") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .menuAnchor(),
+                    modifier = Modifier.fillMaxWidth().menuAnchor(),
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = roleDropdownExpanded) },
                     colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                     isError = roleError.isNotEmpty(),
-                    supportingText = if (roleError.isNotEmpty()) {
-                        { Text(roleError) }
-                    } else null,
+                    supportingText = if (roleError.isNotEmpty()) { { Text(roleError) } } else null,
                     placeholder = { Text("Select a role") }
                 )
-                
-                ExposedDropdownMenu(
-                    expanded = roleDropdownExpanded,
-                    onDismissRequest = { roleDropdownExpanded = false }
-                ) {
+                ExposedDropdownMenu(expanded = roleDropdownExpanded, onDismissRequest = { roleDropdownExpanded = false }) {
                     roleOptions.forEach { option ->
                         DropdownMenuItem(
                             text = { Text(option.replaceFirstChar { it.uppercase() }) },
-                            onClick = {
-                                role = option
-                                roleError = ""
-                                roleDropdownExpanded = false
-                            }
+                            onClick = { role = option; roleError = ""; roleDropdownExpanded = false }
                         )
                     }
                 }
             }
-            
             Spacer(modifier = Modifier.height(16.dp))
             
             // Salary field
             OutlinedTextField(
                 value = salary,
-                onValueChange = { 
-                    salary = it
-                    salaryError = ""
-                },
+                onValueChange = { salary = it; salaryError = "" },
                 label = { Text("Salary *") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 prefix = { Text("₹ ") },
                 isError = salaryError.isNotEmpty(),
-                supportingText = if (salaryError.isNotEmpty()) {
-                    { Text(salaryError) }
-                } else null
+                supportingText = if (salaryError.isNotEmpty()) { { Text(salaryError) } } else null
             )
-            
             Spacer(modifier = Modifier.height(16.dp))
             
             // Join Date field
             OutlinedTextField(
                 value = joinDate,
-                onValueChange = { 
-                    // Format as DD/MM/YYYY
+                onValueChange = {
                     val filtered = it.filter { char -> char.isDigit() || char == '/' }
-                    if (filtered.length <= 10) {
-                        joinDate = filtered
-                        joinDateError = ""
-                    }
+                    if (filtered.length <= 10) { joinDate = filtered; joinDateError = "" }
                 },
                 label = { Text("Join Date *") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 placeholder = { Text("DD/MM/YYYY") },
                 isError = joinDateError.isNotEmpty(),
-                supportingText = if (joinDateError.isNotEmpty()) {
-                    { Text(joinDateError) }
-                } else null
+                supportingText = if (joinDateError.isNotEmpty()) { { Text(joinDateError) } } else null
             )
-            
             Spacer(modifier = Modifier.height(24.dp))
             
             // Shift Timing Section
-            Text(
-                text = "Shift Timing",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            
+            Text(text = "Shift Timing", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
-            
             Row(modifier = Modifier.fillMaxWidth()) {
                 // Start Time
                 OutlinedTextField(
                     value = startTime,
-                    onValueChange = { 
-                        if (it.length <= 2 && (it.isEmpty() || it.all { char -> char.isDigit() })) {
-                            startTime = it
-                            startTimeError = ""
-                        }
-                    },
+                    onValueChange = { if (it.length <= 2 && (it.isEmpty() || it.all { c -> c.isDigit() })) { startTime = it; startTimeError = "" } },
                     label = { Text("Start Time *") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     placeholder = { Text("HH (24hr)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     isError = startTimeError.isNotEmpty(),
-                    supportingText = if (startTimeError.isNotEmpty()) {
-                        { Text(startTimeError) }
-                    } else null
+                    supportingText = if (startTimeError.isNotEmpty()) { { Text(startTimeError) } } else null
                 )
-                
                 Spacer(modifier = Modifier.width(16.dp))
-                
                 // End Time
                 OutlinedTextField(
                     value = endTime,
-                    onValueChange = { 
-                        if (it.length <= 2 && (it.isEmpty() || it.all { char -> char.isDigit() })) {
-                            endTime = it
-                            endTimeError = ""
-                        }
-                    },
+                    onValueChange = { if (it.length <= 2 && (it.isEmpty() || it.all { c -> c.isDigit() })) { endTime = it; endTimeError = "" } },
                     label = { Text("End Time *") },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     placeholder = { Text("HH (24hr)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     isError = endTimeError.isNotEmpty(),
-                    supportingText = if (endTimeError.isNotEmpty()) {
-                        { Text(endTimeError) }
-                    } else null
+                    supportingText = if (endTimeError.isNotEmpty()) { { Text(endTimeError) } } else null
                 )
             }
-            
             Spacer(modifier = Modifier.height(24.dp))
             
             // Status Section
-            Text(
-                text = "Status",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            
+            Text(text = "Status", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
-            
             Column {
-                StatusRadioButton(
-                    text = "Active",
-                    selected = status == "active",
-                    onClick = { status = "active" }
-                )
-                
-                StatusRadioButton(
-                    text = "Inactive",
-                    selected = status == "inactive",
-                    onClick = { status = "inactive" }
-                )
+                StatusRadioButton(text = "Active", selected = status == "active", onClick = { status = "active" })
+                StatusRadioButton(text = "Inactive", selected = status == "inactive", onClick = { status = "inactive" })
             }
-            
             Spacer(modifier = Modifier.height(32.dp))
             
             // Submit Button
-            Button(
-                onClick = {
-                    if (validateForm()) {
-                        staffToEdit?.let { staff ->
-                            // Safe conversion with validation
-                            val salaryValue = salary.toDoubleOrNull()
-                            
-                            if (salaryValue != null) {
-                                updateInitiated = true
-                                viewModel.updateStaff(
-                                    staffId = staff.id,
-                                    name = name,
-                                    email = email,
-                                    phone = phone,
-                                    mobileNumber = phone,
-                                    address = address,
-                                    role = role,
-                                    salary = salaryValue,
-                                    joinDate = joinDate,
-                                    startTime = startTime,
-                                    endTime = endTime,
-                                    status = status
-                                )
-                            }
-                        }
+            Button(onClick = {
+                if (validateForm()) {
+                    staffToEdit?.let { staff ->
+                        val salaryValue = salary.toDoubleOrNull()
+                        if (salaryValue != null) {
+                            updateInitiated = true
+                            viewModel.updateStaff(
+                                staffId = staff.id,
+                                name = name,
+                                email = email,
+                                phone = phone,
+                                mobileNumber = phone,
+                                address = address,
+                                role = role,
+                                salary = salaryValue,
+                                joinDate = joinDate,
+                                startTime = startTime,
+                                endTime = endTime,
+                                status = status,
+                                imageUrl = imageUrl
+                            )
+                        } else { salaryError = "Please enter a valid salary amount" }
                     }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isLoading && staffToEdit != null
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
                 }
-                Text("Update Staff")
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
+            }, enabled = !uiState.isLoading) { Text("Update Staff") }
         }
     }
 }
