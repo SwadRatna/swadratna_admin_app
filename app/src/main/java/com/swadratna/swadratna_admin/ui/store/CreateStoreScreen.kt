@@ -49,7 +49,7 @@ fun CreateStoreScreen(
             pincode = storeToEdit.address?.pincode ?: ""
             landmark = storeToEdit.address?.landmark ?: ""
             locationMobileNumber = storeToEdit.locationMobileNumber ?: ""
-            numberOfTables = storeToEdit.numberOfTables?.toString() ?: ""
+            numberOfTables = if (storeToEdit.numberOfTables > 0) storeToEdit.numberOfTables.toString() else ""
         } else {
             // Reset form for new store creation
             plotNo = ""

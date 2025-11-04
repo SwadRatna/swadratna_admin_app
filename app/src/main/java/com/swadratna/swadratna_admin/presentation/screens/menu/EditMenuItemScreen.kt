@@ -18,6 +18,7 @@ import com.swadratna.swadratna_admin.data.model.MenuItem
 import com.swadratna.swadratna_admin.data.model.UpdateMenuItemRequest
 import com.swadratna.swadratna_admin.presentation.viewmodels.MenuItemsViewModel
 import com.swadratna.swadratna_admin.ui.menu.MenuCategoriesUiState
+import com.swadratna.swadratna_admin.ui.assets.AssetUploader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,7 +30,8 @@ fun EditMenuItemScreen(
     val uiState by viewModel.uiState.collectAsState()
     val categoriesState by viewModel.categoriesState.collectAsState()
     val isUpdating by viewModel.isUpdatingMenuItem.collectAsState()
-    
+    val selectedItem by viewModel.selectedMenuItem.collectAsState()
+
     var menuItem by remember { mutableStateOf<MenuItem?>(null) }
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -37,36 +39,68 @@ fun EditMenuItemScreen(
     var discountPercentage by remember { mutableStateOf("") }
     var displayOrder by remember { mutableStateOf("") }
     var allergenInfo by remember { mutableStateOf("") }
+    var image by remember { mutableStateOf("") }
+    var ingredientsText by remember { mutableStateOf("") }
+    var isVegetarian by remember { mutableStateOf(true) }
+    var spicyLevelText by remember { mutableStateOf("") }
+    var unavailableReason by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf<MenuCategory?>(null) }
     var expanded by remember { mutableStateOf(false) }
     var updateInitiated by remember { mutableStateOf(false) }
     var isInitialized by remember { mutableStateOf(false) }
-    
-    // Navigation logic
+
     LaunchedEffect(isUpdating, updateInitiated) {
         if (updateInitiated && !isUpdating && uiState.error == null) {
             onNavigateBack()
         }
     }
-    
-    // Load categories and find the menu item
+
     LaunchedEffect(Unit) {
         viewModel.loadCategories()
-        viewModel.loadMenuItems()
+        viewModel.loadMenuItemById(menuItemId)
     }
-    
-    // Initialize form fields when menu item is found
+
+    // Initialize form fields when selected item is loaded
+    LaunchedEffect(selectedItem, categoriesState) {
+        if (!isInitialized && selectedItem != null) {
+            val item = selectedItem
+            menuItem = item
+            name = item!!.name
+            description = item.description
+            price = item.price.toString()
+            discountPercentage = item.discountPercentage?.toString() ?: ""
+            displayOrder = item.displayOrder.toString()
+            allergenInfo = item.allergenInfo.joinToString(", ")
+            image = item.image ?: ""
+            ingredientsText = item.ingredients.joinToString(", ")
+            isVegetarian = item.isVegetarian ?: true
+            spicyLevelText = (item.spicyLevel ?: 0).toString()
+            unavailableReason = item.unavailableReason ?: ""
+            selectedCategory = when (val catState = categoriesState) {
+                is MenuCategoriesUiState.Success -> catState.categories.find { it.id == item.categoryId }
+                else -> null
+            }
+            isInitialized = true
+        }
+    }
+
+    // Fallback initialization from admin list if selectedItem not available
     LaunchedEffect(uiState.menuItems, categoriesState) {
-        if (!isInitialized && uiState.menuItems.isNotEmpty()) {
+        if (!isInitialized && selectedItem == null && uiState.menuItems.isNotEmpty()) {
             val item = uiState.menuItems.find { it.id?.toLong() == menuItemId }
             if (item != null) {
                 menuItem = item
                 name = item.name
                 description = item.description
                 price = item.price.toString()
-                discountPercentage = item.discountPercentage.toString()
+                discountPercentage = item.discountPercentage?.toString() ?: ""
                 displayOrder = item.displayOrder.toString()
                 allergenInfo = item.allergenInfo.joinToString(", ")
+                image = item.image ?: ""
+                ingredientsText = item.ingredients.joinToString(", ")
+                isVegetarian = item.isVegetarian ?: true
+                spicyLevelText = (item.spicyLevel ?: 0).toString()
+                unavailableReason = item.unavailableReason ?: ""
                 selectedCategory = when (val catState = categoriesState) {
                     is MenuCategoriesUiState.Success -> catState.categories.find { it.id == item.categoryId }
                     else -> null
@@ -75,7 +109,7 @@ fun EditMenuItemScreen(
             }
         }
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -138,13 +172,14 @@ fun EditMenuItemScreen(
                                     )
                                 }
                             }
+
                             else -> {
                                 // Show loading or error state if needed
                             }
                         }
                     }
                 }
-                
+
                 // Name Field
                 OutlinedTextField(
                     value = name,
@@ -153,7 +188,7 @@ fun EditMenuItemScreen(
                     modifier = Modifier.fillMaxWidth(),
                     isError = name.isBlank() && updateInitiated
                 )
-                
+
                 // Description Field
                 OutlinedTextField(
                     value = description,
@@ -164,7 +199,7 @@ fun EditMenuItemScreen(
                     maxLines = 5,
                     isError = description.isBlank() && updateInitiated
                 )
-                
+
                 // Price Field
                 OutlinedTextField(
                     value = price,
@@ -174,7 +209,7 @@ fun EditMenuItemScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     isError = price.isBlank() && updateInitiated
                 )
-                
+
                 // Discount Percentage Field
                 OutlinedTextField(
                     value = discountPercentage,
@@ -184,7 +219,7 @@ fun EditMenuItemScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     supportingText = { Text("Optional: 0-100") }
                 )
-                
+
                 // Display Order Field
                 OutlinedTextField(
                     value = displayOrder,
@@ -194,7 +229,7 @@ fun EditMenuItemScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     supportingText = { Text("Optional: Order in menu") }
                 )
-                
+
                 // Allergen Info Field
                 OutlinedTextField(
                     value = allergenInfo,
@@ -203,7 +238,52 @@ fun EditMenuItemScreen(
                     modifier = Modifier.fillMaxWidth(),
                     supportingText = { Text("Optional: Separate multiple allergens with commas") }
                 )
-                
+
+                // Image Uploader
+                AssetUploader(
+                    onConfirmed = { asset ->
+                        image = asset.cdnUrl ?: asset.url ?: ""
+                    }
+                )
+
+                // Ingredients Field
+                OutlinedTextField(
+                    value = ingredientsText,
+                    onValueChange = { ingredientsText = it },
+                    label = { Text("Ingredients") },
+                    modifier = Modifier.fillMaxWidth(),
+                    supportingText = { Text("Optional: Separate multiple ingredients with commas") }
+                )
+
+                // Vegetarian Toggle
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Vegetarian")
+                    Switch(checked = isVegetarian, onCheckedChange = { isVegetarian = it })
+                }
+
+                // Spicy Level Field
+                OutlinedTextField(
+                    value = spicyLevelText,
+                    onValueChange = { spicyLevelText = it },
+                    label = { Text("Spicy Level") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    supportingText = { Text("Optional: Numeric spicy level") }
+                )
+
+                // Unavailable Reason Field
+                OutlinedTextField(
+                    value = unavailableReason,
+                    onValueChange = { unavailableReason = it },
+                    label = { Text("Unavailable Reason") },
+                    modifier = Modifier.fillMaxWidth(),
+                    supportingText = { Text("Optional: Provide reason if unavailable") }
+                )
+
                 // Error Message
                 uiState.error?.let { errorMessage ->
                     Card(
@@ -217,7 +297,7 @@ fun EditMenuItemScreen(
                         )
                     }
                 }
-                
+
                 // Update Button
                 Button(
                     onClick = {
@@ -231,15 +311,23 @@ fun EditMenuItemScreen(
                             } else {
                                 emptyList()
                             }
-                            
+
+                            val ingredientsParsed = if (ingredientsText.isNotBlank()) {
+                                ingredientsText.split(",").map { it.trim() }
+                                    .filter { it.isNotEmpty() }
+                            } else {
+                                emptyList()
+                            }
+                            val spicyLevelInt = spicyLevelText.toIntOrNull() ?: 0
+
                             if (priceValue != null && priceValue > 0) {
                                 val currentMenuItem = menuItem
                                 val currentCategory = selectedCategory
-                                
+
                                 if (currentMenuItem != null && currentCategory != null) {
                                     val itemId = currentMenuItem.id
                                     val categoryId = currentCategory.id
-                                    
+
                                     if (itemId != null && categoryId != null) {
                                         val updateRequest = UpdateMenuItemRequest(
                                             id = itemId,
@@ -252,15 +340,20 @@ fun EditMenuItemScreen(
                                             price = priceValue,
                                             currency = currentMenuItem.currency ?: "INR",
                                             discountPercentage = discountValue.toDouble(),
-                                            discountedPrice = currentMenuItem.discountedPrice ?: 0.0,
+                                            discountedPrice = currentMenuItem.discountedPrice
+                                                ?: 0.0,
                                             displayOrder = orderValue,
-                                            image = currentMenuItem.image ?: "",
-                                            isAvailable = currentMenuItem.isAvailable ?: true,
+                                            image = if (image.isNotBlank()) image else null,
+                                            isAvailable = currentMenuItem.isAvailable,
                                             allergenInfo = allergens,
                                             nutritionalInfo = currentMenuItem.nutritionalInfo,
                                             preparationTime = currentMenuItem.preparationTime ?: 0,
                                             spiceLevel = currentMenuItem.spiceLevel ?: "",
-                                            tags = currentMenuItem.tags ?: emptyList()
+                                            tags = currentMenuItem.tags,
+                                            ingredients = ingredientsParsed,
+                                            isVegetarian = isVegetarian,
+                                            spicyLevel = spicyLevelInt,
+                                            unavailableReason = unavailableReason.ifBlank { "" }
                                         )
                                         viewModel.updateMenuItem(itemId, updateRequest)
                                     }

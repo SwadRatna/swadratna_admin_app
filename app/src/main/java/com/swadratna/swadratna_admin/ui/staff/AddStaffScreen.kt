@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.util.Patterns
+import com.swadratna.swadratna_admin.ui.assets.AssetUploader
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,7 +38,7 @@ fun AddStaffScreen(
     var startTime by remember { mutableStateOf("") }
     var endTime by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("active") }
-    
+    var imageUrl by remember { mutableStateOf<String?>(null) }
     // Dropdown state for role selection
     var roleDropdownExpanded by remember { mutableStateOf(false) }
     val roleOptions = listOf("manager", "waiter", "chef", "cashier")
@@ -104,10 +105,10 @@ fun AddStaffScreen(
         return valid
     }
 
-    // Helper to format hour into server-friendly time string (HH:mm:ss)
+    // Helper to format hour into server-friendly time string (HH)
     fun toServerTime(hourStr: String): String {
         val h = hourStr.toIntOrNull() ?: return hourStr
-        return "%02d:00:00".format(h)
+        return "%02d".format(h)
     }
     
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -231,7 +232,19 @@ fun AddStaffScreen(
             )
             
             Spacer(modifier = Modifier.height(16.dp))
-            
+
+            // Staff Image upload (optional)
+            Text(text = "Staff Image", style = MaterialTheme.typography.titleMedium)
+            AssetUploader(
+                context = "staff",
+                type = "image",
+                onConfirmed = { asset ->
+                    imageUrl = asset.cdnUrl ?: asset.url
+                }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Role field - Dropdown
             ExposedDropdownMenuBox(
                 expanded = roleDropdownExpanded,
@@ -420,6 +433,7 @@ fun AddStaffScreen(
                                     startTime = startFormatted,
                                     endTime = endFormatted,
                                     status = status,
+                                    imageUrl = imageUrl,
                                     storeId = storeIdValue
                                 )
                             }

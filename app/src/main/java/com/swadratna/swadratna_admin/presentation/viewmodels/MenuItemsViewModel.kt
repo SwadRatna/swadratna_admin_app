@@ -42,6 +42,10 @@ class MenuItemsViewModel @Inject constructor(
     private val _isUpdatingMenuItem = MutableStateFlow(false)
     val isUpdatingMenuItem: StateFlow<Boolean> = _isUpdatingMenuItem.asStateFlow()
 
+    // Selected item for edit screen: fetched from full menu endpoint to ensure all fields are populated
+    private val _selectedMenuItem = MutableStateFlow<MenuItem?>(null)
+    val selectedMenuItem: StateFlow<MenuItem?> = _selectedMenuItem.asStateFlow()
+
     init {
         loadCategories()
         loadMenuItems()
@@ -90,6 +94,20 @@ class MenuItemsViewModel @Inject constructor(
                 .onFailure { error ->
                     _categoriesState.value =
                         MenuCategoriesUiState.Error(error.message ?: "Failed to load categories")
+                }
+        }
+    }
+
+    // Fetch a single menu item with full details (including discountPercentage and displayOrder)
+    fun loadMenuItemById(menuItemId: Long) {
+        viewModelScope.launch {
+            repository.getMenu(categoryId = null)
+                .onSuccess { fullMenuItems ->
+                    val found = fullMenuItems.find { it.id?.toLong() == menuItemId }
+                    _selectedMenuItem.value = found
+                }
+                .onFailure { error ->
+                    Log.e("MenuItemsViewModel", "Failed to load full menu for item $menuItemId: ${error.message}")
                 }
         }
     }

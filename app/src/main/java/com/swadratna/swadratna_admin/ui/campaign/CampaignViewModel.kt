@@ -41,8 +41,10 @@ class CampaignViewModel @Inject constructor(
 
     fun handleEvent(event: CampaignEvent) {
         when (event) {
-            is CampaignEvent.SearchQueryChanged ->
+            is CampaignEvent.SearchQueryChanged -> {
                 _uiState.value = _uiState.value.copy(searchQuery = event.query)
+                applyFiltersAndSort()
+            }
             is CampaignEvent.FilterChanged -> {
                 _uiState.value = _uiState.value.copy(filter = event.filter)
                 refresh() // trigger server-side filter where applicable
@@ -273,7 +275,7 @@ class CampaignViewModel @Inject constructor(
             when (val res = repository.adminListCampaigns(status = null, type = null, search = null, page = null, limit = 1000)) {
                 is Result.Success -> {
                     val now = LocalDate.now()
-                    val expired = res.data.campaigns.filter { r ->
+                    val expired = (res.data.campaigns ?: emptyList()).filter { r ->
                         val end = r.endDate?.let { parseServerDate(it) } ?: now
                         val status = r.status?.lowercase()
                         (end.isBefore(now) || end.isEqual(now)) && status != "completed"
@@ -313,7 +315,7 @@ class CampaignViewModel @Inject constructor(
         val searchParam = _uiState.value.searchQuery.takeIf { it.isNotBlank() }
         when (val res = repository.adminListCampaigns(status = statusParam, type = null, search = searchParam, page = null, limit = null)) {
             is Result.Success -> {
-                val mapped = res.data.campaigns.map { mapAdminCampaign(it) }
+                val mapped = (res.data.campaigns ?: emptyList()).map { mapAdminCampaign(it) }
                 _allCampaigns.clear()
                 _allCampaigns.addAll(mapped)
                 applyFiltersAndSort()

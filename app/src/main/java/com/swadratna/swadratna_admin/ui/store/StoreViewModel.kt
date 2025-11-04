@@ -120,7 +120,7 @@ class StoreViewModel @Inject constructor(
                     store.getFullAddress().contains(_uiState.value.searchQuery, ignoreCase = true)
             
             val matchesStatus = _uiState.value.filterStatus == null ||
-                    store.status == _uiState.value.filterStatus
+                    store.status.equals(_uiState.value.filterStatus, ignoreCase = true)
             
             matchesSearch && matchesStatus
         }
