@@ -42,11 +42,6 @@ fun AttendancePaymentScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
-                },
-                actions = {
-                    IconButton(onClick = { /* TODO: Show notifications */ }) {
-                        Icon(Icons.Default.Notifications, contentDescription = "Notifications")
-                    }
                 }
             )
         }

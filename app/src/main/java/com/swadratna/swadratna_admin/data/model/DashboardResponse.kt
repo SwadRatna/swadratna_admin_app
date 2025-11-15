@@ -1,7 +1,5 @@
 package com.swadratna.swadratna_admin.data.model
 
-import com.swadratna.swadratna_admin.ui.dashboard.ActivityItem
-import com.swadratna.swadratna_admin.ui.dashboard.StoreItem
 
 data class DashboardResponse(
     val totalCampaigns: Int,

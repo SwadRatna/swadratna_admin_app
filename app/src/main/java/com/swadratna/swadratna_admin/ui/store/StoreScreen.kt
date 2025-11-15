@@ -119,10 +119,12 @@ fun StoreScreen(
                                     store = store,
                                     onManage = onNavigateToManageStore,
                                     onEdit = { 
-                                        viewModel.onEvent(StoreEvent.EditStore(it))
+                                        viewModel.onEvent(StoreEvent.EditStore(it.toIntOrNull() ?: 0))
                                         onNavigateToEditStore(it)
                                     },
-                                    onDelete = { viewModel.onEvent(StoreEvent.DeleteStore(it)) }
+                                    onDelete = { storeId ->
+                                        viewModel.onEvent(StoreEvent.DeleteStore(storeId.toIntOrNull() ?: 0))
+                                    }
                                 )
                             }
                         }

@@ -1,8 +1,6 @@
 package com.swadratna.swadratna_admin.data.repository
 
-import com.swadratna.swadratna_admin.data.model.ActivityItemResponse
 import com.swadratna.swadratna_admin.data.model.DashboardResponse
-import com.swadratna.swadratna_admin.data.model.StoreItemResponse
 import com.swadratna.swadratna_admin.data.remote.api.DashboardApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -35,16 +33,8 @@ class DashboardRepository @Inject constructor(
             topSellerMetric = "00% of total sales",
             newUsers = 0,
             newUsersChange = "0% compared to avg.",
-            recentActivities = listOf(
-                ActivityItemResponse("New campaign \"Summer Blast\" launched", "2 hours ago"),
-                ActivityItemResponse("Store \"Downtown Deli\" updated menu", "1 day ago"),
-                ActivityItemResponse("Report for Q3 2023 generated", "3 days ago")
-            ),
-            topStore = listOf(
-                StoreItemResponse("Coastal Grill", "$125,000"),
-                StoreItemResponse("Urban Eatery", "$110,500"),
-                StoreItemResponse("Parkside Bistro", "$98,200")
-            )
+            recentActivities = emptyList(),
+            topStore = emptyList()
         )
     }
 }

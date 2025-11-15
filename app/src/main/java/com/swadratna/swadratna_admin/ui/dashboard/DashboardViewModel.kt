@@ -1,50 +1,127 @@
 package com.swadratna.swadratna_admin.ui.dashboard
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
+import kotlin.math.roundToInt
 import androidx.lifecycle.viewModelScope
+import com.swadratna.swadratna_admin.data.repository.ActivityRepository
+import com.swadratna.swadratna_admin.data.repository.CampaignRepository
 import com.swadratna.swadratna_admin.data.repository.DashboardRepository
+import com.swadratna.swadratna_admin.data.repository.StoreRepository
+import com.swadratna.swadratna_admin.data.wrapper.Result
+import com.swadratna.swadratna_admin.utils.SharedPrefsManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
+@RequiresApi(Build.VERSION_CODES.O)
 class DashboardViewModel @Inject constructor(
-    private val repository: DashboardRepository,
+    private val dashboardRepository: DashboardRepository,
+    private val activityRepository: ActivityRepository,
+    private val campaignRepository: CampaignRepository,
+    private val storeRepository: StoreRepository,
+    private val sharedPrefsManager: SharedPrefsManager
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     init {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-
-            try {
-                val response = repository.getDashboardData()
-
-                _uiState.value = response.toUiState().copy(
-                    isLoading = false,
-                    error = null
-                )
-
-            } catch (e: Exception) {
-                _uiState.value = DashboardUiState(
-                    isLoading = false,
-                    error = e.message ?: "Unknown error"
-                )
-            }
-        }
+        loadDashboardData()
     }
 
-    fun handleEvent(event: DashboardEvent) {
-        when (event) {
-            is DashboardEvent.SearchQueryChanged -> {
-                _uiState.value = _uiState.value.copy(searchQuery = event.query)
+    private fun loadDashboardData() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            try {
+                val response = dashboardRepository.getDashboardData()
+                _uiState.update {
+                    it.copy(
+                        topSeller = response.topSeller,
+                        topSellerMetric = response.topSellerMetric,
+                        newUsers = response.newUsers,
+                        newUsersChange = response.newUsersChange,
+                        topStore = response.topStore.map { StoreItem(name = it.name, revenue = it.revenue) },
+                        isLoading = false
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(isLoading = false, error = e.message) }
             }
-            DashboardEvent.RefreshData -> {
-                // TODO: Implement refresh logic
+        }
+
+        viewModelScope.launch {
+            when (val res = campaignRepository.adminListCampaigns(status = null, type = null, search = null, page = null, limit = 1000)) {
+                is Result.Success -> {
+                    val count = res.data.campaigns.size
+                    val prev = sharedPrefsManager.getPrevTotalCampaigns()
+                    val percentText = if (prev == null) {
+                        sharedPrefsManager.savePrevTotalCampaigns(count)
+                        "100 % changes since last month"
+                    } else {
+                        val diff = count - prev
+                        val pct = if (prev == 0) 100 else ((diff.toDouble() / prev.toDouble()) * 100).roundToInt()
+                        "${pct} % changes since last month"
+                    }
+                    _uiState.update { it.copy(totalCampaigns = count, campaignsChange = percentText) }
+                }
+                is Result.Error -> {
+                    // Keep existing value on error
+                }
+                is Result.Loading -> {
+                    // no-op
+                }
+            }
+        }
+
+        viewModelScope.launch {
+            val restaurantId = 1000001
+            val result = storeRepository.getStores(page = 1, limit = 1000, restaurantId = restaurantId)
+            result.onSuccess { resp ->
+                val activeCount = resp.stores.count { it.status.equals("active", ignoreCase = true) }
+                sharedPrefsManager.saveStores(resp.stores)
+                val prev = sharedPrefsManager.getPrevActiveStores()
+                val hasLocalStores = sharedPrefsManager.getStores().isNotEmpty()
+                val percentText = if (prev == null || !hasLocalStores) {
+                    sharedPrefsManager.savePrevActiveStores(activeCount)
+                    "100 % changes since last 3 months"
+                } else {
+                    val diff = activeCount - prev
+                    val pct = if (prev == 0) 100 else ((diff.toDouble() / prev.toDouble()) * 100).roundToInt()
+                    "${pct} % changes since last 3 months"
+                }
+                val topSellerName = if (resp.stores.size == 1) resp.stores.first().name else "N/A"
+                _uiState.update { it.copy(activeStore = activeCount, storeChange = percentText, topSeller = topSellerName) }
+            }.onFailure {
+                val cachedStores = sharedPrefsManager.getStores()
+                val activeCount = cachedStores.count { it.status.equals("active", ignoreCase = true) }
+                val prev = sharedPrefsManager.getPrevActiveStores()
+                val percentText = if (prev == null || cachedStores.isEmpty()) {
+                    "100 % changes since last 3 months"
+                } else {
+                    val diff = activeCount - prev
+                    val pct = if (prev == 0) 100 else ((diff.toDouble() / prev.toDouble()) * 100).roundToInt()
+                    "${pct} % changes since last 3 months"
+                }
+                val topSellerName = if (cachedStores.size == 1) cachedStores.first().name else "N/A"
+                _uiState.update { it.copy(activeStore = activeCount, storeChange = percentText, topSeller = topSellerName) }
+            }
+        }
+
+        viewModelScope.launch {
+            activityRepository.getRecentActivities(3).collect { recentActivities ->
+                val activityItems = recentActivities.map { activity ->
+                    ActivityItem(
+                        title = activity.title,
+                        time = activity.getFormattedTime()
+                    )
+                }
+                _uiState.update { it.copy(recentActivities = activityItems) }
             }
         }
     }

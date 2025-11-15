@@ -16,8 +16,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.OffsetDateTime
 import java.util.UUID
 import javax.inject.Inject
+import com.swadratna.swadratna_admin.data.remote.api.AdminCreateCampaignRequest
+import com.swadratna.swadratna_admin.data.remote.api.AdminCampaignResponse
+import com.swadratna.swadratna_admin.data.remote.api.AdminUpdateCampaignRequest
 
 @HiltViewModel
 @RequiresApi(Build.VERSION_CODES.O)
@@ -30,22 +34,27 @@ class CampaignViewModel @Inject constructor(
 
     private val _allCampaigns = mutableListOf<Campaign>()
 
+    // Prevent running the auto-complete check multiple times per app session
+    private var startupAutoCompleteDone = false
+
     init { refresh() }
 
     fun handleEvent(event: CampaignEvent) {
         when (event) {
-            is CampaignEvent.SearchQueryChanged ->
+            is CampaignEvent.SearchQueryChanged -> {
                 _uiState.value = _uiState.value.copy(searchQuery = event.query)
+                applyFiltersAndSort()
+            }
             is CampaignEvent.FilterChanged -> {
                 _uiState.value = _uiState.value.copy(filter = event.filter)
-                applyFiltersAndSort()
+                refresh() // trigger server-side filter where applicable
             }
             is CampaignEvent.SortChanged -> {
                 _uiState.value = _uiState.value.copy(sortOrder = event.sortOrder)
                 applyFiltersAndSort()
             }
             CampaignEvent.RefreshData -> {
-                applyFiltersAndSort()
+                refresh()
             }
             CampaignEvent.ToggleFilterMenu -> {
                 _uiState.value = _uiState.value.copy(
@@ -60,68 +69,235 @@ class CampaignViewModel @Inject constructor(
                 )
             }
             is CampaignEvent.CreateCampaign -> {
-                val newCampaign = Campaign(
-                    id = UUID.randomUUID().toString(),
-                    title = event.title,
-                    description = event.description,
-                    startDate = event.startDate,
-                    endDate = event.endDate,
-                    status = CampaignStatus.SCHEDULED,
-                    type = CampaignType.DISCOUNT,
-                    discount = 15,
-                    storeCount = 0,
-                    imageUrl = event.imageUrl ?: "https://via.placeholder.com/150"
-                )
-                
-                _allCampaigns.add(0, newCampaign)
-                applyFiltersAndSort()
-                
+                // Call Admin Create Campaign API
+                _uiState.value = _uiState.value.copy(isLoading = true, error = null)
                 viewModelScope.launch {
-                    sharedPrefsManager.saveCampaigns(_allCampaigns)
+                    val req = AdminCreateCampaignRequest(
+                        title = event.title,
+                        description = event.description,
+                        type = "promotion",
+                        startDate = event.startDate.toString(),
+                        endDate = event.endDate.toString(),
+                        targetFranchises = event.targetFranchiseIds,
+                        targetCategories = event.targetCategoryIds,
+                        imageUrl = event.imageUrl,
+                        bannerImageUrl = null,
+                        discountType = null,
+                        discountValue = null,
+                        minOrderAmount = null,
+                        maxDiscountAmount = null,
+                        promoCode = null,
+                        promoCodeLimit = null,
+                        priority = null,
+                        termsConditions = null
+                    )
+                    when (val res = repository.adminCreateCampaign(req)) {
+                        is Result.Success -> {
+                            val created = mapAdminCampaign(res.data)
+                            _allCampaigns.add(0, created)
+                            applyFiltersAndSort()
+                            _uiState.value = _uiState.value.copy(isLoading = false, error = null)
+                            sharedPrefsManager.saveCampaigns(_allCampaigns)
+                        }
+                        is Result.Error -> {
+                            _uiState.value = _uiState.value.copy(isLoading = false, error = res.message)
+                        }
+                        is Result.Loading -> {
+                            _uiState.value = _uiState.value.copy(isLoading = true)
+                        }
+                    }
                 }
             }
+            is CampaignEvent.LoadCampaigns -> {
+                refresh()
+            }
             is CampaignEvent.EditCampaign -> {
-                val campaignToEdit = _allCampaigns.find { it.id == event.campaignId }
-                if (campaignToEdit != null) {
-                    _uiState.value = _uiState.value.copy(
-                        campaignToEdit = campaignToEdit,
-                        isEditMode = true
-                    )
+                val local = _allCampaigns.find { it.id == event.campaignId }
+                _uiState.value = _uiState.value.copy(
+                    campaignToEdit = local,
+                    isEditMode = true,
+                    error = null
+                )
+                // Fetch latest details from server if we have a numeric id
+                val idLong = event.campaignId.toLongOrNull()
+                if (idLong != null) {
+                    _uiState.value = _uiState.value.copy(isLoading = true)
+                    viewModelScope.launch {
+                        when (val res = repository.adminGetCampaignDetails(idLong)) {
+                            is Result.Success -> {
+                                val fresh = mapAdminCampaign(res.data)
+                                _uiState.value = _uiState.value.copy(
+                                    campaignToEdit = fresh,
+                                    isLoading = false
+                                )
+                                // Also update in local list
+                                val idx = _allCampaigns.indexOfFirst { it.id == event.campaignId }
+                                if (idx != -1) {
+                                    _allCampaigns[idx] = fresh
+                                    applyFiltersAndSort()
+                                }
+                            }
+                            is Result.Error -> {
+                                _uiState.value = _uiState.value.copy(
+                                    isLoading = false,
+                                    error = res.message
+                                )
+                            }
+                            is Result.Loading -> {
+                                _uiState.value = _uiState.value.copy(isLoading = true)
+                            }
+                        }
+                    }
                 }
             }
             is CampaignEvent.DeleteCampaign -> {
-                _allCampaigns.removeAll { it.id == event.campaignId }
-                applyFiltersAndSort()
-                
-                viewModelScope.launch {
-                    sharedPrefsManager.saveCampaigns(_allCampaigns)
+                val idLong = event.campaignId.toLongOrNull()
+                if (idLong == null) {
+                    _uiState.value = _uiState.value.copy(error = "Invalid campaign id")
+                } else {
+                    _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+                    viewModelScope.launch {
+                        when (val res = repository.adminDeleteCampaign(idLong)) {
+                            is Result.Success -> {
+                                _allCampaigns.removeAll { it.id == event.campaignId }
+                                applyFiltersAndSort()
+                                _uiState.value = _uiState.value.copy(isLoading = false)
+                                sharedPrefsManager.saveCampaigns(_allCampaigns)
+                            }
+                            is Result.Error -> {
+                                _uiState.value = _uiState.value.copy(isLoading = false, error = res.message)
+                            }
+                            is Result.Loading -> {
+                                _uiState.value = _uiState.value.copy(isLoading = true)
+                            }
+                        }
+                    }
                 }
             }
             is CampaignEvent.UpdateCampaign -> {
-                val index = _allCampaigns.indexOfFirst { it.id == event.id }
-                if (index != -1) {
-                    _allCampaigns[index] = _allCampaigns[index].copy(
+                val idLong = event.id.toLongOrNull()
+                if (idLong == null) {
+                    _uiState.value = _uiState.value.copy(error = "Invalid campaign id")
+                } else {
+                    _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+                    val req = AdminUpdateCampaignRequest(
                         title = event.title,
                         description = event.description,
-                        startDate = event.startDate,
-                        endDate = event.endDate,
-                        type = event.type,
-                        discount = event.discount,
+                        type = toCampaignTypeString(event.type),
+                        startDate = event.startDate.toString(),
+                        endDate = event.endDate.toString(),
+                        targetFranchises = event.targetFranchiseIds,
+                        targetCategories = event.targetCategoryIds,
                         imageUrl = event.imageUrl,
-                        targetStores = event.targetFranchises,
-                        menuCategories = event.menuCategories
+                        discountValue = event.discount,
+                        status = _uiState.value.campaignToEdit?.let { toCampaignStatusString(it.status) }
                     )
+                    viewModelScope.launch {
+                        when (val res = repository.adminUpdateCampaign(idLong, req)) {
+                            is Result.Success -> {
+                                val updated = mapAdminCampaign(res.data)
+                                val index = _allCampaigns.indexOfFirst { it.id == event.id }
+                                if (index != -1) {
+                                    _allCampaigns[index] = updated
+                                } else {
+                                    _allCampaigns.add(0, updated)
+                                }
+                                applyFiltersAndSort()
+                                _uiState.value = _uiState.value.copy(
+                                    campaignToEdit = null,
+                                    isEditMode = false,
+                                    isLoading = false,
+                                    error = null
+                                )
+                                sharedPrefsManager.saveCampaigns(_allCampaigns)
+                            }
+                            is Result.Error -> {
+                                _uiState.value = _uiState.value.copy(isLoading = false, error = res.message)
+                            }
+                            is Result.Loading -> {
+                                _uiState.value = _uiState.value.copy(isLoading = true)
+                            }
+                        }
+                    }
                 }
-                
-                applyFiltersAndSort()
-                
-                _uiState.value = _uiState.value.copy(
-                    campaignToEdit = null,
-                    isEditMode = false
-                )
-                
-                viewModelScope.launch {
+            }
+            is CampaignEvent.UpdateCampaignStatus -> {
+                val idLong = event.campaignId.toLongOrNull()
+                if (idLong == null) {
+                    _uiState.value = _uiState.value.copy(error = "Invalid campaign id")
+                } else {
+                    // Optimistically update UI for immediate feedback
+                    val prevIndex = _allCampaigns.indexOfFirst { it.id == event.campaignId }
+                    val prevListStatus = prevIndex.takeIf { it != -1 }?.let { _allCampaigns[it].status }
+                    val prevEdit = _uiState.value.campaignToEdit
+
+                    if (prevIndex != -1) {
+                        _allCampaigns[prevIndex] = _allCampaigns[prevIndex].copy(status = event.status)
+                    }
+                    if (prevEdit?.id == event.campaignId) {
+                        _uiState.value = _uiState.value.copy(campaignToEdit = prevEdit.copy(status = event.status))
+                    }
+                    applyFiltersAndSort()
+                    _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+
+                    viewModelScope.launch {
+                        when (val res = repository.adminUpdateCampaignStatus(idLong, toCampaignStatusString(event.status))) {
+                            is Result.Success -> {
+                                _uiState.value = _uiState.value.copy(isLoading = false, error = null)
+                                sharedPrefsManager.saveCampaigns(_allCampaigns)
+                            }
+                            is Result.Error -> {
+                                // Revert on error
+                                if (prevIndex != -1 && prevListStatus != null) {
+                                    _allCampaigns[prevIndex] = _allCampaigns[prevIndex].copy(status = prevListStatus)
+                                }
+                                if (prevEdit?.id == event.campaignId) {
+                                    _uiState.value = _uiState.value.copy(campaignToEdit = prevEdit)
+                                }
+                                applyFiltersAndSort()
+                                _uiState.value = _uiState.value.copy(isLoading = false, error = res.message)
+                            }
+                            is Result.Loading -> {
+                                _uiState.value = _uiState.value.copy(isLoading = true)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Automatically mark expired campaigns as COMPLETED at app startup (once per session)
+    fun autoCompleteExpiredCampaignsIfNeeded() {
+        if (startupAutoCompleteDone) return
+        startupAutoCompleteDone = true
+        viewModelScope.launch {
+            when (val res = repository.adminListCampaigns(status = null, type = null, search = null, page = null, limit = 1000)) {
+                is Result.Success -> {
+                    val now = LocalDate.now()
+                    val expired = (res.data.campaigns ?: emptyList()).filter { r ->
+                        val end = r.endDate?.let { parseServerDate(it) } ?: now
+                        val status = r.status?.lowercase()
+                        (end.isBefore(now) || end.isEqual(now)) && status != "completed"
+                    }
+                    expired.forEach { r ->
+                        val id = r.id ?: return@forEach
+                        // Update status on server
+                        repository.adminUpdateCampaignStatus(id, "completed")
+                        // Update local cache if present
+                        val idx = _allCampaigns.indexOfFirst { it.id == id.toString() }
+                        if (idx != -1) {
+                            _allCampaigns[idx] = _allCampaigns[idx].copy(status = CampaignStatus.COMPLETED)
+                        }
+                    }
+                    applyFiltersAndSort()
                     sharedPrefsManager.saveCampaigns(_allCampaigns)
+                }
+                is Result.Error -> {
+                    // Silently ignore to avoid blocking app startup
+                }
+                is Result.Loading -> {
+                    // no-op
                 }
             }
         }
@@ -129,10 +305,22 @@ class CampaignViewModel @Inject constructor(
 
     private fun refresh() = viewModelScope.launch {
         _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-        when (val res = repository.getCampaigns()) {
-            is Result.Success -> _uiState.value = _uiState.value.copy(
-                campaigns = res.data, isLoading = false, error = null
-            )
+        val statusParam = when (_uiState.value.filter) {
+            CampaignFilter.ALL -> null
+            CampaignFilter.ACTIVE -> "active"
+            CampaignFilter.SCHEDULED -> "scheduled"
+            CampaignFilter.COMPLETED -> "completed"
+            CampaignFilter.DRAFT -> null // no direct server mapping
+        }
+        val searchParam = _uiState.value.searchQuery.takeIf { it.isNotBlank() }
+        when (val res = repository.adminListCampaigns(status = statusParam, type = null, search = searchParam, page = null, limit = null)) {
+            is Result.Success -> {
+                val mapped = (res.data.campaigns ?: emptyList()).map { mapAdminCampaign(it) }
+                _allCampaigns.clear()
+                _allCampaigns.addAll(mapped)
+                applyFiltersAndSort()
+                _uiState.value = _uiState.value.copy(isLoading = false, error = null)
+            }
             is Result.Error -> _uiState.value = _uiState.value.copy(
                 isLoading = false, error = res.message
             )
@@ -140,17 +328,59 @@ class CampaignViewModel @Inject constructor(
         }
     }
 
+    private fun mapAdminCampaign(r: AdminCampaignResponse): Campaign {
+        return Campaign(
+            id = r.id?.toString() ?: "",
+            title = r.title ?: "Untitled",
+            description = r.description ?: "",
+            startDate = r.startDate?.let { parseServerDate(it) } ?: LocalDate.now(),
+            endDate = r.endDate?.let { parseServerDate(it) } ?: LocalDate.now(),
+            status = when (r.status?.lowercase()) {
+                "active" -> CampaignStatus.ACTIVE
+                "completed" -> CampaignStatus.COMPLETED
+                "scheduled" -> CampaignStatus.SCHEDULED
+                "draft" -> CampaignStatus.DRAFT
+                else -> CampaignStatus.SCHEDULED
+            },
+            type = when (r.type?.lowercase()) {
+                "discount" -> CampaignType.DISCOUNT
+                "bogo" -> CampaignType.BOGO
+                "flash_sale" -> CampaignType.FLASH_SALE
+                "seasonal" -> CampaignType.SEASONAL
+                "promotion" -> CampaignType.SPECIAL_OFFER
+                else -> CampaignType.SPECIAL_OFFER
+            },
+            discount = r.discountValue ?: 0,
+            storeCount = r.targetFranchises?.size ?: 0,
+            imageUrl = r.imageUrl?.trim()?.trim('`'),
+            targetFranchiseIds = r.targetFranchises ?: emptyList(),
+            targetCategoryIds = r.targetCategories ?: emptyList()
+        )
+    }
+
+    private fun toCampaignTypeString(type: CampaignType): String = when (type) {
+        CampaignType.DISCOUNT -> "discount"
+        CampaignType.BOGO -> "bogo"
+        CampaignType.SPECIAL_OFFER -> "promotion"
+        CampaignType.SEASONAL -> "seasonal"
+        CampaignType.FLASH_SALE -> "flash_sale"
+    }
+
+    private fun toCampaignStatusString(status: CampaignStatus): String = when (status) {
+        CampaignStatus.ACTIVE -> "active"
+        CampaignStatus.SCHEDULED -> "scheduled"
+        CampaignStatus.COMPLETED -> "completed"
+        CampaignStatus.DRAFT -> "draft"
+    }
+
     private fun applyFiltersAndSort() {
         val searchQuery = _uiState.value.searchQuery.lowercase()
         val filter = _uiState.value.filter
         val sortOrder = _uiState.value.sortOrder
-        
-        // Apply search and filter
         var filteredCampaigns = _allCampaigns.filter { campaign ->
             val matchesSearch = searchQuery.isEmpty() ||
                 campaign.title.lowercase().contains(searchQuery) ||
                 campaign.description.lowercase().contains(searchQuery)
-            
             val matchesFilter = when (filter) {
                 CampaignFilter.ALL -> true
                 CampaignFilter.ACTIVE -> campaign.status == CampaignStatus.ACTIVE
@@ -158,18 +388,14 @@ class CampaignViewModel @Inject constructor(
                 CampaignFilter.COMPLETED -> campaign.status == CampaignStatus.COMPLETED
                 CampaignFilter.DRAFT -> campaign.status == CampaignStatus.DRAFT
             }
-            
             matchesSearch && matchesFilter
         }
-        
-        // Apply sorting
         filteredCampaigns = when (sortOrder) {
             CampaignSortOrder.DATE_ASC -> filteredCampaigns.sortedBy { it.startDate }
             CampaignSortOrder.DATE_DESC -> filteredCampaigns.sortedByDescending { it.startDate }
             CampaignSortOrder.TITLE_ASC -> filteredCampaigns.sortedBy { it.title }
             CampaignSortOrder.TITLE_DESC -> filteredCampaigns.sortedByDescending { it.title }
         }
-        
         _uiState.value = _uiState.value.copy(campaigns = filteredCampaigns)
     }
 }
@@ -209,13 +435,14 @@ sealed interface CampaignEvent {
     object RefreshData : CampaignEvent
     object ToggleFilterMenu : CampaignEvent
     object ToggleSortMenu : CampaignEvent
+    object LoadCampaigns : CampaignEvent
     data class CreateCampaign(
         val title: String,
         val description: String,
         val startDate: LocalDate,
         val endDate: LocalDate,
-        val targetFranchises: String,
-        val menuCategories: List<String>,
+        val targetFranchiseIds: List<Int>,
+        val targetCategoryIds: List<Int>,
         val imageUrl: String?
     ) : CampaignEvent
     data class EditCampaign(val campaignId: String) : CampaignEvent
@@ -229,7 +456,16 @@ sealed interface CampaignEvent {
         val type: CampaignType,
         val discount: Int,
         val imageUrl: String?,
-        val targetFranchises: String,
-        val menuCategories: List<String>
+        val targetFranchiseIds: List<Int>,
+        val targetCategoryIds: List<Int>
     ) : CampaignEvent
+    data class UpdateCampaignStatus(val campaignId: String, val status: CampaignStatus) : CampaignEvent
+}
+
+private fun parseServerDate(dateStr: String): LocalDate {
+    return runCatching { OffsetDateTime.parse(dateStr).toLocalDate() }
+        .getOrElse {
+            runCatching { LocalDate.parse(dateStr.take(10)) }
+                .getOrElse { LocalDate.now() }
+        }
 }
