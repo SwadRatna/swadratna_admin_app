@@ -86,29 +86,25 @@ fun CreateCampaignScreen(
     val isEditMode = uiState.isEditMode
     val campaignToEdit = uiState.campaignToEdit
 
-    // Track selected status locally for immediate visual feedback
     var selectedStatus by remember { mutableStateOf(campaignToEdit?.status) }
     LaunchedEffect(campaignToEdit?.status) { selectedStatus = campaignToEdit?.status }
 
-    // Track status change action to auto-navigate after update completes
     var statusChangeInitiated by remember { mutableStateOf(false) }
 
-    // Track save action to avoid premature navigation
     var navigateAfterSave by remember { mutableStateOf(false) }
     val storeViewModel: StoreViewModel = hiltViewModel()
     val storeUiState by storeViewModel.uiState.collectAsState()
 
     val menuViewModel: MenuManagementViewModel = hiltViewModel()
     val categoriesState by menuViewModel.categoriesState.collectAsState()
-    // Add state to track selected category IDs loaded from server
     var selectedCategoryIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
-    // Remove explicit loadStores() call since StoreViewModel loads in init; keep categories loading only
     LaunchedEffect(Unit) {
         menuViewModel.loadCategories()
     }
     
     var campaignTitle by remember { mutableStateOf(campaignToEdit?.title ?: "") }
     var campaignDescription by remember { mutableStateOf(campaignToEdit?.description ?: "") }
+    var youtubeVideoUrl by remember { mutableStateOf(campaignToEdit?.youtubeVideoUrl ?: "") }
     var expandedFranchiseDropdown by remember { mutableStateOf(false) }
     var selectedStoreId by remember { mutableStateOf<Int?>(null) }
     var selectedStoreName by remember { mutableStateOf("All Stores") }
@@ -119,18 +115,11 @@ fun CreateCampaignScreen(
     var showEndDatePicker by remember { mutableStateOf(false) }
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd MMM yyyy") }
 
-    val savedCategories = campaignToEdit?.menuCategories ?: emptyList()
-    var snacksChecked by remember { mutableStateOf(savedCategories.contains("Snacks")) }
-    var southIndianChecked by remember { mutableStateOf(savedCategories.contains("South Indian")) }
-    var vegGravyChecked by remember { mutableStateOf(savedCategories.contains("Veg Gravy")) }
-    var chineseChecked by remember { mutableStateOf(savedCategories.contains("Chinese")) }
-    var nonVegChecked by remember { mutableStateOf(savedCategories.contains("Non Veg")) }
-
-    // Auto-populate when campaignToEdit is loaded/updated (e.g., after server fetch)
     LaunchedEffect(campaignToEdit, storeUiState.stores) {
         if (isEditMode && campaignToEdit != null) {
             campaignTitle = campaignToEdit.title
             campaignDescription = campaignToEdit.description
+            youtubeVideoUrl = campaignToEdit.youtubeVideoUrl ?: ""
             startDate = campaignToEdit.startDate
             endDate = campaignToEdit.endDate
             selectedCategoryIds = campaignToEdit.targetCategoryIds.toSet()
@@ -161,7 +150,6 @@ fun CreateCampaignScreen(
         TopAppBar(
             title = { Text(if (isEditMode) "Edit Campaign" else "Create Campaign") },
             navigationIcon = {
-                // Prevent navigating back while a request is processing
                 IconButton(onClick = onNavigateBack, enabled = !uiState.isLoading) {
                     Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                 }
@@ -169,7 +157,6 @@ fun CreateCampaignScreen(
             windowInsets = WindowInsets(0.dp)
         )
 
-        // Auto navigate back when status update completes successfully
         LaunchedEffect(uiState.isLoading, uiState.error, statusChangeInitiated) {
             if (statusChangeInitiated && !uiState.isLoading && uiState.error == null) {
                 statusChangeInitiated = false
@@ -184,7 +171,6 @@ fun CreateCampaignScreen(
                 .padding(horizontal = 16.dp)
                 .padding(top = 16.dp, bottom = 24.dp)
         ) {
-            // Enable/Disable controls when editing
             if (isEditMode && campaignToEdit != null) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
@@ -241,7 +227,6 @@ fun CreateCampaignScreen(
 
             Spacer(Modifier.height(16.dp))
 
-
             Text("Campaign Duration*", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(8.dp))
             Row(
@@ -291,7 +276,7 @@ fun CreateCampaignScreen(
             if (showStartDatePicker) {
                 val startState = rememberDatePickerState(
                     initialSelectedDateMillis = System.currentTimeMillis()
-                ) // must be created in a composable scope
+                )
                 DatePickerDialog(
                     onDismissRequest = { showStartDatePicker = false },
                     confirmButton = {
@@ -441,6 +426,19 @@ fun CreateCampaignScreen(
 
             Spacer(Modifier.height(16.dp))
             
+            Text("YouTube Video URL (Optional)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = youtubeVideoUrl,
+                onValueChange = { youtubeVideoUrl = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Write youtube link here") },
+                singleLine = true,
+                shape = RoundedCornerShape(8.dp)
+            )
+
+            Spacer(Modifier.height(16.dp))
+            
             Text("Upload Image (Optional)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(8.dp))
             Box(
@@ -495,7 +493,8 @@ fun CreateCampaignScreen(
                                 discount = campaignToEdit.discount,
                                 targetCategoryIds = targetCategoryIds,
                                 targetFranchiseIds = targetFranchiseIds,
-                                imageUrl = campaignToEdit.imageUrl
+                                imageUrl = campaignToEdit.imageUrl,
+                                youtubeVideoUrl = campaignToEdit.youtubeVideoUrl
                             )
                         )
                     } else {
@@ -507,7 +506,8 @@ fun CreateCampaignScreen(
                                 endDate = endDate!!,
                                 targetCategoryIds = targetCategoryIds,
                                 targetFranchiseIds = targetFranchiseIds,
-                                imageUrl = null
+                                imageUrl = null,
+                                youtubeVideoUrl = null
                             )
                         )
                     }
@@ -534,4 +534,3 @@ fun CreateCampaignScreen(
         }
     }
 }
-

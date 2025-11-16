@@ -34,7 +34,6 @@ class CampaignViewModel @Inject constructor(
 
     private val _allCampaigns = mutableListOf<Campaign>()
 
-    // Prevent running the auto-complete check multiple times per app session
     private var startupAutoCompleteDone = false
 
     init { refresh() }
@@ -47,7 +46,7 @@ class CampaignViewModel @Inject constructor(
             }
             is CampaignEvent.FilterChanged -> {
                 _uiState.value = _uiState.value.copy(filter = event.filter)
-                refresh() // trigger server-side filter where applicable
+                refresh()
             }
             is CampaignEvent.SortChanged -> {
                 _uiState.value = _uiState.value.copy(sortOrder = event.sortOrder)
@@ -69,7 +68,6 @@ class CampaignViewModel @Inject constructor(
                 )
             }
             is CampaignEvent.CreateCampaign -> {
-                // Call Admin Create Campaign API
                 _uiState.value = _uiState.value.copy(isLoading = true, error = null)
                 viewModelScope.launch {
                     val req = AdminCreateCampaignRequest(
@@ -89,7 +87,8 @@ class CampaignViewModel @Inject constructor(
                         promoCode = null,
                         promoCodeLimit = null,
                         priority = null,
-                        termsConditions = null
+                        termsConditions = null,
+                        youtubeVideoUrl = event.youtubeVideoUrl
                     )
                     when (val res = repository.adminCreateCampaign(req)) {
                         is Result.Success -> {
@@ -118,7 +117,6 @@ class CampaignViewModel @Inject constructor(
                     isEditMode = true,
                     error = null
                 )
-                // Fetch latest details from server if we have a numeric id
                 val idLong = event.campaignId.toLongOrNull()
                 if (idLong != null) {
                     _uiState.value = _uiState.value.copy(isLoading = true)
@@ -130,7 +128,6 @@ class CampaignViewModel @Inject constructor(
                                     campaignToEdit = fresh,
                                     isLoading = false
                                 )
-                                // Also update in local list
                                 val idx = _allCampaigns.indexOfFirst { it.id == event.campaignId }
                                 if (idx != -1) {
                                     _allCampaigns[idx] = fresh
@@ -190,7 +187,7 @@ class CampaignViewModel @Inject constructor(
                         targetCategories = event.targetCategoryIds,
                         imageUrl = event.imageUrl,
                         discountValue = event.discount,
-                        status = _uiState.value.campaignToEdit?.let { toCampaignStatusString(it.status) }
+                        youtubeVideoUrl = event.youtubeVideoUrl
                     )
                     viewModelScope.launch {
                         when (val res = repository.adminUpdateCampaign(idLong, req)) {
@@ -226,7 +223,6 @@ class CampaignViewModel @Inject constructor(
                 if (idLong == null) {
                     _uiState.value = _uiState.value.copy(error = "Invalid campaign id")
                 } else {
-                    // Optimistically update UI for immediate feedback
                     val prevIndex = _allCampaigns.indexOfFirst { it.id == event.campaignId }
                     val prevListStatus = prevIndex.takeIf { it != -1 }?.let { _allCampaigns[it].status }
                     val prevEdit = _uiState.value.campaignToEdit
@@ -247,7 +243,6 @@ class CampaignViewModel @Inject constructor(
                                 sharedPrefsManager.saveCampaigns(_allCampaigns)
                             }
                             is Result.Error -> {
-                                // Revert on error
                                 if (prevIndex != -1 && prevListStatus != null) {
                                     _allCampaigns[prevIndex] = _allCampaigns[prevIndex].copy(status = prevListStatus)
                                 }
@@ -267,7 +262,6 @@ class CampaignViewModel @Inject constructor(
         }
     }
 
-    // Automatically mark expired campaigns as COMPLETED at app startup (once per session)
     fun autoCompleteExpiredCampaignsIfNeeded() {
         if (startupAutoCompleteDone) return
         startupAutoCompleteDone = true
@@ -282,9 +276,7 @@ class CampaignViewModel @Inject constructor(
                     }
                     expired.forEach { r ->
                         val id = r.id ?: return@forEach
-                        // Update status on server
                         repository.adminUpdateCampaignStatus(id, "completed")
-                        // Update local cache if present
                         val idx = _allCampaigns.indexOfFirst { it.id == id.toString() }
                         if (idx != -1) {
                             _allCampaigns[idx] = _allCampaigns[idx].copy(status = CampaignStatus.COMPLETED)
@@ -294,10 +286,8 @@ class CampaignViewModel @Inject constructor(
                     sharedPrefsManager.saveCampaigns(_allCampaigns)
                 }
                 is Result.Error -> {
-                    // Silently ignore to avoid blocking app startup
                 }
                 is Result.Loading -> {
-                    // no-op
                 }
             }
         }
@@ -310,7 +300,7 @@ class CampaignViewModel @Inject constructor(
             CampaignFilter.ACTIVE -> "active"
             CampaignFilter.SCHEDULED -> "scheduled"
             CampaignFilter.COMPLETED -> "completed"
-            CampaignFilter.DRAFT -> null // no direct server mapping
+            CampaignFilter.DRAFT -> null
         }
         val searchParam = _uiState.value.searchQuery.takeIf { it.isNotBlank() }
         when (val res = repository.adminListCampaigns(status = statusParam, type = null, search = searchParam, page = null, limit = null)) {
@@ -354,7 +344,8 @@ class CampaignViewModel @Inject constructor(
             storeCount = r.targetFranchises?.size ?: 0,
             imageUrl = r.imageUrl?.trim()?.trim('`'),
             targetFranchiseIds = r.targetFranchises ?: emptyList(),
-            targetCategoryIds = r.targetCategories ?: emptyList()
+            targetCategoryIds = r.targetCategories ?: emptyList(),
+            youtubeVideoUrl = r.youtubeVideoUrl?.trim()?.trim('`')
         )
     }
 
@@ -443,7 +434,8 @@ sealed interface CampaignEvent {
         val endDate: LocalDate,
         val targetFranchiseIds: List<Int>,
         val targetCategoryIds: List<Int>,
-        val imageUrl: String?
+        val imageUrl: String?,
+        val youtubeVideoUrl: String?
     ) : CampaignEvent
     data class EditCampaign(val campaignId: String) : CampaignEvent
     data class DeleteCampaign(val campaignId: String) : CampaignEvent
@@ -457,7 +449,8 @@ sealed interface CampaignEvent {
         val discount: Int,
         val imageUrl: String?,
         val targetFranchiseIds: List<Int>,
-        val targetCategoryIds: List<Int>
+        val targetCategoryIds: List<Int>,
+        val youtubeVideoUrl: String?
     ) : CampaignEvent
     data class UpdateCampaignStatus(val campaignId: String, val status: CampaignStatus) : CampaignEvent
 }
