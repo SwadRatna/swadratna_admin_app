@@ -136,6 +136,12 @@ fun CreateCampaignScreen(
         }
     }
 
+    LaunchedEffect(campaignToEdit?.youtubeVideoUrl) {
+        if (isEditMode && campaignToEdit != null) {
+            youtubeVideoUrl = campaignToEdit.youtubeVideoUrl ?: ""
+        }
+    }
+
     val scroll = rememberScrollState()
 
     Column(
@@ -507,7 +513,7 @@ fun CreateCampaignScreen(
                                 targetCategoryIds = targetCategoryIds,
                                 targetFranchiseIds = targetFranchiseIds,
                                 imageUrl = null,
-                                youtubeVideoUrl = null
+                                youtubeVideoUrl = youtubeVideoUrl
                             )
                         )
                     }
