@@ -112,6 +112,7 @@ class CampaignViewModel @Inject constructor(
             }
             is CampaignEvent.EditCampaign -> {
                 val local = _allCampaigns.find { it.id == event.campaignId }
+                android.util.Log.d("CampaignViewModel", "Local cached campaign: ${local?.id}, youtubeVideoUrl: ${local?.youtubeVideoUrl}")
                 _uiState.value = _uiState.value.copy(
                     campaignToEdit = local,
                     isEditMode = true,
@@ -124,6 +125,8 @@ class CampaignViewModel @Inject constructor(
                         when (val res = repository.adminGetCampaignDetails(idLong)) {
                             is Result.Success -> {
                                 val fresh = mapAdminCampaign(res.data)
+                                android.util.Log.d("CampaignViewModel", "Mapped campaign data: ${fresh.id}, youtubeVideoUrl: ${fresh.youtubeVideoUrl}")
+                                android.util.Log.d("CampaignViewModel", "Raw response data: youtubeVideoUrl = ${res.data.youtubeVideoUrl}")
                                 _uiState.value = _uiState.value.copy(
                                     campaignToEdit = fresh,
                                     isLoading = false

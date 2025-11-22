@@ -74,7 +74,9 @@ class CampaignRepository @Inject constructor(
 
     suspend fun adminGetCampaignDetails(id: Long): Result<AdminCampaignResponse> = withContext(io) {
         try {
-            Result.Success(api.getAdminCampaignDetails(id))
+            val response = api.getAdminCampaignDetails(id)
+            android.util.Log.d("CampaignRepository", "Raw API response for campaign $id: youtubeVideoUrl = ${response.youtubeVideoUrl}")
+            Result.Success(response)
         } catch (e: Throwable) {
             Result.Error(e.message ?: "Failed to get details", e)
         }

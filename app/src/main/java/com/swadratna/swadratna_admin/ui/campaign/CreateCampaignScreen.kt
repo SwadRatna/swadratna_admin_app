@@ -85,6 +85,11 @@ fun CreateCampaignScreen(
     val uiState by viewModel.uiState.collectAsState()
     val isEditMode = uiState.isEditMode
     val campaignToEdit = uiState.campaignToEdit
+    
+    // Debug logging for campaignToEdit changes
+    LaunchedEffect(campaignToEdit) {
+        android.util.Log.d("CreateCampaignScreen", "campaignToEdit changed: ${campaignToEdit?.id}, youtubeVideoUrl: ${campaignToEdit?.youtubeVideoUrl}")
+    }
 
     var selectedStatus by remember { mutableStateOf(campaignToEdit?.status) }
     LaunchedEffect(campaignToEdit?.status) { selectedStatus = campaignToEdit?.status }
@@ -100,11 +105,13 @@ fun CreateCampaignScreen(
     var selectedCategoryIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
     LaunchedEffect(Unit) {
         menuViewModel.loadCategories()
+        // Debug log to check initial state
+        android.util.Log.d("CreateCampaignScreen", "Initial campaignToEdit: ${campaignToEdit?.youtubeVideoUrl}")
     }
     
     var campaignTitle by remember { mutableStateOf(campaignToEdit?.title ?: "") }
     var campaignDescription by remember { mutableStateOf(campaignToEdit?.description ?: "") }
-    var youtubeVideoUrl by remember { mutableStateOf(campaignToEdit?.youtubeVideoUrl ?: "") }
+    var youtubeVideoUrl by remember { mutableStateOf("") }
     var expandedFranchiseDropdown by remember { mutableStateOf(false) }
     var selectedStoreId by remember { mutableStateOf<Int?>(null) }
     var selectedStoreName by remember { mutableStateOf("All Stores") }
@@ -116,6 +123,7 @@ fun CreateCampaignScreen(
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd MMM yyyy") }
 
     LaunchedEffect(campaignToEdit, storeUiState.stores) {
+        android.util.Log.d("CreateCampaignScreen", "LaunchedEffect triggered with campaignToEdit: ${campaignToEdit?.id}, youtubeVideoUrl: ${campaignToEdit?.youtubeVideoUrl}")
         if (isEditMode && campaignToEdit != null) {
             campaignTitle = campaignToEdit.title
             campaignDescription = campaignToEdit.description
@@ -133,14 +141,11 @@ fun CreateCampaignScreen(
                 selectedStoreName = storeUiState.stores.find { it.id == selectedStoreId }?.name
                     ?: ("Store #${selectedStoreId}")
             }
+            android.util.Log.d("CreateCampaignScreen", "Updated youtubeVideoUrl to: '$youtubeVideoUrl'")
         }
     }
 
-    LaunchedEffect(campaignToEdit?.youtubeVideoUrl) {
-        if (isEditMode && campaignToEdit != null) {
-            youtubeVideoUrl = campaignToEdit.youtubeVideoUrl ?: ""
-        }
-    }
+    // Removed redundant LaunchedEffect - youtubeVideoUrl is already handled in the main LaunchedEffect above
 
     val scroll = rememberScrollState()
 
@@ -434,6 +439,7 @@ fun CreateCampaignScreen(
             
             Text("YouTube Video URL (Optional)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(8.dp))
+            android.util.Log.d("CreateCampaignScreen", "Rendering YouTube field with value: '$youtubeVideoUrl'")
             OutlinedTextField(
                 value = youtubeVideoUrl,
                 onValueChange = { youtubeVideoUrl = it },
@@ -500,7 +506,7 @@ fun CreateCampaignScreen(
                                 targetCategoryIds = targetCategoryIds,
                                 targetFranchiseIds = targetFranchiseIds,
                                 imageUrl = campaignToEdit.imageUrl,
-                                youtubeVideoUrl = campaignToEdit.youtubeVideoUrl
+                                youtubeVideoUrl = youtubeVideoUrl
                             )
                         )
                     } else {
