@@ -91,7 +91,8 @@ interface CampaignApi {
     @SerializedName("promo_code") val promoCode: String? = null,
     @SerializedName("promo_code_limit") val promoCodeLimit: Int? = null,
     @SerializedName("priority") val priority: Int? = null,
-    @SerializedName("terms_conditions") val termsConditions: String? = null
+    @SerializedName("terms_conditions") val termsConditions: String? = null,
+    @SerializedName("youtube_video_url") val youtubeVideoUrl: String? = null
 )
 
  data class AdminUpdateCampaignRequest(
@@ -112,7 +113,8 @@ interface CampaignApi {
     @SerializedName("promo_code_limit") val promoCodeLimit: Int? = null,
     @SerializedName("priority") val priority: Int? = null,
     @SerializedName("terms_conditions") val termsConditions: String? = null,
-    @SerializedName("status") val status: String? = null
+    @SerializedName("status") val status: String? = null,
+    @SerializedName("youtube_video_url") val youtubeVideoUrl: String? = null
 )
 
  data class AdminUpdateCampaignStatusRequest(
@@ -139,6 +141,7 @@ interface CampaignApi {
     @SerializedName("promo_code_limit") val promoCodeLimit: Int?,
     @SerializedName("priority") val priority: Int?,
     @SerializedName("terms_conditions") val termsConditions: String?,
+    @SerializedName("youtube_video_url") val youtubeVideoUrl: String?,
     @SerializedName("created_at") val createdAt: String?,
     @SerializedName("updated_at") val updatedAt: String?
  )

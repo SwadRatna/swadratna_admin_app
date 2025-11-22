@@ -17,7 +17,8 @@ data class Campaign(
     val targetStores: String = "All",
     val menuCategories: List<String> = emptyList(),
     val targetFranchiseIds: List<Int> = emptyList(),
-    val targetCategoryIds: List<Int> = emptyList()
+    val targetCategoryIds: List<Int> = emptyList(),
+    val youtubeVideoUrl: String? = null
 ) {
     fun getFormattedDateRange(): String {
         val formatter = DateTimeFormatter.ofPattern("dd MMM")
