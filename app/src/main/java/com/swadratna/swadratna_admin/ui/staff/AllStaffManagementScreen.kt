@@ -34,7 +34,8 @@ import coil.compose.AsyncImage
 fun AllStaffManagementScreen(
     modifier: Modifier = Modifier,
     viewModel: AllStaffViewModel = hiltViewModel(),
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    onNavigateToEditStaff: (Int, String) -> Unit = { _, _ -> }
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -185,7 +186,10 @@ fun AllStaffManagementScreen(
                             items(uiState.staffList) { staff ->
                                 AllStaffItem(
                                     staff = staff,
-                                    snackbarHostState = snackbarHostState
+                                    snackbarHostState = snackbarHostState,
+                                    onEditClick = { staffId, storeId -> 
+                                        onNavigateToEditStaff(staffId, storeId)
+                                    }
                                 )
                             }
                         }
@@ -217,12 +221,14 @@ fun AllStaffManagementScreen(
 @Composable
 fun AllStaffItem(
     staff: Staff,
-    snackbarHostState: SnackbarHostState
+    snackbarHostState: SnackbarHostState,
+    onEditClick: (Int, String) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(8.dp)
+        shape = RoundedCornerShape(8.dp),
+        onClick = { onEditClick(staff.id, staff.storeId?.toString() ?: "") }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(

@@ -485,7 +485,10 @@ fun NavGraph(
 
         composable(NavRoute.AllStaffManagement.route) {
             AllStaffManagementScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToEditStaff = { staffId, storeId ->
+                    navController.navigate(NavRoute.EditStaff.createRoute(staffId, storeId))
+                }
             )
         }
     }
