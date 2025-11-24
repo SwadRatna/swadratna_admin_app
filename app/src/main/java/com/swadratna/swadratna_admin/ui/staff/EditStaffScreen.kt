@@ -61,6 +61,7 @@ fun EditStaffScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     LaunchedEffect(storeId) {
+        viewModel.loadStores()
         viewModel.loadStaff(storeId.toIntOrNull() ?: 0)
     }
     
@@ -78,10 +79,13 @@ fun EditStaffScreen(
     var endTime by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("active") }
     var imageUrl by remember { mutableStateOf<String?>(null) }
+    var selectedStoreId by remember { mutableStateOf<Int?>(null) }
     
     // Dropdown state for role selection
     var roleDropdownExpanded by remember { mutableStateOf(false) }
     val roleOptions = listOf("manager", "waiter", "chef", "cashier")
+    // Dropdown state for store selection
+    var storeDropdownExpanded by remember { mutableStateOf(false) }
     
     // Error states
     var nameError by remember { mutableStateOf("") }
@@ -116,6 +120,7 @@ fun EditStaffScreen(
                 "inactive" -> "inactive"
                 else -> "active"
             }
+            selectedStoreId = staff.storeId
         }
     }
     
@@ -269,6 +274,54 @@ fun EditStaffScreen(
             }
             Spacer(modifier = Modifier.height(16.dp))
             
+            // Store selection dropdown
+            ExposedDropdownMenuBox(
+                expanded = storeDropdownExpanded,
+                onExpandedChange = { storeDropdownExpanded = it },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = selectedStoreId?.let { storeId ->
+                        uiState.stores.find { it.id == storeId }?.name ?: "General"
+                    } ?: "General",
+                    onValueChange = { },
+                    readOnly = true,
+                    label = { Text("Assign Store") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(),
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = storeDropdownExpanded) },
+                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+                )
+                
+                ExposedDropdownMenu(
+                    expanded = storeDropdownExpanded,
+                    onDismissRequest = { storeDropdownExpanded = false }
+                ) {
+                    // General option (no store assignment)
+                    DropdownMenuItem(
+                        text = { Text("General") },
+                        onClick = {
+                            selectedStoreId = null
+                            storeDropdownExpanded = false
+                        }
+                    )
+                    
+                    // Store options
+                    uiState.stores.forEach { store ->
+                        DropdownMenuItem(
+                            text = { Text(store.name) },
+                            onClick = {
+                                selectedStoreId = store.id
+                                storeDropdownExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
             // Salary field
             OutlinedTextField(
                 value = salary,
@@ -360,7 +413,8 @@ fun EditStaffScreen(
                                 startTime = startTime,
                                 endTime = endTime,
                                 status = status,
-                                imageUrl = imageUrl
+                                imageUrl = imageUrl,
+                                storeId = selectedStoreId
                             )
                         } else { salaryError = "Please enter a valid salary amount" }
                     }

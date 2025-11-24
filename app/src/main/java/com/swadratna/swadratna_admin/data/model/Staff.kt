@@ -96,7 +96,8 @@ data class UpdateStaffRequest(
     @SerializedName("shift_timing") val shiftTiming: ShiftTiming,
     @SerializedName("profile_image") val imageUrl: String? = null,
     val status: String,
-    val password: String? = null
+    val password: String? = null,
+    @SerializedName("store_id") val storeId: Int? = null
 )
 
 data class StaffOperationResponse(

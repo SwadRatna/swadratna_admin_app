@@ -11,8 +11,11 @@ import com.swadratna.swadratna_admin.data.model.Staff
 import com.swadratna.swadratna_admin.data.model.StaffStatus
 import com.swadratna.swadratna_admin.data.model.UpdateStaffRequest
 import com.swadratna.swadratna_admin.data.model.WorkingHours
+import com.swadratna.swadratna_admin.data.model.Store
 import com.swadratna.swadratna_admin.data.repository.ActivityRepository
 import com.swadratna.swadratna_admin.data.repository.StaffRepository
+import com.swadratna.swadratna_admin.data.repository.StoreRepository
+
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,7 +32,8 @@ private data class PendingStaffImage(val name: String, val email: String, val ph
 @HiltViewModel
 class StaffManagementViewModel @Inject constructor(
     private val staffRepository: StaffRepository,
-    private val activityRepository: ActivityRepository
+    private val activityRepository: ActivityRepository,
+    private val storeRepository: StoreRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(StaffManagementUiState())
     val uiState: StateFlow<StaffManagementUiState> = _uiState.asStateFlow()
@@ -37,6 +41,42 @@ class StaffManagementViewModel @Inject constructor(
     private val _allStaff = mutableListOf<Staff>()
     private val pendingImages = mutableListOf<PendingStaffImage>()
     
+    fun loadStores() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingStores = true, storesError = null) }
+            try {
+                val result = storeRepository.getStores(page = 1, limit = 100, restaurantId = 1000001)
+                result.onSuccess { response ->
+                    val stores = response.stores ?: emptyList()
+                    _uiState.update { 
+                        it.copy(
+                            stores = stores,
+                            isLoadingStores = false,
+                            storesError = null
+                        )
+                    }
+                }
+                result.onFailure { exception ->
+                    _uiState.update { 
+                        it.copy(
+                            stores = emptyList(),
+                            isLoadingStores = false,
+                            storesError = exception.message ?: "Failed to load stores"
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.update { 
+                    it.copy(
+                        stores = emptyList(),
+                        isLoadingStores = false,
+                        storesError = e.message ?: "Failed to load stores"
+                    )
+                }
+            }
+        }
+    }
+
     fun loadStaff(storeId: Int) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
@@ -121,7 +161,7 @@ class StaffManagementViewModel @Inject constructor(
         endTime: String,
         status: String,
         imageUrl: String?,
-        storeId: Int
+        storeId: Int?
     ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
@@ -140,7 +180,7 @@ class StaffManagementViewModel @Inject constructor(
                 shiftTiming = ShiftTiming(startTimeSanitized, endTimeSanitized),
                 imageUrl = sanitizedImage,
                 status = sanitizeText(status),
-                storeId = storeId
+                storeId = storeId ?: 0 // Use 0 as default for "General" staff
             )
             
             staffRepository.createStaff(request)
@@ -184,7 +224,7 @@ class StaffManagementViewModel @Inject constructor(
                             )
                         }
                     }
-                    loadStaff(storeId)
+                    storeId?.let { loadStaff(it) }
                 }
                 .onFailure { exception ->
                     _uiState.update { 
@@ -233,7 +273,8 @@ class StaffManagementViewModel @Inject constructor(
         endTime: String,
         status: String,
         imageUrl: String? = null,
-        password: String? = null
+        password: String? = null,
+        storeId: Int? = null
     ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
@@ -253,7 +294,8 @@ class StaffManagementViewModel @Inject constructor(
                 shiftTiming = ShiftTiming(startTimeSanitized, endTimeSanitized),
                 imageUrl = sanitizedImage,
                 status = sanitizeText(status),
-                password = password
+                password = password,
+                storeId = storeId
             )
             
             staffRepository.updateStaff(staffId, request)
@@ -497,7 +539,10 @@ data class StaffManagementUiState(
     val passwordsByStaffId: Map<Int, String> = emptyMap(),
     val imagesByStaffId: Map<Int, String> = emptyMap(),
     val generatedPassword: String? = null,
-    val isPasswordDialogVisible: Boolean = false
+    val isPasswordDialogVisible: Boolean = false,
+    val stores: List<Store> = emptyList(),
+    val isLoadingStores: Boolean = false,
+    val storesError: String? = null
 )
 
 sealed interface StaffEvent {
