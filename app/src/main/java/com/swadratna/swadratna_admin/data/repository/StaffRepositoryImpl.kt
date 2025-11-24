@@ -39,45 +39,50 @@ class StaffRepositoryImpl @Inject constructor(
     
     override suspend fun getAllStaff(): Result<StaffResponse> {
         return try {
-            // Get all stores first
-            val storesResult = storeRepository.getStores(page = 1, limit = 1000, restaurantId = 1000001)
-            
-            if (storesResult.isFailure) {
-                return Result.failure(Exception("Failed to load stores: ${storesResult.exceptionOrNull()?.message}"))
-            }
-            
-            val stores = storesResult.getOrThrow().stores
+            // Aggregate staff across General (store_id=0) and all stores
             val allStaff = mutableListOf<com.swadratna.swadratna_admin.data.model.Staff>()
-            
-            // Fetch staff from each store
-            for (store in stores) {
-                try {
-                    val staffResult = getStaff(store.id)
-                    if (staffResult.isSuccess) {
-                        val staffResponse = staffResult.getOrThrow()
-                        staffResponse.staff?.let { staffList ->
-                            allStaff.addAll(staffList)
+
+            // First, include General/unassigned staff
+            try {
+                val generalResult = getStaff(0)
+                if (generalResult.isSuccess) {
+                    val generalResponse = generalResult.getOrThrow()
+                    generalResponse.staff?.let { allStaff.addAll(it) }
+                }
+            } catch (_: Exception) {
+            }
+
+            // Then fetch staff from each store
+            val storesResult = storeRepository.getStores(page = 1, limit = 1000, restaurantId = 1000001)
+            if (storesResult.isSuccess) {
+                val stores = storesResult.getOrThrow().stores
+                for (store in stores) {
+                    try {
+                        val staffResult = getStaff(store.id)
+                        if (staffResult.isSuccess) {
+                            val staffResponse = staffResult.getOrThrow()
+                            staffResponse.staff?.let { staffList ->
+                                allStaff.addAll(staffList)
+                            }
                         }
+                    } catch (_: Exception) {
                     }
-                } catch (e: Exception) {
-                    // Continue with other stores if one fails
-                    continue
                 }
             }
-            
-            // Create a combined response
+
+            val uniqueStaff = allStaff.distinctBy { it.id }
             val combinedResponse = StaffResponse(
-                staff = allStaff.distinctBy { it.id }, // Remove duplicates based on staff ID
+                staff = uniqueStaff,
                 pagination = com.swadratna.swadratna_admin.data.model.StaffPagination(
                     page = 1,
-                    limit = allStaff.size,
-                    total = allStaff.size,
+                    limit = uniqueStaff.size,
+                    total = uniqueStaff.size,
                     totalPages = 1,
                     hasNext = false,
                     hasPrev = false
                 )
             )
-            
+
             Result.success(combinedResponse)
         } catch (e: HttpException) {
             val errorMessage = when (e.code()) {

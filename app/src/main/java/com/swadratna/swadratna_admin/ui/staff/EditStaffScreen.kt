@@ -16,7 +16,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import com.swadratna.swadratna_admin.data.model.Staff
+import com.swadratna.swadratna_admin.navigation.NavRoute
 import com.swadratna.swadratna_admin.ui.assets.AssetUploader
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,7 +28,8 @@ fun EditStaffScreen(
     storeId: String,
     modifier: Modifier = Modifier,
     viewModel: StaffManagementViewModel = hiltViewModel(),
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    navController: NavController? = null
 ) {
     // Helpers declared at the top to ensure availability before usage
     fun toUiHour(time: String): String {
@@ -119,15 +122,27 @@ fun EditStaffScreen(
                 "active" -> "active"
                 "inactive" -> "inactive"
                 else -> "active"
-            }
-            selectedStoreId = staff.storeId
+  }
+            selectedStoreId = if (staff.storeId == 0) null else staff.storeId
         }
     }
     
     // Navigate back after successful update
     LaunchedEffect(uiState.isLoading, uiState.error, updateInitiated) {
         if (updateInitiated && !uiState.isLoading && uiState.error == null) {
-            onNavigateBack()
+            // If staff was updated to "General" (storeId = 0 or null), navigate to All Staff screen
+            // Otherwise, navigate back to the previous screen
+            if (selectedStoreId == 0 || selectedStoreId == null) {
+                navController?.navigate(NavRoute.AllStaffManagement.route) {
+                    // Clear the back stack to prevent going back to the store-specific screen
+                    popUpTo(navController.graph.startDestinationId) {
+                        inclusive = false
+                    }
+                    launchSingleTop = true
+                }
+            } else {
+                onNavigateBack()
+            }
         }
     }
     
@@ -302,7 +317,7 @@ fun EditStaffScreen(
                     DropdownMenuItem(
                         text = { Text("General") },
                         onClick = {
-                            selectedStoreId = null
+                            selectedStoreId = 0
                             storeDropdownExpanded = false
                         }
                     )

@@ -301,7 +301,8 @@ fun NavGraph(
             EditStaffScreen(
                 staffId = staffId.toString(),
                 storeId = storeId,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                navController = navController
             )
         }
 

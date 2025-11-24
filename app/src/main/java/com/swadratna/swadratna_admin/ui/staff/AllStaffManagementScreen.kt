@@ -85,33 +85,6 @@ fun AllStaffManagementScreen(
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) }
             )
             
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                OutlinedButton(
-                    onClick = { viewModel.onEvent(AllStaffEvent.ToggleFilterMenu) },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(painter = painterResource(R.drawable.ic_filter), contentDescription = "Filter")
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Filter")
-                }
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                OutlinedButton(
-                    onClick = { viewModel.onEvent(AllStaffEvent.ToggleSortMenu) },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(painter = painterResource(R.drawable.ic_sort), contentDescription = "Sort")
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Sort")
-                }
-            }
-            
             Spacer(modifier = Modifier.height(8.dp))
             
             Box(modifier = Modifier.fillMaxSize()) {
@@ -195,24 +168,6 @@ fun AllStaffManagementScreen(
                         }
                     }
                 }
-                
-                if (uiState.isFilterMenuVisible) {
-                    AllStaffFilterMenu(
-                        selectedFilter = uiState.selectedFilter,
-                        onFilterSelected = { viewModel.updateFilter(it) },
-                        onDismiss = { viewModel.onEvent(AllStaffEvent.ToggleFilterMenu) },
-                        modifier = Modifier.align(Alignment.TopEnd)
-                    )
-                }
-                
-                if (uiState.isSortMenuVisible) {
-                    AllStaffSortMenu(
-                        selectedSortOrder = uiState.selectedSortOrder,
-                        onSortOrderSelected = { viewModel.updateSortOrder(it) },
-                        onDismiss = { viewModel.onEvent(AllStaffEvent.ToggleSortMenu) },
-                        modifier = Modifier.align(Alignment.TopEnd)
-                    )
-                }
             }
         }
     }
@@ -277,7 +232,12 @@ fun AllStaffItem(
                     }
                 }
                 
-                AllStaffStatusChip(status = staff.status)
+                val unassigned = staff.storeId == null || staff.storeId == 0
+                if (unassigned) {
+                    NotAssignedChip()
+                } else {
+                    AllStaffStatusChip(status = staff.status)
+                }
             }
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -329,127 +289,6 @@ fun AllStaffItem(
 }
 
 @Composable
-fun AllStaffFilterMenu(
-    selectedFilter: String?,
-    onFilterSelected: (String?) -> Unit,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier,
-        shape = MaterialTheme.shapes.medium,
-        tonalElevation = 3.dp
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Filter by Status",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            AllStaffFilterOption(
-                text = "All",
-                isSelected = selectedFilter == null,
-                onClick = { onFilterSelected(null); onDismiss() }
-            )
-            
-            AllStaffFilterOption(
-                text = "Active",
-                isSelected = selectedFilter == "ACTIVE",
-                onClick = { onFilterSelected("ACTIVE"); onDismiss() }
-            )
-            
-            AllStaffFilterOption(
-                text = "On Leave",
-                isSelected = selectedFilter == "ON_LEAVE",
-                onClick = { onFilterSelected("ON_LEAVE"); onDismiss() }
-            )
-            
-            AllStaffFilterOption(
-                text = "Terminated",
-                isSelected = selectedFilter == "TERMINATED",
-                onClick = { onFilterSelected("TERMINATED"); onDismiss() }
-            )
-        }
-    }
-}
-
-@Composable
-fun AllStaffSortMenu(
-    selectedSortOrder: String,
-    onSortOrderSelected: (String) -> Unit,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier,
-        shape = MaterialTheme.shapes.medium,
-        tonalElevation = 3.dp
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Sort by",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            AllStaffFilterOption(
-                text = "Name (A-Z)",
-                isSelected = selectedSortOrder == "NAME_ASC",
-                onClick = { onSortOrderSelected("NAME_ASC"); onDismiss() }
-            )
-            
-            AllStaffFilterOption(
-                text = "Name (Z-A)",
-                isSelected = selectedSortOrder == "NAME_DESC",
-                onClick = { onSortOrderSelected("NAME_DESC"); onDismiss() }
-            )
-            
-            AllStaffFilterOption(
-                text = "Position (A-Z)",
-                isSelected = selectedSortOrder == "POSITION_ASC",
-                onClick = { onSortOrderSelected("POSITION_ASC"); onDismiss() }
-            )
-            
-            AllStaffFilterOption(
-                text = "Position (Z-A)",
-                isSelected = selectedSortOrder == "POSITION_DESC",
-                onClick = { onSortOrderSelected("POSITION_DESC"); onDismiss() }
-            )
-        }
-    }
-}
-
-@Composable
-fun AllStaffFilterOption(
-    text: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        RadioButton(
-            selected = isSelected,
-            onClick = onClick
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge
-        )
-    }
-}
-
-@Composable
 fun AllStaffStatusChip(status: StaffStatus) {
     val (backgroundColor, textColor) = when (status) {
         StaffStatus.ACTIVE -> Pair(Color(0xFF4CAF50).copy(alpha = 0.2f), Color(0xFF4CAF50))
@@ -470,6 +309,24 @@ fun AllStaffStatusChip(status: StaffStatus) {
     ) {
         Text(
             text = statusText,
+            color = textColor,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+    }
+}
+
+@Composable
+fun NotAssignedChip() {
+    val backgroundColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
+    val textColor = MaterialTheme.colorScheme.onSurfaceVariant
+    Surface(
+        color = backgroundColor,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.padding(4.dp)
+    ) {
+        Text(
+            text = "Not Assigned",
             color = textColor,
             style = MaterialTheme.typography.bodySmall,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)

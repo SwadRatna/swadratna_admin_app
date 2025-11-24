@@ -279,6 +279,9 @@ class StaffManagementViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             
+            // Capture the original store ID before update
+            val originalStoreId = _allStaff.find { it.id == staffId }?.storeId
+            
             val sanitizedImage = sanitizeImageUrl(imageUrl)
             val startTimeSanitized = sanitizeTime(startTime)
             val endTimeSanitized = sanitizeTime(endTime)
@@ -295,7 +298,7 @@ class StaffManagementViewModel @Inject constructor(
                 imageUrl = sanitizedImage,
                 status = sanitizeText(status),
                 password = password,
-                storeId = storeId
+                storeId = storeId ?: 0
             )
             
             staffRepository.updateStaff(staffId, request)
@@ -324,9 +327,44 @@ class StaffManagementViewModel @Inject constructor(
                             error = null
                         )
                     }
-                    // Reload staff list to reflect the updated staff member
-                    val currentStoreId = _allStaff.firstOrNull()?.storeId
-                    currentStoreId?.let { loadStaff(it) }
+                    
+                    // Update the staff member in the local _allStaff list
+                    val staffIndex = _allStaff.indexOfFirst { it.id == staffId }
+                    if (staffIndex != -1) {
+                        val updatedStaff = _allStaff[staffIndex].copy(
+                            name = sanitizeText(name),
+                            email = sanitizeText(email),
+                            phone = sanitizePhoneNumber(phone),
+                            mobileNumber = sanitizePhoneNumber(mobileNumber),
+                            address = sanitizeText(address),
+                            position = sanitizeText(role),
+                            salary = salary,
+                            joinDate = sanitizeDate(joinDate),
+                            workingHours = if (startTimeSanitized.isNotBlank() && endTimeSanitized.isNotBlank()) {
+                                com.swadratna.swadratna_admin.data.model.WorkingHours(startTimeSanitized, endTimeSanitized)
+                            } else null,
+                            imageUrl = sanitizedImage ?: _allStaff[staffIndex].imageUrl,
+                            status = try {
+                                com.swadratna.swadratna_admin.data.model.StaffStatus.valueOf(sanitizeText(status).uppercase())
+                            } catch (e: Exception) {
+                                _allStaff[staffIndex].status
+                            },
+                            storeId = storeId ?: 0
+                        )
+                        _allStaff[staffIndex] = updatedStaff
+                    }
+                    
+                    // Apply filters and sort to refresh the UI
+                    applyFiltersAndSort()
+                    
+                    // If storeId was changed to 0 (General), we should also reload the original store's staff
+                    // to ensure consistency with the backend
+                    if (storeId == 0 && originalStoreId != null && originalStoreId != 0) {
+                        loadStaff(originalStoreId)
+                    }
+                    
+                    // Always reload staff data after update to ensure we have latest from backend
+                    loadStaff(storeId ?: 0)
                 }
                 .onFailure { exception ->
                     _uiState.update { 
@@ -484,20 +522,16 @@ class StaffManagementViewModel @Inject constructor(
             if (!normalized.isNullOrBlank()) s.copy(imageUrl = normalized) else s
         }
         
-        // First apply filters
         val filteredStaff = staffWithImages.filter { staff ->
-            // Apply search filter
-            val matchesSearch = searchQuery.isEmpty() || 
-                staff.name?.lowercase()?.contains(searchQuery) == true || 
+            val matchesSearch = searchQuery.isEmpty() ||
+                staff.name?.lowercase()?.contains(searchQuery) == true ||
                 staff.position?.lowercase()?.contains(searchQuery) == true
-            
-            // Apply status filter
+
             val matchesStatus = selectedFilter == null || staff.status.name == selectedFilter
-            
+
             matchesSearch && matchesStatus
         }
         
-        // Then sort the filtered list
         val sortedStaff = when (sortOrder) {
             "NAME_ASC" -> filteredStaff.sortedBy { it.name ?: "" }
             "NAME_DESC" -> filteredStaff.sortedByDescending { it.name ?: "" }

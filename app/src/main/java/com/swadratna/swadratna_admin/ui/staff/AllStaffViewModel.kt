@@ -34,22 +34,26 @@ class AllStaffViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             
             try {
-                // Get all stores first
+                val allStaff = mutableListOf<Staff>()
+                
+                // First, get all staff using the getAllStaff() method which should include "General" staff
+                staffRepository.getAllStaff().onSuccess { staffResponse ->
+                    staffResponse.staff?.let { generalStaff ->
+                        allStaff.addAll(generalStaff)
+                    }
+                }.onFailure { error ->
+                    println("Error fetching all staff: ${error.message}")
+                }
+                
+                // Also fetch staff from specific stores to ensure we have complete coverage
                 val storesResult = storeRepository.getStores(page = 1, limit = 1000, restaurantId = 1000001)
                 
                 storesResult.onSuccess { storeResponse ->
-                    val allStaff = mutableListOf<Staff>()
-                    
                     // Fetch staff for each store
                     storeResponse.stores.forEach { store ->
                         staffRepository.getStaff(store.id).onSuccess { staffResponse ->
                             staffResponse.staff?.forEach { staff ->
-                                // Add store information to staff
-                                val staffWithStore = staff.copy(
-                                    // Add store name to staff for identification
-                                    // Note: You might need to modify the Staff data class to include store info
-                                )
-                                allStaff.add(staffWithStore)
+                                allStaff.add(staff)
                             }
                         }.onFailure { error ->
                             // Log error but continue with other stores
@@ -71,6 +75,13 @@ class AllStaffViewModel @Inject constructor(
                         )
                     }
                 }.onFailure { error ->
+                    // Even if stores fail, we might still have general staff
+                    val uniqueStaff = allStaff.distinctBy { it.id }
+                    _allStaff.clear()
+                    _allStaff.addAll(uniqueStaff)
+                    
+                    applyFiltersAndSort()
+                    
                     _uiState.update { 
                         it.copy(
                             isLoading = false,
