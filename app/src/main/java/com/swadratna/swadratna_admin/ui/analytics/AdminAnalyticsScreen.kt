@@ -33,24 +33,7 @@ fun AdminAnalyticsScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Analytics Panel") },
-                actions = {
-                    Row(
-                        modifier = Modifier.padding(end = 16.dp)
-                    ) {
-                        IconButton(onClick = { /* TODO */ }) {
-                            Icon(Icons.Default.Notifications, contentDescription = "Notifications")
-                        }
-                        Spacer(Modifier.width(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .align(Alignment.CenterVertically)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                                .clickable {  }
-                        )
-                    }
-                },
+                actions = { },
             )
         },
         contentWindowInsets = WindowInsets(0.dp)
@@ -82,19 +65,18 @@ fun AdminAnalyticsScreen(
                     )
                     Spacer(Modifier.height(12.dp))
                     CardsGrid(data.cards)
-                    Spacer(Modifier.height(16.dp))
 
-                    Text(
-                        "Sales Performance Comparison",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    LineChartView(
-                        series = data.salesPerformance,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(220.dp)
-                            .padding(top = 8.dp)
-                    )
+//                    Text(
+//                        "Sales Performance Comparison",
+//                        style = MaterialTheme.typography.titleMedium
+//                    )
+//                    LineChartView(
+//                        series = data.salesPerformance,
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .height(220.dp)
+//                            .padding(top = 8.dp)
+//                    )
 
                     Spacer(Modifier.height(16.dp))
                     Text("Monthly Order Volume", style = MaterialTheme.typography.titleMedium)
