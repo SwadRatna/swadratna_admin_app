@@ -43,12 +43,14 @@ enum class ActivityType(val displayName: String, val icon: String) {
     MENU_ITEM_AVAILABILITY_CHANGED("Menu Item Availability Changed", "visibility"),
     CATEGORY_CREATED("Category Added", "category"),
     CATEGORY_UPDATED("Category Updated", "edit"),
-    CATEGORY_DELETED("Category Removed", "delete");
+    CATEGORY_DELETED("Category Removed", "delete"),
+    CAMPAIGN_CREATED("Campaign Created", "campaign"),
+    CAMPAIGN_UPDATED("Campaign Updated", "edit");
     
     fun getColor(): Long {
         return when (this) {
-            STORE_CREATED, STAFF_CREATED, MENU_ITEM_CREATED, CATEGORY_CREATED -> 0xFF4CAF50 // Green
-            STORE_UPDATED, STAFF_UPDATED, MENU_ITEM_UPDATED, CATEGORY_UPDATED, MENU_ITEM_AVAILABILITY_CHANGED -> 0xFF2196F3 // Blue
+            STORE_CREATED, STAFF_CREATED, MENU_ITEM_CREATED, CATEGORY_CREATED, CAMPAIGN_CREATED -> 0xFF4CAF50 // Green
+            STORE_UPDATED, STAFF_UPDATED, MENU_ITEM_UPDATED, CATEGORY_UPDATED, MENU_ITEM_AVAILABILITY_CHANGED, CAMPAIGN_UPDATED -> 0xFF2196F3 // Blue
             STORE_DELETED, STAFF_DELETED, MENU_ITEM_DELETED, CATEGORY_DELETED -> 0xFFF44336 // Red
         }
     }

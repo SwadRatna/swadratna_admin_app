@@ -259,6 +259,45 @@ class StaffManagementViewModel @Inject constructor(
         _uiState.update { it.copy(isPasswordDialogVisible = false, generatedPassword = null) }
     }
     
+    private fun buildStaffUpdateDescription(original: Staff?, request: UpdateStaffRequest): String {
+        val name = request.name
+        if (original == null) return "Staff member '$name' updated"
+        val changes = mutableListOf<String>()
+        if ((original.name ?: "").trim() != request.name.trim()) changes.add("name")
+        val oldEmail = (original.email ?: "").trim()
+        if (oldEmail != request.email.trim()) changes.add("email")
+        val oldPhoneUnified = (original.phone ?: original.mobileNumber ?: "").trim()
+        val newPhoneUnified = request.phone.trim()
+        if (oldPhoneUnified != newPhoneUnified) changes.add("phone")
+        val oldAddress = (original.address ?: "").trim()
+        if (oldAddress != request.address.trim()) changes.add("address")
+        val oldRole = (original.position ?: "").trim()
+        if (oldRole != request.role.trim()) changes.add("role")
+        val oldSalary = original.salary
+        if (oldSalary == null || oldSalary != request.salary) changes.add("salary")
+        val oldJoin = (original.joinDate ?: "").trim()
+        val newJoin = request.joinDate.trim()
+        if (oldJoin != newJoin) changes.add("join date")
+        val oldStart = ((original.workingHours?.startTime ?: original.shiftTiming?.startTime) ?: "").trim()
+        val oldEnd = ((original.workingHours?.endTime ?: original.shiftTiming?.endTime) ?: "").trim()
+        val newStart = request.shiftTiming.startTime.trim()
+        val newEnd = request.shiftTiming.endTime.trim()
+        if (oldStart != newStart || oldEnd != newEnd) changes.add("shift timing")
+        val oldStatus = original.status.name.lowercase()
+        val newStatus = request.status.lowercase()
+        if (oldStatus != newStatus) changes.add("status")
+        val oldStore = original.storeId
+        if ((oldStore ?: 0) != request.storeId) changes.add("store")
+        val oldImage = (original.imageUrl ?: "").trim()
+        val newImage = (request.imageUrl ?: "").trim()
+        if (oldImage != newImage) changes.add("image")
+        return when (changes.size) {
+            0 -> "Staff member '$name' updated"
+            1 -> "Staff member '$name': ${changes[0]} has been updated"
+            else -> "Staff member '$name': updated ${changes.joinToString(", ")}"
+        }
+    }
+    
     fun updateStaff(
         staffId: Int,
         name: String,
@@ -280,7 +319,8 @@ class StaffManagementViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             
             // Capture the original store ID before update
-            val originalStoreId = _allStaff.find { it.id == staffId }?.storeId
+            val originalStaff = _allStaff.find { it.id == staffId }
+            val originalStoreId = originalStaff?.storeId
             
             val sanitizedImage = sanitizeImageUrl(imageUrl)
             val startTimeSanitized = sanitizeTime(startTime)
@@ -307,7 +347,7 @@ class StaffManagementViewModel @Inject constructor(
                     activityRepository.addActivity(
                         ActivityType.STAFF_UPDATED,
                         "Staff member updated",
-                        "Staff member '$name' has been successfully updated with role '$role'"
+                        buildStaffUpdateDescription(originalStaff, request)
                     )
                     
                     val updatedPwd = response.password
