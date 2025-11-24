@@ -14,15 +14,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBarsPadding
 import com.swadratna.swadratna_admin.R
+import androidx.compose.ui.res.painterResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,7 +28,8 @@ fun DashboardScreen(
     modifier: Modifier = Modifier,
     viewModel: DashboardViewModel = hiltViewModel(),
     onNavigateToSettings: () -> Unit = {},
-    onNavigateToNotifications: () -> Unit = {}
+    onNavigateToNotifications: () -> Unit = {},
+    onNavigateToAllStaffManagement: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -56,6 +55,9 @@ fun DashboardScreen(
                         }
                         IconButton(onClick = onNavigateToNotifications) {
                             Icon(Icons.Default.Notifications, contentDescription = "Notifications")
+                        }
+                        IconButton(onClick = onNavigateToAllStaffManagement) {
+                            Icon(painter = painterResource(R.drawable.ic_person), contentDescription = "All Staff")
                         }
                     }
                 },

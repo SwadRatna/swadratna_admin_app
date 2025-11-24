@@ -32,6 +32,7 @@ import com.swadratna.swadratna_admin.ui.menu.MenuViewModel
 import com.swadratna.swadratna_admin.ui.screens.LoginScreen
 import com.swadratna.swadratna_admin.ui.settings.SettingsScreen
 import com.swadratna.swadratna_admin.ui.staff.AddStaffScreen
+import com.swadratna.swadratna_admin.ui.staff.AllStaffManagementScreen
 import com.swadratna.swadratna_admin.ui.staff.EditStaffScreen
 import com.swadratna.swadratna_admin.ui.staff.StaffManagementScreen
 import com.swadratna.swadratna_admin.ui.store.CreateStoreScreen
@@ -98,6 +99,9 @@ fun NavGraph(
                 },
                 onNavigateToNotifications = {
                     navController.navigate(NavRoute.Notifications.route)
+                },
+                onNavigateToAllStaffManagement = {
+                    navController.navigate(NavRoute.AllStaffManagement.route)
                 }
             )
         }
@@ -476,6 +480,12 @@ fun NavGraph(
             AddStaffScreen(
                 onNavigateBack = { navController.popBackStack() },
                 storeId = storeId
+            )
+        }
+
+        composable(NavRoute.AllStaffManagement.route) {
+            AllStaffManagementScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }

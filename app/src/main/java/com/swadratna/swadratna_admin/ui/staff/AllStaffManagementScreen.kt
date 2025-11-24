@@ -9,12 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -32,34 +27,27 @@ import com.swadratna.swadratna_admin.R
 import com.swadratna.swadratna_admin.data.model.Staff
 import com.swadratna.swadratna_admin.data.model.StaffStatus
 import com.swadratna.swadratna_admin.ui.components.AppSearchField
-import com.swadratna.swadratna_admin.ui.store.StoreEvent
-import kotlinx.coroutines.launch
 import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StaffManagementScreen(
-    storeId: String,
+fun AllStaffManagementScreen(
     modifier: Modifier = Modifier,
-    viewModel: StaffManagementViewModel = hiltViewModel(),
-    onNavigateBack: () -> Unit = {},
-    onNavigateToAddStaff: () -> Unit = {},
-    onNavigateToEditStaff: (Int) -> Unit = {}
+    viewModel: AllStaffViewModel = hiltViewModel(),
+    onNavigateBack: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     
     // Load staff data when screen is first displayed
-    LaunchedEffect(storeId) {
-        if (storeId.isNotEmpty()) {
-            viewModel.loadStaff(storeId.toInt())
-        }
+    LaunchedEffect(Unit) {
+        viewModel.loadAllStaff()
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Staff Management") },
+                title = { Text("All Staff Members") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -68,9 +56,7 @@ fun StaffManagementScreen(
                 actions = {
                     IconButton(
                         onClick = { 
-                            if (storeId.isNotEmpty()) {
-                                viewModel.loadStaff(storeId.toInt())
-                            }
+                            viewModel.loadAllStaff()
                         }
                     ) {
                         Icon(
@@ -80,18 +66,6 @@ fun StaffManagementScreen(
                     }
                 }
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onNavigateToAddStaff,
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Staff",
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
-            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
@@ -117,7 +91,7 @@ fun StaffManagementScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 OutlinedButton(
-                    onClick = { viewModel.onEvent(StaffEvent.ToggleFilterMenu)  },
+                    onClick = { viewModel.onEvent(AllStaffEvent.ToggleFilterMenu) },
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(painter = painterResource(R.drawable.ic_filter), contentDescription = "Filter")
@@ -128,18 +102,18 @@ fun StaffManagementScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 
                 OutlinedButton(
-                    onClick = {viewModel.onEvent(StaffEvent.ToggleSortMenu)  },
+                    onClick = { viewModel.onEvent(AllStaffEvent.ToggleSortMenu) },
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(painter = painterResource(R.drawable.ic_sort), contentDescription = "Sort")
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Sort")
                 }
-                }
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Box(modifier = Modifier.fillMaxSize()) {
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Box(modifier = Modifier.fillMaxSize()) {
                 when {
                     uiState.isLoading -> {
                         Box(
@@ -165,11 +139,7 @@ fun StaffManagementScreen(
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Button(
-                                    onClick = { 
-                                        if (storeId.isNotEmpty()) {
-                                            viewModel.loadStaff(storeId.toInt())
-                                        }
-                                    }
+                                    onClick = { viewModel.loadAllStaff() }
                                 ) {
                                     Text("Retry")
                                 }
@@ -213,13 +183,9 @@ fun StaffManagementScreen(
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             items(uiState.staffList) { staff ->
-                                StaffItem(
+                                AllStaffItem(
                                     staff = staff,
-                                    onEdit = { staffId -> onNavigateToEditStaff(staffId) },
-                                    onDelete = { staffId -> viewModel.deleteStaff(staffId) },
-                                    snackbarHostState = snackbarHostState,
-                                    password = staff.password ?: uiState.passwordsByStaffId[staff.id],
-                                    localImageUrl = uiState.imagesByStaffId[staff.id]
+                                    snackbarHostState = snackbarHostState
                                 )
                             }
                         }
@@ -227,19 +193,19 @@ fun StaffManagementScreen(
                 }
                 
                 if (uiState.isFilterMenuVisible) {
-                    StaffFilterMenu(
+                    AllStaffFilterMenu(
                         selectedFilter = uiState.selectedFilter,
                         onFilterSelected = { viewModel.updateFilter(it) },
-                        onDismiss = { viewModel.onEvent(StaffEvent.ToggleFilterMenu) },
+                        onDismiss = { viewModel.onEvent(AllStaffEvent.ToggleFilterMenu) },
                         modifier = Modifier.align(Alignment.TopEnd)
                     )
                 }
                 
                 if (uiState.isSortMenuVisible) {
-                    StaffSortMenu(
+                    AllStaffSortMenu(
                         selectedSortOrder = uiState.selectedSortOrder,
                         onSortOrderSelected = { viewModel.updateSortOrder(it) },
-                        onDismiss = { viewModel.onEvent(StaffEvent.ToggleSortMenu) },
+                        onDismiss = { viewModel.onEvent(AllStaffEvent.ToggleSortMenu) },
                         modifier = Modifier.align(Alignment.TopEnd)
                     )
                 }
@@ -249,13 +215,9 @@ fun StaffManagementScreen(
 }
 
 @Composable
-fun StaffItem(
+fun AllStaffItem(
     staff: Staff,
-    onEdit: (Int) -> Unit,
-    onDelete: (Int) -> Unit,
-    snackbarHostState: SnackbarHostState,
-    password: String?,
-    localImageUrl: String? = null
+    snackbarHostState: SnackbarHostState
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -275,10 +237,9 @@ fun StaffItem(
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
                     ) {
-                        val displayImageUrl = localImageUrl ?: staff.imageUrl
-                        if (!displayImageUrl.isNullOrBlank()) {
+                        if (!staff.imageUrl.isNullOrBlank()) {
                             AsyncImage(
-                                model = displayImageUrl,
+                                model = staff.imageUrl,
                                 contentDescription = "${staff.name}'s profile image",
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
@@ -310,7 +271,7 @@ fun StaffItem(
                     }
                 }
                 
-                StaffManagementStatusChip(status = staff.status)
+                AllStaffStatusChip(status = staff.status)
             }
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -337,41 +298,32 @@ fun StaffItem(
                 }
             )
             
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
-                val coroutineScope = rememberCoroutineScope()
-                IconButton(onClick = {
-                    val email = staff.email ?: ""
-                    val pwd = password ?: ""
-                    val text = "Email: $email" + if (pwd.isNotBlank()) "\nPassword: $pwd" else ""
-                    clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(text))
-                    coroutineScope.launch {
-                        val msg = if (pwd.isBlank()) "Login details copied. Password may not be available." else "Login details copied"
-                        snackbarHostState.showSnackbar(msg)
-                    }
-                }) {
-                    Icon(painter = painterResource(R.drawable.ic_copy_content), contentDescription = "Copy login details")
+            // Show contact information
+            if (!staff.email.isNullOrBlank() || !staff.mobileNumber.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                if (!staff.email.isNullOrBlank()) {
+                    Text(
+                        text = "Email: ${staff.email}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                    )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(onClick = { onEdit(staff.id) }) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit")
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(onClick = { onDelete(staff.id) }) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
+                
+                if (!staff.mobileNumber.isNullOrBlank()) {
+                    Text(
+                        text = "Phone: ${staff.mobileNumber}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                    )
                 }
             }
         }
     }
- }
+}
 
 @Composable
-fun StaffFilterMenu(
+fun AllStaffFilterMenu(
     selectedFilter: String?,
     onFilterSelected: (String?) -> Unit,
     onDismiss: () -> Unit,
@@ -391,25 +343,25 @@ fun StaffFilterMenu(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            StaffFilterOption(
+            AllStaffFilterOption(
                 text = "All",
                 isSelected = selectedFilter == null,
                 onClick = { onFilterSelected(null); onDismiss() }
             )
             
-            StaffFilterOption(
+            AllStaffFilterOption(
                 text = "Active",
                 isSelected = selectedFilter == "ACTIVE",
                 onClick = { onFilterSelected("ACTIVE"); onDismiss() }
             )
             
-            StaffFilterOption(
+            AllStaffFilterOption(
                 text = "On Leave",
                 isSelected = selectedFilter == "ON_LEAVE",
                 onClick = { onFilterSelected("ON_LEAVE"); onDismiss() }
             )
             
-            StaffFilterOption(
+            AllStaffFilterOption(
                 text = "Terminated",
                 isSelected = selectedFilter == "TERMINATED",
                 onClick = { onFilterSelected("TERMINATED"); onDismiss() }
@@ -419,7 +371,7 @@ fun StaffFilterMenu(
 }
 
 @Composable
-fun StaffSortMenu(
+fun AllStaffSortMenu(
     selectedSortOrder: String,
     onSortOrderSelected: (String) -> Unit,
     onDismiss: () -> Unit,
@@ -439,25 +391,25 @@ fun StaffSortMenu(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            StaffFilterOption(
+            AllStaffFilterOption(
                 text = "Name (A-Z)",
                 isSelected = selectedSortOrder == "NAME_ASC",
                 onClick = { onSortOrderSelected("NAME_ASC"); onDismiss() }
             )
             
-            StaffFilterOption(
+            AllStaffFilterOption(
                 text = "Name (Z-A)",
                 isSelected = selectedSortOrder == "NAME_DESC",
                 onClick = { onSortOrderSelected("NAME_DESC"); onDismiss() }
             )
             
-            StaffFilterOption(
+            AllStaffFilterOption(
                 text = "Position (A-Z)",
                 isSelected = selectedSortOrder == "POSITION_ASC",
                 onClick = { onSortOrderSelected("POSITION_ASC"); onDismiss() }
             )
             
-            StaffFilterOption(
+            AllStaffFilterOption(
                 text = "Position (Z-A)",
                 isSelected = selectedSortOrder == "POSITION_DESC",
                 onClick = { onSortOrderSelected("POSITION_DESC"); onDismiss() }
@@ -467,7 +419,7 @@ fun StaffSortMenu(
 }
 
 @Composable
-fun StaffFilterOption(
+fun AllStaffFilterOption(
     text: String,
     isSelected: Boolean,
     onClick: () -> Unit
@@ -492,7 +444,7 @@ fun StaffFilterOption(
 }
 
 @Composable
-fun StaffManagementStatusChip(status: StaffStatus) {
+fun AllStaffStatusChip(status: StaffStatus) {
     val (backgroundColor, textColor) = when (status) {
         StaffStatus.ACTIVE -> Pair(Color(0xFF4CAF50).copy(alpha = 0.2f), Color(0xFF4CAF50))
         StaffStatus.INACTIVE -> Pair(Color(0xFFF44336).copy(alpha = 0.2f), Color(0xFFF44336))

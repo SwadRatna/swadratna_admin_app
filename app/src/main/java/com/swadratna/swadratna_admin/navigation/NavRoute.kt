@@ -35,4 +35,5 @@ sealed class NavRoute(val route: String) {
         fun createRoute(menuItemId: Long) = "edit_menu_item/$menuItemId"
     }
     object Notifications : NavRoute("notifications")
+    object AllStaffManagement : NavRoute("all_staff_management")
 }

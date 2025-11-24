@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,6 +26,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -46,7 +48,7 @@ import androidx.navigation.compose.rememberNavController
 import com.swadratna.swadratna_admin.R
 import com.swadratna.swadratna_admin.ui.campaign.components.CampaignItem
 import com.swadratna.swadratna_admin.ui.components.AppSearchField
-import com.swadratna.swadratna_admin.ui.staff.FilterOption
+// Using local CampaignFilterOption function instead of importing
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -185,16 +187,16 @@ fun CampaignScreen(
                 }
 
                 if (uiState.isFilterMenuVisible) {
-                    FilterMenus(
+                    CampaignFilterMenus(
                         selectedFilter = uiState.filter,
                         onFilterSelected = { viewModel.handleEvent(CampaignEvent.FilterChanged(it)) },
                         onDismiss = { viewModel.handleEvent(CampaignEvent.ToggleFilterMenu) },
                         modifier = Modifier.align(Alignment.TopEnd)
                     )
                 }
-
+                
                 if (uiState.isSortMenuVisible) {
-                    SortMenus(
+                    CampaignSortMenus(
                         selectedSortOrder = uiState.sortOrder,
                         onSortOrderSelected = { viewModel.handleEvent(CampaignEvent.SortChanged(it)) },
                         onDismiss = { viewModel.handleEvent(CampaignEvent.ToggleSortMenu) },
@@ -207,7 +209,7 @@ fun CampaignScreen(
 }
 
 @Composable
-fun FilterMenus(
+fun CampaignFilterMenus(
     selectedFilter: CampaignFilter,
     onFilterSelected: (CampaignFilter) -> Unit,
     onDismiss: () -> Unit,
@@ -225,27 +227,27 @@ fun FilterMenus(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            FilterOption(
+            CampaignFilterOption(
                 text = "All",
                 isSelected = selectedFilter == CampaignFilter.ALL,
                 onClick = { onFilterSelected(CampaignFilter.ALL); onDismiss() })
 
-            FilterOption(
+            CampaignFilterOption(
                 text = "Active",
                 isSelected = selectedFilter == CampaignFilter.ACTIVE,
                 onClick = { onFilterSelected(CampaignFilter.ACTIVE); onDismiss() })
 
-            FilterOption(
+            CampaignFilterOption(
                 text = "Scheduled",
                 isSelected = selectedFilter == CampaignFilter.SCHEDULED,
                 onClick = { onFilterSelected(CampaignFilter.SCHEDULED); onDismiss() })
 
-            FilterOption(
+            CampaignFilterOption(
                 text = "Completed",
                 isSelected = selectedFilter == CampaignFilter.COMPLETED,
                 onClick = { onFilterSelected(CampaignFilter.COMPLETED); onDismiss() })
 
-            FilterOption(
+            CampaignFilterOption(
                 text = "Draft",
                 isSelected = selectedFilter == CampaignFilter.DRAFT,
                 onClick = { onFilterSelected(CampaignFilter.DRAFT); onDismiss() })
@@ -254,7 +256,7 @@ fun FilterMenus(
 }
 
 @Composable
-fun SortMenus(
+fun CampaignSortMenus(
     selectedSortOrder: CampaignSortOrder,
     onSortOrderSelected: (CampaignSortOrder) -> Unit,
     onDismiss: () -> Unit,
@@ -272,25 +274,59 @@ fun SortMenus(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            FilterOption(
+            CampaignFilterOption(
                 text = "Title A-Z",
                 isSelected = selectedSortOrder == CampaignSortOrder.TITLE_ASC,
                 onClick = { onSortOrderSelected(CampaignSortOrder.TITLE_ASC); onDismiss() })
 
-            FilterOption(
+            CampaignFilterOption(
                 text = "Title Z-A",
                 isSelected = selectedSortOrder == CampaignSortOrder.TITLE_DESC,
                 onClick = { onSortOrderSelected(CampaignSortOrder.TITLE_DESC); onDismiss() })
 
-            FilterOption(
+            CampaignFilterOption(
                 text = "Date Newest first",
                 isSelected = selectedSortOrder == CampaignSortOrder.DATE_DESC,
                 onClick = { onSortOrderSelected(CampaignSortOrder.DATE_DESC); onDismiss() })
 
-            FilterOption(
+            CampaignFilterOption(
                 text = "Date Oldest first",
                 isSelected = selectedSortOrder == CampaignSortOrder.DATE_ASC,
                 onClick = { onSortOrderSelected(CampaignSortOrder.DATE_ASC); onDismiss() })
+        }
+    }
+}
+
+@Composable
+fun CampaignFilterOption(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        selected = isSelected,
+        onClick = onClick,
+        shape = MaterialTheme.shapes.small,
+        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RadioButton(
+                selected = isSelected,
+                onClick = null,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

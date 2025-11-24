@@ -8,6 +8,7 @@ import com.swadratna.swadratna_admin.data.model.UpdateStaffRequest
 
 interface StaffRepository {
     suspend fun getStaff(storeId: Int): Result<StaffResponse>
+    suspend fun getAllStaff(): Result<StaffResponse>
     suspend fun createStaff(request: CreateStaffRequest): Result<StaffOperationResponse>
     suspend fun updateStaff(staffId: Int, request: UpdateStaffRequest): Result<StaffOperationResponse>
     suspend fun deleteStaff(staffId: Int): Result<Unit>
