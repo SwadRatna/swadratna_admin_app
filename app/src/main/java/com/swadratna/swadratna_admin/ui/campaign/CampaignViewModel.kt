@@ -8,6 +8,8 @@ import com.swadratna.swadratna_admin.data.model.Campaign
 import com.swadratna.swadratna_admin.data.model.CampaignStatus
 import com.swadratna.swadratna_admin.data.model.CampaignType
 import com.swadratna.swadratna_admin.data.repository.CampaignRepository
+import com.swadratna.swadratna_admin.data.repository.ActivityRepository
+import com.swadratna.swadratna_admin.data.model.ActivityType
 import com.swadratna.swadratna_admin.data.wrapper.Result
 import com.swadratna.swadratna_admin.utils.SharedPrefsManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,7 +29,8 @@ import com.swadratna.swadratna_admin.data.remote.api.AdminUpdateCampaignRequest
 @RequiresApi(Build.VERSION_CODES.O)
 class CampaignViewModel @Inject constructor(
     private val repository: CampaignRepository,
-    private val sharedPrefsManager: SharedPrefsManager
+    private val sharedPrefsManager: SharedPrefsManager,
+    private val activityRepository: ActivityRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CampaignUiState())
     val uiState: StateFlow<CampaignUiState> = _uiState.asStateFlow()
@@ -97,6 +100,11 @@ class CampaignViewModel @Inject constructor(
                             applyFiltersAndSort()
                             _uiState.value = _uiState.value.copy(isLoading = false, error = null)
                             sharedPrefsManager.saveCampaigns(_allCampaigns)
+                            activityRepository.addActivity(
+                                ActivityType.CAMPAIGN_CREATED,
+                                "Campaign created",
+                                "Campaign '${created.title}' has been created"
+                            )
                         }
                         is Result.Error -> {
                             _uiState.value = _uiState.value.copy(isLoading = false, error = res.message)
@@ -179,6 +187,7 @@ class CampaignViewModel @Inject constructor(
                 if (idLong == null) {
                     _uiState.value = _uiState.value.copy(error = "Invalid campaign id")
                 } else {
+                    val original = _allCampaigns.find { it.id == event.id }
                     _uiState.value = _uiState.value.copy(isLoading = true, error = null)
                     val req = AdminUpdateCampaignRequest(
                         title = event.title,
@@ -210,6 +219,11 @@ class CampaignViewModel @Inject constructor(
                                     error = null
                                 )
                                 sharedPrefsManager.saveCampaigns(_allCampaigns)
+                                activityRepository.addActivity(
+                                    ActivityType.CAMPAIGN_UPDATED,
+                                    "Campaign updated",
+                                    buildCampaignUpdateDescription(original, updated)
+                                )
                             }
                             is Result.Error -> {
                                 _uiState.value = _uiState.value.copy(isLoading = false, error = res.message)
@@ -262,6 +276,30 @@ class CampaignViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
+
+    private fun buildCampaignUpdateDescription(original: Campaign?, updated: Campaign): String {
+        val name = updated.title
+        if (original == null) return "Campaign '$name' updated"
+        val changes = mutableListOf<String>()
+        if (original.title != updated.title) changes.add("title")
+        if (original.description != updated.description) changes.add("description")
+        if (original.type != updated.type) changes.add("type")
+        if (original.startDate != updated.startDate || original.endDate != updated.endDate) changes.add("schedule")
+        if (original.targetFranchiseIds != updated.targetFranchiseIds) changes.add("target stores")
+        if (original.targetCategoryIds != updated.targetCategoryIds) changes.add("target categories")
+        val oldImg = (original.imageUrl ?: "").trim()
+        val newImg = (updated.imageUrl ?: "").trim()
+        if (oldImg != newImg) changes.add("image")
+        if (original.discount != updated.discount) changes.add("discount")
+        val oldVideo = (original.youtubeVideoUrl ?: "").trim()
+        val newVideo = (updated.youtubeVideoUrl ?: "").trim()
+        if (oldVideo != newVideo) changes.add("video")
+        return when (changes.size) {
+            0 -> "Campaign '$name' updated"
+            1 -> "Campaign '$name': ${changes[0]} has been updated"
+            else -> "Campaign '$name': updated ${changes.joinToString(", ")}"
         }
     }
 

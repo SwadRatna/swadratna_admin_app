@@ -191,5 +191,7 @@ private fun getActivityIcon(type: ActivityType): ImageVector {
         ActivityType.CATEGORY_CREATED -> Icons.Filled.Search
         ActivityType.CATEGORY_UPDATED -> Icons.Filled.Edit
         ActivityType.CATEGORY_DELETED -> Icons.Filled.Delete
+        ActivityType.CAMPAIGN_CREATED -> Icons.Filled.Add
+        ActivityType.CAMPAIGN_UPDATED -> Icons.Filled.Edit
     }
 }
