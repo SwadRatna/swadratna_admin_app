@@ -19,6 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.util.Patterns
 import com.swadratna.swadratna_admin.ui.assets.AssetUploader
 import kotlinx.coroutines.launch
+import kotlin.collections.find
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,9 +40,16 @@ fun AddStaffScreen(
     var endTime by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("active") }
     var imageUrl by remember { mutableStateOf<String?>(null) }
-    // Dropdown state for role selection
+    var selectedStoreId by remember { mutableStateOf<Int?>(storeId.toIntOrNull()) }
     var roleDropdownExpanded by remember { mutableStateOf(false) }
     val roleOptions = listOf("manager", "waiter", "chef", "cashier")
+    var storeDropdownExpanded by remember { mutableStateOf(false) }
+    
+
+    // Load stores when screen opens
+    LaunchedEffect(Unit) {
+        viewModel.loadStores()
+    }
     
     // Validation states
     var nameError by remember { mutableStateOf("") }
@@ -287,6 +295,54 @@ fun AddStaffScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
+            // Store selection dropdown
+            ExposedDropdownMenuBox(
+                expanded = storeDropdownExpanded,
+                onExpandedChange = { storeDropdownExpanded = it },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = selectedStoreId?.let { storeId ->
+                        uiState.stores.find { it.id == storeId }?.name ?: "General"
+                    } ?: "General",
+                    onValueChange = { },
+                    readOnly = true,
+                    label = { Text("Assign Store") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(),
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = storeDropdownExpanded) },
+                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+                )
+                
+                ExposedDropdownMenu(
+                    expanded = storeDropdownExpanded,
+                    onDismissRequest = { storeDropdownExpanded = false }
+                ) {
+                    // General option (no store assignment)
+                    DropdownMenuItem(
+                        text = { Text("General") },
+                        onClick = {
+                            selectedStoreId = null
+                            storeDropdownExpanded = false
+                        }
+                    )
+                    
+                    // Store options
+                    uiState.stores.forEach { store ->
+                        DropdownMenuItem(
+                            text = { Text(store.name) },
+                            onClick = {
+                                selectedStoreId = store.id
+                                storeDropdownExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
             // Salary field
             OutlinedTextField(
                 value = salary,
@@ -416,9 +472,9 @@ fun AddStaffScreen(
                         if (validateForm()) {
                             // Safe conversion with validation
                             val salaryValue = salary.toDoubleOrNull()
-                            val storeIdValue = storeId.toIntOrNull()
-                            
-                            if (salaryValue != null && storeIdValue != null) {
+                            val storeIdValue = selectedStoreId
+
+                            if (salaryValue != null) {
                                 // Format shift timing to HH:mm:ss as many APIs expect ISO-like time formats
                                 val startFormatted = toServerTime(startTime)
                                 val endFormatted = toServerTime(endTime)

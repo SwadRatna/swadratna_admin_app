@@ -132,7 +132,7 @@ fun StoreScreen(
                 }
                 
                 if (uiState.isFilterMenuVisible) {
-                    FilterMenu(
+                    StoreFilterMenu(
                         selectedStatus = uiState.filterStatus,
                         onStatusSelected = { viewModel.onEvent(StoreEvent.FilterByStatus(it)) },
                         onDismiss = { viewModel.onEvent(StoreEvent.ToggleFilterMenu) },
@@ -141,7 +141,7 @@ fun StoreScreen(
                 }
                 
                 if (uiState.isSortMenuVisible) {
-                    SortMenu(
+                    StoreSortMenu(
                         selectedSortOption = uiState.sortOption,
                         onSortOptionSelected = { viewModel.onEvent(StoreEvent.SortBy(it)) },
                         onDismiss = { viewModel.onEvent(StoreEvent.ToggleSortMenu) },
@@ -154,7 +154,7 @@ fun StoreScreen(
 }
 
 @Composable
-fun FilterMenu(
+fun StoreFilterMenu(
     selectedStatus: String?,
     onStatusSelected: (String?) -> Unit,
     onDismiss: () -> Unit,
@@ -174,25 +174,25 @@ fun FilterMenu(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            FilterOption(
+            StoreFilterOption(
                 text = "All",
                 isSelected = selectedStatus == null,
                 onClick = { onStatusSelected(null); onDismiss() }
             )
             
-            FilterOption(
+            StoreFilterOption(
                 text = "Active",
                 isSelected = selectedStatus == "ACTIVE",
                 onClick = { onStatusSelected("ACTIVE"); onDismiss() }
             )
             
-            FilterOption(
+            StoreFilterOption(
                 text = "Inactive",
                 isSelected = selectedStatus == "INACTIVE",
                 onClick = { onStatusSelected("INACTIVE"); onDismiss() }
             )
             
-            FilterOption(
+            StoreFilterOption(
                 text = "Pending",
                 isSelected = selectedStatus == "PENDING",
                 onClick = { onStatusSelected("PENDING"); onDismiss() }
@@ -202,7 +202,7 @@ fun FilterMenu(
 }
 
 @Composable
-fun SortMenu(
+fun StoreSortMenu(
     selectedSortOption: String,
     onSortOptionSelected: (String) -> Unit,
     onDismiss: () -> Unit,
@@ -222,25 +222,25 @@ fun SortMenu(
             
             Spacer(modifier = Modifier.height(8.dp))
             
-            FilterOption(
+            StoreFilterOption(
                 text = "Name (A-Z)",
                 isSelected = selectedSortOption == "NAME_ASC",
                 onClick = { onSortOptionSelected("NAME_ASC"); onDismiss() }
             )
             
-            FilterOption(
+            StoreFilterOption(
                 text = "Name (Z-A)",
                 isSelected = selectedSortOption == "NAME_DESC",
                 onClick = { onSortOptionSelected("NAME_DESC"); onDismiss() }
             )
             
-            FilterOption(
+            StoreFilterOption(
                 text = "Date (Newest first)",
                 isSelected = selectedSortOption == "DATE_DESC",
                 onClick = { onSortOptionSelected("DATE_DESC"); onDismiss() }
             )
             
-            FilterOption(
+            StoreFilterOption(
                 text = "Date (Oldest first)",
                 isSelected = selectedSortOption == "DATE_ASC",
                 onClick = { onSortOptionSelected("DATE_ASC"); onDismiss() }
@@ -250,7 +250,7 @@ fun SortMenu(
 }
 
 @Composable
-fun FilterOption(
+fun StoreFilterOption(
     text: String,
     isSelected: Boolean,
     onClick: () -> Unit

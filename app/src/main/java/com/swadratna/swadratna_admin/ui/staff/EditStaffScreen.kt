@@ -16,7 +16,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import com.swadratna.swadratna_admin.data.model.Staff
+import com.swadratna.swadratna_admin.navigation.NavRoute
 import com.swadratna.swadratna_admin.ui.assets.AssetUploader
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,7 +28,8 @@ fun EditStaffScreen(
     storeId: String,
     modifier: Modifier = Modifier,
     viewModel: StaffManagementViewModel = hiltViewModel(),
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    navController: NavController? = null
 ) {
     // Helpers declared at the top to ensure availability before usage
     fun toUiHour(time: String): String {
@@ -61,6 +64,7 @@ fun EditStaffScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     
     LaunchedEffect(storeId) {
+        viewModel.loadStores()
         viewModel.loadStaff(storeId.toIntOrNull() ?: 0)
     }
     
@@ -78,10 +82,13 @@ fun EditStaffScreen(
     var endTime by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("active") }
     var imageUrl by remember { mutableStateOf<String?>(null) }
+    var selectedStoreId by remember { mutableStateOf<Int?>(null) }
     
     // Dropdown state for role selection
     var roleDropdownExpanded by remember { mutableStateOf(false) }
     val roleOptions = listOf("manager", "waiter", "chef", "cashier")
+    // Dropdown state for store selection
+    var storeDropdownExpanded by remember { mutableStateOf(false) }
     
     // Error states
     var nameError by remember { mutableStateOf("") }
@@ -115,14 +122,27 @@ fun EditStaffScreen(
                 "active" -> "active"
                 "inactive" -> "inactive"
                 else -> "active"
-            }
+  }
+            selectedStoreId = if (staff.storeId == 0) null else staff.storeId
         }
     }
     
     // Navigate back after successful update
     LaunchedEffect(uiState.isLoading, uiState.error, updateInitiated) {
         if (updateInitiated && !uiState.isLoading && uiState.error == null) {
-            onNavigateBack()
+            // If staff was updated to "General" (storeId = 0 or null), navigate to All Staff screen
+            // Otherwise, navigate back to the previous screen
+            if (selectedStoreId == 0 || selectedStoreId == null) {
+                navController?.navigate(NavRoute.AllStaffManagement.route) {
+                    // Clear the back stack to prevent going back to the store-specific screen
+                    popUpTo(navController.graph.startDestinationId) {
+                        inclusive = false
+                    }
+                    launchSingleTop = true
+                }
+            } else {
+                onNavigateBack()
+            }
         }
     }
     
@@ -269,6 +289,54 @@ fun EditStaffScreen(
             }
             Spacer(modifier = Modifier.height(16.dp))
             
+            // Store selection dropdown
+            ExposedDropdownMenuBox(
+                expanded = storeDropdownExpanded,
+                onExpandedChange = { storeDropdownExpanded = it },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = selectedStoreId?.let { storeId ->
+                        uiState.stores.find { it.id == storeId }?.name ?: "General"
+                    } ?: "General",
+                    onValueChange = { },
+                    readOnly = true,
+                    label = { Text("Assign Store") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor(),
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = storeDropdownExpanded) },
+                    colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
+                )
+                
+                ExposedDropdownMenu(
+                    expanded = storeDropdownExpanded,
+                    onDismissRequest = { storeDropdownExpanded = false }
+                ) {
+                    // General option (no store assignment)
+                    DropdownMenuItem(
+                        text = { Text("General") },
+                        onClick = {
+                            selectedStoreId = 0
+                            storeDropdownExpanded = false
+                        }
+                    )
+                    
+                    // Store options
+                    uiState.stores.forEach { store ->
+                        DropdownMenuItem(
+                            text = { Text(store.name) },
+                            onClick = {
+                                selectedStoreId = store.id
+                                storeDropdownExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
             // Salary field
             OutlinedTextField(
                 value = salary,
@@ -360,7 +428,8 @@ fun EditStaffScreen(
                                 startTime = startTime,
                                 endTime = endTime,
                                 status = status,
-                                imageUrl = imageUrl
+                                imageUrl = imageUrl,
+                                storeId = selectedStoreId
                             )
                         } else { salaryError = "Please enter a valid salary amount" }
                     }
