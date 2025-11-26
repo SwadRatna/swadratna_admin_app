@@ -18,7 +18,15 @@ data class Campaign(
     val menuCategories: List<String> = emptyList(),
     val targetFranchiseIds: List<Int> = emptyList(),
     val targetCategoryIds: List<Int> = emptyList(),
-    val youtubeVideoUrl: String? = null
+    val youtubeVideoUrl: String? = null,
+    val bannerImageUrl: String? = null,
+    val discountType: String? = null,
+    val minOrderAmount: Int? = null,
+    val maxDiscountAmount: Int? = null,
+    val promoCode: String? = null,
+    val promoCodeLimit: Int? = null,
+    val priority: Int? = null,
+    val termsConditions: String? = null
 ) {
     fun getFormattedDateRange(): String {
         val formatter = DateTimeFormatter.ofPattern("dd MMM")

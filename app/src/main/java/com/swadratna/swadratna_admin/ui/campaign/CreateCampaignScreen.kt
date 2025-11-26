@@ -112,6 +112,15 @@ fun CreateCampaignScreen(
     var campaignTitle by remember { mutableStateOf(campaignToEdit?.title ?: "") }
     var campaignDescription by remember { mutableStateOf(campaignToEdit?.description ?: "") }
     var youtubeVideoUrl by remember { mutableStateOf("") }
+    var bannerImageUrl by remember { mutableStateOf("") }
+    var discountType by remember { mutableStateOf<String?>(null) }
+    var discountValue by remember { mutableStateOf("") }
+    var minOrderAmount by remember { mutableStateOf("") }
+    var maxDiscountAmount by remember { mutableStateOf("") }
+    var promoCode by remember { mutableStateOf("") }
+    var promoCodeLimit by remember { mutableStateOf("") }
+    var priority by remember { mutableStateOf("") }
+    var termsConditions by remember { mutableStateOf("") }
     var expandedFranchiseDropdown by remember { mutableStateOf(false) }
     var selectedStoreId by remember { mutableStateOf<Int?>(null) }
     var selectedStoreName by remember { mutableStateOf("All Stores") }
@@ -128,6 +137,15 @@ fun CreateCampaignScreen(
             campaignTitle = campaignToEdit.title
             campaignDescription = campaignToEdit.description
             youtubeVideoUrl = campaignToEdit.youtubeVideoUrl ?: ""
+            bannerImageUrl = campaignToEdit.bannerImageUrl ?: ""
+            discountType = campaignToEdit.discountType
+            discountValue = campaignToEdit.discount.toString()
+            minOrderAmount = campaignToEdit.minOrderAmount?.toString() ?: ""
+            maxDiscountAmount = campaignToEdit.maxDiscountAmount?.toString() ?: ""
+            promoCode = campaignToEdit.promoCode ?: ""
+            promoCodeLimit = campaignToEdit.promoCodeLimit?.toString() ?: ""
+            priority = campaignToEdit.priority?.toString() ?: ""
+            termsConditions = campaignToEdit.termsConditions ?: ""
             startDate = campaignToEdit.startDate
             endDate = campaignToEdit.endDate
             selectedCategoryIds = campaignToEdit.targetCategoryIds.toSet()
@@ -450,6 +468,72 @@ fun CreateCampaignScreen(
             )
 
             Spacer(Modifier.height(16.dp))
+            Text("Banner Image URL (Optional)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = bannerImageUrl,
+                onValueChange = { bannerImageUrl = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("https://...") },
+                singleLine = true,
+                shape = RoundedCornerShape(8.dp)
+            )
+
+            Spacer(Modifier.height(16.dp))
+            Text("Discount Type", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(8.dp))
+            var discountTypeExpanded by remember { mutableStateOf(false) }
+            val discountOptions = listOf("percentage", "flat")
+            ExposedDropdownMenuBox(expanded = discountTypeExpanded, onExpandedChange = { discountTypeExpanded = it }) {
+                OutlinedTextField(
+                    value = discountType ?: "Select type",
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = discountTypeExpanded) },
+                    modifier = Modifier.fillMaxWidth().menuAnchor(),
+                    shape = RoundedCornerShape(8.dp)
+                )
+                ExposedDropdownMenu(expanded = discountTypeExpanded, onDismissRequest = { discountTypeExpanded = false }) {
+                    discountOptions.forEach { opt ->
+                        DropdownMenuItem(text = { Text(opt.replaceFirstChar { it.uppercase() }) }, onClick = { discountType = opt; discountTypeExpanded = false })
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+            Text("Discount Value", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(value = discountValue, onValueChange = { if (it.all { c -> c.isDigit() }) discountValue = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(8.dp))
+
+            Spacer(Modifier.height(16.dp))
+            Text("Min Order Amount", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(value = minOrderAmount, onValueChange = { if (it.all { c -> c.isDigit() }) minOrderAmount = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(8.dp))
+
+            Spacer(Modifier.height(16.dp))
+            Text("Max Discount Amount", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(value = maxDiscountAmount, onValueChange = { if (it.all { c -> c.isDigit() }) maxDiscountAmount = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(8.dp))
+
+            Spacer(Modifier.height(16.dp))
+            Text("Promo Code", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(value = promoCode, onValueChange = { promoCode = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(8.dp))
+
+            Spacer(Modifier.height(16.dp))
+            Text("Promo Code Limit", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(value = promoCodeLimit, onValueChange = { if (it.all { c -> c.isDigit() }) promoCodeLimit = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(8.dp))
+
+            Spacer(Modifier.height(16.dp))
+            Text("Priority", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(value = priority, onValueChange = { if (it.all { c -> c.isDigit() }) priority = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(8.dp))
+
+            Spacer(Modifier.height(16.dp))
+            Text("Terms & Conditions", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(value = termsConditions, onValueChange = { termsConditions = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(8.dp))
             
             Text("Upload Image (Optional)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(8.dp))
@@ -506,7 +590,16 @@ fun CreateCampaignScreen(
                                 targetCategoryIds = targetCategoryIds,
                                 targetFranchiseIds = targetFranchiseIds,
                                 imageUrl = campaignToEdit.imageUrl,
-                                youtubeVideoUrl = youtubeVideoUrl
+                                youtubeVideoUrl = youtubeVideoUrl,
+                                bannerImageUrl = bannerImageUrl.takeIf { it.isNotBlank() },
+                                discountType = discountType,
+                                discountValue = discountValue.toIntOrNull(),
+                                minOrderAmount = minOrderAmount.toIntOrNull(),
+                                maxDiscountAmount = maxDiscountAmount.toIntOrNull(),
+                                promoCode = promoCode.ifBlank { null },
+                                promoCodeLimit = promoCodeLimit.toIntOrNull(),
+                                priority = priority.toIntOrNull(),
+                                termsConditions = termsConditions.ifBlank { null }
                             )
                         )
                     } else {
@@ -519,7 +612,16 @@ fun CreateCampaignScreen(
                                 targetCategoryIds = targetCategoryIds,
                                 targetFranchiseIds = targetFranchiseIds,
                                 imageUrl = null,
-                                youtubeVideoUrl = youtubeVideoUrl
+                                youtubeVideoUrl = youtubeVideoUrl,
+                                bannerImageUrl = bannerImageUrl.takeIf { it.isNotBlank() },
+                                discountType = discountType,
+                                discountValue = discountValue.toIntOrNull(),
+                                minOrderAmount = minOrderAmount.toIntOrNull(),
+                                maxDiscountAmount = maxDiscountAmount.toIntOrNull(),
+                                promoCode = promoCode.ifBlank { null },
+                                promoCodeLimit = promoCodeLimit.toIntOrNull(),
+                                priority = priority.toIntOrNull(),
+                                termsConditions = termsConditions.ifBlank { null }
                             )
                         )
                     }

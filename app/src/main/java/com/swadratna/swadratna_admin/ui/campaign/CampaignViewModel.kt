@@ -82,15 +82,15 @@ class CampaignViewModel @Inject constructor(
                         targetFranchises = event.targetFranchiseIds,
                         targetCategories = event.targetCategoryIds,
                         imageUrl = event.imageUrl,
-                        bannerImageUrl = null,
-                        discountType = null,
-                        discountValue = null,
-                        minOrderAmount = null,
-                        maxDiscountAmount = null,
-                        promoCode = null,
-                        promoCodeLimit = null,
-                        priority = null,
-                        termsConditions = null,
+                        bannerImageUrl = event.bannerImageUrl,
+                        discountType = event.discountType,
+                        discountValue = event.discountValue,
+                        minOrderAmount = event.minOrderAmount,
+                        maxDiscountAmount = event.maxDiscountAmount,
+                        promoCode = event.promoCode,
+                        promoCodeLimit = event.promoCodeLimit,
+                        priority = event.priority,
+                        termsConditions = event.termsConditions,
                         youtubeVideoUrl = event.youtubeVideoUrl
                     )
                     when (val res = repository.adminCreateCampaign(req)) {
@@ -198,7 +198,15 @@ class CampaignViewModel @Inject constructor(
                         targetFranchises = event.targetFranchiseIds,
                         targetCategories = event.targetCategoryIds,
                         imageUrl = event.imageUrl,
-                        discountValue = event.discount,
+                        bannerImageUrl = event.bannerImageUrl,
+                        discountType = event.discountType,
+                        discountValue = event.discountValue ?: event.discount,
+                        minOrderAmount = event.minOrderAmount,
+                        maxDiscountAmount = event.maxDiscountAmount,
+                        promoCode = event.promoCode,
+                        promoCodeLimit = event.promoCodeLimit,
+                        priority = event.priority,
+                        termsConditions = event.termsConditions,
                         youtubeVideoUrl = event.youtubeVideoUrl
                     )
                     viewModelScope.launch {
@@ -386,7 +394,15 @@ class CampaignViewModel @Inject constructor(
             imageUrl = r.imageUrl?.trim()?.trim('`'),
             targetFranchiseIds = r.targetFranchises ?: emptyList(),
             targetCategoryIds = r.targetCategories ?: emptyList(),
-            youtubeVideoUrl = r.youtubeVideoUrl?.trim()?.trim('`')
+            youtubeVideoUrl = r.youtubeVideoUrl?.trim()?.trim('`'),
+            bannerImageUrl = r.bannerImageUrl?.trim()?.trim('`'),
+            discountType = r.discountType?.trim()?.trim('`'),
+            minOrderAmount = r.minOrderAmount,
+            maxDiscountAmount = r.maxDiscountAmount,
+            promoCode = r.promoCode?.trim()?.trim('`'),
+            promoCodeLimit = r.promoCodeLimit,
+            priority = r.priority,
+            termsConditions = r.termsConditions
         )
     }
 
@@ -476,7 +492,16 @@ sealed interface CampaignEvent {
         val targetFranchiseIds: List<Int>,
         val targetCategoryIds: List<Int>,
         val imageUrl: String?,
-        val youtubeVideoUrl: String?
+        val youtubeVideoUrl: String?,
+        val bannerImageUrl: String? = null,
+        val discountType: String? = null,
+        val discountValue: Int? = null,
+        val minOrderAmount: Int? = null,
+        val maxDiscountAmount: Int? = null,
+        val promoCode: String? = null,
+        val promoCodeLimit: Int? = null,
+        val priority: Int? = null,
+        val termsConditions: String? = null
     ) : CampaignEvent
     data class EditCampaign(val campaignId: String) : CampaignEvent
     data class DeleteCampaign(val campaignId: String) : CampaignEvent
@@ -491,7 +516,16 @@ sealed interface CampaignEvent {
         val imageUrl: String?,
         val targetFranchiseIds: List<Int>,
         val targetCategoryIds: List<Int>,
-        val youtubeVideoUrl: String?
+        val youtubeVideoUrl: String?,
+        val bannerImageUrl: String? = null,
+        val discountType: String? = null,
+        val discountValue: Int? = null,
+        val minOrderAmount: Int? = null,
+        val maxDiscountAmount: Int? = null,
+        val promoCode: String? = null,
+        val promoCodeLimit: Int? = null,
+        val priority: Int? = null,
+        val termsConditions: String? = null
     ) : CampaignEvent
     data class UpdateCampaignStatus(val campaignId: String, val status: CampaignStatus) : CampaignEvent
 }
