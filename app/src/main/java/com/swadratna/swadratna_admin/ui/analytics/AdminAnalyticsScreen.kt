@@ -33,24 +33,7 @@ fun AdminAnalyticsScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Analytics Panel") },
-                actions = {
-                    Row(
-                        modifier = Modifier.padding(end = 16.dp)
-                    ) {
-                        IconButton(onClick = { /* TODO */ }) {
-                            Icon(Icons.Default.Notifications, contentDescription = "Notifications")
-                        }
-                        Spacer(Modifier.width(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .align(Alignment.CenterVertically)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                                .clickable {  }
-                        )
-                    }
-                },
+                actions = { },
             )
         },
         contentWindowInsets = WindowInsets(0.dp)
@@ -75,26 +58,19 @@ fun AdminAnalyticsScreen(
                         .padding(paddingValues)
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    StoresDropdown(
-                        selectedFranchise = state.franchiseFilter,
-                        availableFranchises = state.availableFranchises,
-                        onFranchiseChange = { viewModel.setFranchiseFilter(it) }
-                    )
-                    Spacer(Modifier.height(12.dp))
                     CardsGrid(data.cards)
-                    Spacer(Modifier.height(16.dp))
 
-                    Text(
-                        "Sales Performance Comparison",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    LineChartView(
-                        series = data.salesPerformance,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(220.dp)
-                            .padding(top = 8.dp)
-                    )
+//                    Text(
+//                        "Sales Performance Comparison",
+//                        style = MaterialTheme.typography.titleMedium
+//                    )
+//                    LineChartView(
+//                        series = data.salesPerformance,
+//                        modifier = Modifier
+//                            .fillMaxWidth()
+//                            .height(220.dp)
+//                            .padding(top = 8.dp)
+//                    )
 
                     Spacer(Modifier.height(16.dp))
                     Text("Monthly Order Volume", style = MaterialTheme.typography.titleMedium)
@@ -147,45 +123,45 @@ fun AdminAnalyticsScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun StoresDropdown(
-    selectedFranchise: String?,
-    availableFranchises: List<String>,
-    onFranchiseChange: (String?) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val selectedText = selectedFranchise ?: "Select franchise"
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded }
-    ) {
-        OutlinedTextField(
-            value = selectedText,
-            onValueChange = {},
-            readOnly = true,
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .menuAnchor()
-                .fillMaxWidth()
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            availableFranchises.forEach { franchise ->
-                DropdownMenuItem(
-                    text = { Text(franchise) },
-                    onClick = {
-                        onFranchiseChange(franchise)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
-}
+//@OptIn(ExperimentalMaterial3Api::class)
+//@Composable
+//private fun StoresDropdown(
+//    selectedFranchise: String?,
+//    availableFranchises: List<String>,
+//    onFranchiseChange: (String?) -> Unit
+//) {
+//    var expanded by remember { mutableStateOf(false) }
+//    val selectedText = selectedFranchise ?: "Select franchise"
+//
+//    ExposedDropdownMenuBox(
+//        expanded = expanded,
+//        onExpandedChange = { expanded = !expanded }
+//    ) {
+//        OutlinedTextField(
+//            value = selectedText,
+//            onValueChange = {},
+//            readOnly = true,
+//            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+//            modifier = Modifier
+//                .menuAnchor()
+//                .fillMaxWidth()
+//        )
+//        ExposedDropdownMenu(
+//            expanded = expanded,
+//            onDismissRequest = { expanded = false }
+//        ) {
+//            availableFranchises.forEach { franchise ->
+//                DropdownMenuItem(
+//                    text = { Text(franchise) },
+//                    onClick = {
+//                        onFranchiseChange(franchise)
+//                        expanded = false
+//                    }
+//                )
+//            }
+//        }
+//    }
+//}
 
 @Composable
 private fun CardsGrid(cards: Cards) {
@@ -195,14 +171,14 @@ private fun CardsGrid(cards: Cards) {
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             StatCard("Total Sales", cards.totalSales, modifier = Modifier.weight(1f))
-            StatCard("Total ROI", cards.totalRoi, modifier = Modifier.weight(1f))
+//            StatCard("Total ROI", cards.totalRoi, modifier = Modifier.weight(1f))
         }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             StatCard("Customer Acquisition", cards.acquisition, modifier = Modifier.weight(1f))
-            StatCard("Average Order Value", cards.aov, modifier = Modifier.weight(1f))
+//            StatCard("Average Order Value", cards.aov, modifier = Modifier.weight(1f))
         }
     }
 }

@@ -1,9 +1,12 @@
 package com.swadratna.swadratna_admin.ui.analytics
 
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.github.mikephil.charting.animation.Easing
 import com.github.mikephil.charting.charts.BarChart
@@ -24,6 +27,9 @@ import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.swadratna.swadratna_admin.data.model.CategoryShare
 import com.swadratna.swadratna_admin.data.model.MonthVolume
 import com.swadratna.swadratna_admin.data.model.Series
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun LineChartView(
@@ -83,8 +89,14 @@ fun GroupedBarChartView(
             }
         },
         update = { chart ->
-            val dineInEntries = months.mapIndexed { i, m -> BarEntry(i.toFloat(), m.dineIn.toFloat()) }
-            val deliveryEntries = months.mapIndexed { i, m -> BarEntry(i.toFloat(), m.delivery.toFloat()) }
+            val now = LocalDate.now()
+            val fmt = DateTimeFormatter.ofPattern("MMM", Locale.ENGLISH)
+            val lastSixLabels = (0..5).map { offset -> now.minusMonths((5 - offset).toLong()).format(fmt) }
+            val filtered = months.filter { m -> lastSixLabels.contains(m.month) }
+                .sortedBy { lastSixLabels.indexOf(it.month) }
+
+            val dineInEntries = filtered.mapIndexed { i, m -> BarEntry(i.toFloat(), m.dineIn.toFloat()) }
+            val deliveryEntries = filtered.mapIndexed { i, m -> BarEntry(i.toFloat(), m.delivery.toFloat()) }
 
             val ds1 = BarDataSet(dineInEntries, "Dine-In").apply {
                 color = Color(0xFF1565C0).toArgb()
@@ -101,10 +113,12 @@ fun GroupedBarChartView(
             data.barWidth = barWidth
 
             chart.data = data
-            chart.xAxis.valueFormatter = IndexAxisValueFormatter(months.map { it.month })
+            chart.xAxis.valueFormatter = IndexAxisValueFormatter(lastSixLabels)
             chart.xAxis.granularity = 1f
+            chart.xAxis.setCenterAxisLabels(true)
+            val groupWidth = data.getGroupWidth(groupSpace, barSpace)
             chart.xAxis.axisMinimum = 0f
-            chart.xAxis.axisMaximum = months.size.toFloat()
+            chart.xAxis.axisMaximum = 0f + groupWidth * filtered.size
             chart.groupBars(0f, groupSpace, barSpace)
             chart.invalidate()
             chart.animateY(600)
@@ -149,6 +163,7 @@ fun DonutChartView(
                     Color(0xFF2E7D32).toArgb(),
                     Color(0xFFF9A825).toArgb(),
                     Color(0xFF6D4C41).toArgb(),
+                    Color(0xFF653D6E).toArgb(),
                     Color(0xFF78909C).toArgb()
                 )
 

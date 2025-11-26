@@ -120,15 +120,9 @@ fun StatisticsSection(uiState: DashboardUiState) {
         }
         Spacer(modifier = Modifier.height(16.dp))
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(0.5f),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            StatCard(
-                title = "Top Seller",
-                value = uiState.topSeller,
-                change = uiState.topSellerMetric,
-                modifier = Modifier.weight(1f)
-            )
             StatCard(
                 title = "New Users",
                 value = uiState.newUsers.toString(),

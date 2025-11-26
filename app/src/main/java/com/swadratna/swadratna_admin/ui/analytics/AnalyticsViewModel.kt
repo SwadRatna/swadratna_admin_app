@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swadratna.swadratna_admin.data.model.Analytics
 import com.swadratna.swadratna_admin.data.repository.AnalyticsRepository
+import com.swadratna.swadratna_admin.data.repository.StoreRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,7 +15,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class AnalyticsViewModel @Inject constructor(
-    private val repo: AnalyticsRepository
+    private val repo: AnalyticsRepository,
+    private val storeRepository: StoreRepository
 ) : ViewModel() {
 
     data class UiState(
@@ -35,13 +37,28 @@ class AnalyticsViewModel @Inject constructor(
     }
 
     fun setFranchiseFilter(name: String?) {
-        _state.update { it.copy(franchiseFilter = name) }
+        val normalized = name?.takeIf { it.isNotBlank() && it.lowercase() != "all" }
+        _state.update { it.copy(franchiseFilter = normalized) }
         refresh()
     }
 
     private fun loadFranchises() {
-        val franchises = listOf("All", "Franchise A", "Franchise B", "Franchise C")
-        _state.update { it.copy(availableFranchises = franchises) }
+        viewModelScope.launch {
+            runCatching {
+                storeRepository.getStores(page = 1, limit = 100, restaurantId = 1000001)
+            }.onSuccess { result ->
+                result.onSuccess { response ->
+                    val names = response.stores.map { it.name }
+                    val franchises = listOf("All") + names
+                    _state.update { it.copy(availableFranchises = franchises) }
+                }.onFailure { e ->
+                    // Fallback to an empty list (plus All) on failure
+                    _state.update { it.copy(availableFranchises = listOf("All")) }
+                }
+            }.onFailure {
+                _state.update { it.copy(availableFranchises = listOf("All")) }
+            }
+        }
     }
 
     fun refresh() = viewModelScope.launch {
