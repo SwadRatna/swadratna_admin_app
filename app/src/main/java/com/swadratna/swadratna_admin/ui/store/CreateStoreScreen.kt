@@ -51,7 +51,8 @@ fun CreateStoreScreen(
             pincode = storeToEdit.address?.pincode ?: ""
             landmark = storeToEdit.address?.landmark ?: ""
             locationMobileNumber = storeToEdit.locationMobileNumber ?: ""
-            numberOfTables = if (storeToEdit.numberOfTables > 0) storeToEdit.numberOfTables.toString() else ""
+            numberOfTables = storeToEdit.numberOfTables?.toString() ?: ""
+
         } else {
             // Reset form for new store creation
             branchName = ""
