@@ -26,6 +26,7 @@ fun CreateStoreScreen(
         uiState.stores.find { it.id.toString() == id }
     }
     // State variables for form fields based on API structure
+    var branchName by remember { mutableStateOf("") }
     var plotNo by remember { mutableStateOf("") }
     var poBoxNo by remember { mutableStateOf("") }
     var street1 by remember { mutableStateOf("") }
@@ -40,6 +41,7 @@ fun CreateStoreScreen(
     // Update form fields when storeToEdit changes
     LaunchedEffect(storeToEdit) {
         if (storeToEdit != null) {
+            branchName = storeToEdit.name
             plotNo = storeToEdit.address?.plotNo ?: ""
             poBoxNo = storeToEdit.address?.poBoxNo ?: ""
             street1 = storeToEdit.address?.street1 ?: ""
@@ -52,6 +54,7 @@ fun CreateStoreScreen(
             numberOfTables = if (storeToEdit.numberOfTables > 0) storeToEdit.numberOfTables.toString() else ""
         } else {
             // Reset form for new store creation
+            branchName = ""
             plotNo = ""
             poBoxNo = ""
             street1 = ""
@@ -173,6 +176,14 @@ fun CreateStoreScreen(
                 modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
             )
             
+            OutlinedTextField(
+                value = branchName,
+                onValueChange = { branchName = it },
+                label = { Text("Branch Name *") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
             // Location Mobile Number Field
             OutlinedTextField(
                 value = locationMobileNumber,
@@ -216,7 +227,7 @@ fun CreateStoreScreen(
                 onClick = {
                     val tablesCount = numberOfTables.toIntOrNull()
                     
-                    if (street1.isBlank() || locality.isBlank() || city.isBlank() || 
+                    if (branchName.isBlank() || street1.isBlank() || locality.isBlank() || city.isBlank() || 
                         pincode.isBlank() || locationMobileNumber.isBlank() || tablesCount == null) {
                         // Show validation error
                         return@Button
@@ -227,6 +238,7 @@ fun CreateStoreScreen(
                         viewModel.onEvent(
                             StoreEvent.UpdateStore(
                                 storeId = storeToEdit.id,
+                                name = branchName,
                                 plotNo = plotNo,
                                 poBoxNo = poBoxNo,
                                 street1 = street1,
@@ -243,6 +255,7 @@ fun CreateStoreScreen(
                         // Create new store
                         viewModel.onEvent(
                             StoreEvent.CreateStore(
+                                name = branchName,
                                 plotNo = plotNo,
                                 poBoxNo = poBoxNo,
                                 street1 = street1,
@@ -263,7 +276,7 @@ fun CreateStoreScreen(
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !uiState.isLoading && street1.isNotBlank() && locality.isNotBlank() && 
+                enabled = !uiState.isLoading && branchName.isNotBlank() && street1.isNotBlank() && locality.isNotBlank() && 
                          city.isNotBlank() && pincode.isNotBlank() && locationMobileNumber.isNotBlank() && 
                          numberOfTables.toIntOrNull() != null
             ) {

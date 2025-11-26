@@ -6,7 +6,7 @@ import java.time.format.DateTimeFormatter
 
 data class Store(
     val id: Int,
-    @SerializedName("restaurant_name") val name: String,
+    @SerializedName(value = "name") val name: String,
     val address: StoreAddress,
     @SerializedName("restaurant_id") val restaurantId: Int,
     @SerializedName("tenant_id") val tenantId: Int,
