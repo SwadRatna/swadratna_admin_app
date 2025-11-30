@@ -156,4 +156,14 @@ object NetworkModule {
     @Singleton
     fun provideAssetApi(retrofit: Retrofit): AssetApi =
         retrofit.create(AssetApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideSalesApi(retrofit: Retrofit): com.swadratna.swadratna_admin.data.remote.api.SalesApi =
+        retrofit.create(com.swadratna.swadratna_admin.data.remote.api.SalesApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideSalesRepository(api: com.swadratna.swadratna_admin.data.remote.api.SalesApi): com.swadratna.swadratna_admin.data.repository.SalesRepository =
+        com.swadratna.swadratna_admin.data.repository.SalesRepositoryImpl(api)
 }

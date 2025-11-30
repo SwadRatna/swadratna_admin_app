@@ -22,15 +22,31 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.swadratna.swadratna_admin.R
+import com.swadratna.swadratna_admin.data.model.SaleDto
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SaleListScreen(
     onNavigateBack: () -> Unit,
     onNavigateToNewSale: () -> Unit = {},
-    onNavigateToVisualize: () -> Unit = {}
+    onNavigateToVisualize: () -> Unit = {},
+    viewModel: SalesViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
+    // Helper to format date for API
+    val apiDateFormatter = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+
+    // Initial fetch
+    LaunchedEffect(Unit) {
+        viewModel.fetchSales()
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -103,38 +119,101 @@ fun SaleListScreen(
                 .background(Color(0xFFF5F5F5))
         ) {
             // Filter Section
-            FilterSection()
+            FilterSection(
+                onFilterChanged = { date, fromDate, toDate ->
+                    viewModel.fetchSales(
+                        date = date?.let { apiDateFormatter.format(it) },
+                        fromDate = fromDate?.let { apiDateFormatter.format(it) },
+                        toDate = toDate?.let { apiDateFormatter.format(it) }
+                    )
+                }
+            )
 
-            // Summary Section
-            SummarySection()
+            if (uiState.isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (uiState.error != null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Error: ${uiState.error}", color = Color.Red)
+                }
+            } else {
+                // Summary Section
+                SummarySection(
+                    totalAmount = uiState.salesResponse?.summary?.totalAmount ?: 0.0,
+                    totalCount = uiState.salesResponse?.summary?.count ?: 0
+                )
 
-            // Sales List
-            SaleList()
+                // Sales List
+                SaleList(
+                    sales = uiState.salesResponse?.sales ?: emptyList()
+                )
+            }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FilterSection() {
+fun FilterSection(
+    onFilterChanged: (Date?, Date?, Date?) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var selectedFilter by remember { mutableStateOf("Today") }
+    val filters = listOf("Today", "Yesterday", "This Week", "This Month")
+
+    // Date pickers state
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
+    
+    // Initial dates (mocked as today for now)
+    var startDateMillis by remember { mutableStateOf(System.currentTimeMillis()) }
+    var endDateMillis by remember { mutableStateOf(System.currentTimeMillis()) }
+
+    val dateFormatter = remember { SimpleDateFormat("dd/MM/yy", Locale.getDefault()) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.White)
             .padding(16.dp)
     ) {
-        // Dropdown (Mocked)
-        OutlinedButton(
-            onClick = { /* TODO */ },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Row(
+        // Dropdown
+        Box(modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(
+                onClick = { expanded = true },
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                shape = RoundedCornerShape(8.dp)
             ) {
-                Text("Today", color = Color.Black)
-                Icon(painter = painterResource(android.R.drawable.arrow_down_float), contentDescription = null, tint = Color.Black)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(selectedFilter, color = Color.Black)
+                    Icon(
+                        painter = painterResource(android.R.drawable.arrow_down_float),
+                        contentDescription = null,
+                        tint = Color.Black
+                    )
+                }
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                filters.forEach { filter ->
+                    DropdownMenuItem(
+                        text = { Text(filter) },
+                        onClick = {
+                            selectedFilter = filter
+                            expanded = false
+                            // Logic to update dates based on filter can be added here
+                            // For now, just triggering a basic reload logic if needed
+                        }
+                    )
+                }
             }
         }
 
@@ -144,34 +223,87 @@ fun FilterSection() {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // Start Date Button
             OutlinedButton(
-                onClick = { /* TODO */ },
+                onClick = { showStartDatePicker = true },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("24/11/25", color = Color.Black)
+                    Text(dateFormatter.format(Date(startDateMillis)), color = Color.Black)
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Black)
                 }
             }
+
+            // End Date Button
             OutlinedButton(
-                onClick = { /* TODO */ },
+                onClick = { showEndDatePicker = true },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("24/11/25", color = Color.Black)
+                    Text(dateFormatter.format(Date(endDateMillis)), color = Color.Black)
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(painter = painterResource(android.R.drawable.arrow_down_float), contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Black)
                 }
             }
         }
     }
+
+    if (showStartDatePicker) {
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = startDateMillis)
+        DatePickerDialog(
+            onDismissRequest = { showStartDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { 
+                        startDateMillis = it
+                        onFilterChanged(null, Date(startDateMillis), Date(endDateMillis))
+                    }
+                    showStartDatePicker = false
+                }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStartDatePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (showEndDatePicker) {
+        val datePickerState = rememberDatePickerState(initialSelectedDateMillis = endDateMillis)
+        DatePickerDialog(
+            onDismissRequest = { showEndDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { 
+                        endDateMillis = it 
+                        onFilterChanged(null, Date(startDateMillis), Date(endDateMillis))
+                    }
+                    showEndDatePicker = false
+                }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEndDatePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
 }
 
 @Composable
-fun SummarySection() {
+fun SummarySection(totalAmount: Double, totalCount: Int) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -187,7 +319,7 @@ fun SummarySection() {
         ) {
             Column(modifier = Modifier.padding(8.dp)) {
                 Text("Amount", style = MaterialTheme.typography.bodySmall)
-                Text("₹ 11200", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("₹ $totalAmount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
         }
         Card(
@@ -199,7 +331,7 @@ fun SummarySection() {
         ) {
             Column(modifier = Modifier.padding(8.dp)) {
                 Text("Count", style = MaterialTheme.typography.bodySmall)
-                Text("64", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("$totalCount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
         }
         Box(
@@ -214,40 +346,36 @@ fun SummarySection() {
     }
 }
 
-data class SaleItemData(
-    val title: String,
-    val orderId: String,
-    val date: String,
-    val amount: String,
-    val status: String,
-    val editedBy: String,
-    val isPaid: Boolean = true
-)
+
 
 @Composable
-fun SaleList() {
-    val mockData = listOf(
-        SaleItemData("Parcal 1", "6912", "24/11/25", "₹ 140", "Paid", "Edited by Sundar kumar on 24/11/25 08:25 PM"),
-        SaleItemData("Table No.4", "6911", "24/11/25", "₹ 40", "Paid", "Edited by Sundar kumar on 24/11/25 08:06 PM"),
-        SaleItemData("Table No.2", "6910", "24/11/25", "₹ 80", "Paid", "Edited by Sundar kumar on 24/11/25 08:08 PM"),
-        SaleItemData("Table No.7", "6909", "24/11/25", "₹ 30", "Paid", "Edited by Admin on 24/11/25 07:40 PM"),
-        SaleItemData("Table No.1", "6911", "24/11/25", "₹ 140", "Paid", "Edited by Sundar kumar on 24/11/25 08:02 PM"),
-        SaleItemData("Table No.5", "6910", "24/11/25", "₹ 60", "Paid", "Edited by Sundar kumar on 24/11/25 07:24 PM"),
-        SaleItemData("Table No.9", "6909", "24/11/25", "₹ 20", "Paid", "Edited by Sundar kumar on 24/11/25 07:24 PM"),
-    )
-
+fun SaleList(sales: List<SaleDto>) {
     LazyColumn(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(mockData) { item ->
+        items(sales) { item ->
             SaleItemRow(item)
         }
     }
 }
 
 @Composable
-fun SaleItemRow(item: SaleItemData) {
+fun SaleItemRow(item: SaleDto) {
+    // Date parsing
+    val displayDate = remember(item.createdAt) {
+        try {
+            // Adjust format to handle the Z literal or timezone if needed. 
+            // "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" matches the input literal 'Z'
+            val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+            val date = item.createdAt?.let { parser.parse(it) }
+            val formatter = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
+            date?.let { formatter.format(it) } ?: item.createdAt ?: ""
+        } catch (e: Exception) {
+            item.createdAt ?: ""
+        }
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -260,12 +388,12 @@ fun SaleItemRow(item: SaleItemData) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = item.title,
+                    text = item.billNumber ?: "Unknown",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "${item.orderId} | ${item.date}",
+                    text = "${item.paymentMode?.uppercase() ?: ""} | $displayDate",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Gray
                 )
@@ -277,15 +405,15 @@ fun SaleItemRow(item: SaleItemData) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "${item.amount} | ${item.status}",
+                    text = "₹ ${item.amount ?: 0.0} | ${item.status?.uppercase() ?: ""}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF4CAF50), // Green
+                    color = if (item.status == "paid") Color(0xFF4CAF50) else Color.Red,
                     fontWeight = FontWeight.Bold
                 )
                  Icon(
-                    painter = painterResource(android.R.drawable.checkbox_on_background), // Placeholder check
+                    painter = painterResource(android.R.drawable.checkbox_on_background),
                     contentDescription = null,
-                    tint = Color(0xFF4CAF50),
+                    tint = if (item.status == "paid") Color(0xFF4CAF50) else Color.Gray,
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -296,7 +424,7 @@ fun SaleItemRow(item: SaleItemData) {
                 verticalAlignment = Alignment.Bottom
             ) {
                 Text(
-                    text = item.editedBy,
+                    text = if (!item.editedBy.isNullOrEmpty()) "Edited by: ${item.editedBy}" else "",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray,
                     fontSize = 10.sp,
