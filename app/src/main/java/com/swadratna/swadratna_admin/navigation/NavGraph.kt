@@ -29,6 +29,7 @@ import com.swadratna.swadratna_admin.ui.menu.MenuManagementScreen
 import com.swadratna.swadratna_admin.ui.menu.MenuManagementViewModel
 import com.swadratna.swadratna_admin.ui.menu.MenuScreen
 import com.swadratna.swadratna_admin.ui.menu.MenuViewModel
+import com.swadratna.swadratna_admin.ui.sales.SaleListScreen
 import com.swadratna.swadratna_admin.ui.screens.LoginScreen
 import com.swadratna.swadratna_admin.ui.settings.SettingsScreen
 import com.swadratna.swadratna_admin.ui.staff.AddStaffScreen
@@ -102,6 +103,9 @@ fun NavGraph(
                 },
                 onNavigateToAllStaffManagement = {
                     navController.navigate(NavRoute.AllStaffManagement.route)
+                },
+                onNavigateToSaleList = {
+                    navController.navigate(NavRoute.SaleList.route)
                 }
             )
         }
@@ -490,6 +494,12 @@ fun NavGraph(
                 onNavigateToEditStaff = { staffId, storeId ->
                     navController.navigate(NavRoute.EditStaff.createRoute(staffId, storeId))
                 }
+            )
+        }
+
+        composable(NavRoute.SaleList.route) {
+            SaleListScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
     }

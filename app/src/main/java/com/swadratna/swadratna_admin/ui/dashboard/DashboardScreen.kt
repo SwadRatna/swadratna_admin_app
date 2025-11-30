@@ -29,7 +29,8 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel(),
     onNavigateToSettings: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
-    onNavigateToAllStaffManagement: () -> Unit = {}
+    onNavigateToAllStaffManagement: () -> Unit = {},
+    onNavigateToSaleList: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -87,7 +88,7 @@ fun DashboardScreen(
                         .padding(paddingValues),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    item { StatisticsSection(uiState) }
+                    item { StatisticsSection(uiState, onNavigateToSaleList) }
                     item { RecentActivitySection(uiState.recentActivities, onNavigateToNotifications) }
                     item { TopPerformingStoreSection(uiState.topStore) }
                 }
@@ -99,7 +100,7 @@ fun DashboardScreen(
 
 
 @Composable
-fun StatisticsSection(uiState: DashboardUiState) {
+fun StatisticsSection(uiState: DashboardUiState, onNavigateToSaleList: () -> Unit) {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -120,7 +121,7 @@ fun StatisticsSection(uiState: DashboardUiState) {
         }
         Spacer(modifier = Modifier.height(16.dp))
         Row(
-            modifier = Modifier.fillMaxWidth(0.5f),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             StatCard(
@@ -128,6 +129,14 @@ fun StatisticsSection(uiState: DashboardUiState) {
                 value = uiState.newUsers.toString(),
                 change = uiState.newUsersChange,
                 modifier = Modifier.weight(1f)
+            )
+            StatCard(
+                title = "Total Sales",
+                value = uiState.totalSales,
+                change = uiState.salesChange,
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onNavigateToSaleList() }
             )
         }
     }
