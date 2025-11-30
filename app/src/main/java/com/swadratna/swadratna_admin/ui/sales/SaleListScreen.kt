@@ -1,5 +1,6 @@
 package com.swadratna.swadratna_admin.ui.sales
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -40,7 +41,7 @@ fun SaleListScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     // Helper to format date for API
-    val apiDateFormatter = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+    val apiDateFormatter = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US) }
 
     // Initial fetch
     LaunchedEffect(Unit) {
@@ -84,33 +85,7 @@ fun SaleListScreen(
                 )
             )
         },
-        bottomBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Button(
-                    onClick = onNavigateToVisualize,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Text("VISUALIZE")
-                }
-                Button(
-                    onClick = onNavigateToNewSale,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Text("NEW SALE")
-                }
-            }
-        }
+        bottomBar = { }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -120,11 +95,19 @@ fun SaleListScreen(
         ) {
             // Filter Section
             FilterSection(
-                onFilterChanged = { date, fromDate, toDate ->
+                onFilterChanged = { date, fromDate, toDate, locationId ->
+                    val adjustedToDate = toDate?.let {
+                        val c = java.util.Calendar.getInstance()
+                        c.time = it
+                        c.add(java.util.Calendar.DAY_OF_MONTH, 1)
+                        c.time
+                    }
+
                     viewModel.fetchSales(
                         date = date?.let { apiDateFormatter.format(it) },
                         fromDate = fromDate?.let { apiDateFormatter.format(it) },
-                        toDate = toDate?.let { apiDateFormatter.format(it) }
+                        toDate = adjustedToDate?.let { apiDateFormatter.format(it) },
+                        locationIds = locationId
                     )
                 }
             )
@@ -156,11 +139,17 @@ fun SaleListScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilterSection(
-    onFilterChanged: (Date?, Date?, Date?) -> Unit
+    onFilterChanged: (Date?, Date?, Date?, String?) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     var selectedFilter by remember { mutableStateOf("Today") }
-    val filters = listOf("Today", "Yesterday", "This Week", "This Month")
+    val filters = listOf("Today", "Yesterday", "This Week", "This Month", "Custom")
+
+    // Store/Location State
+    var storeExpanded by remember { mutableStateOf(false) }
+    val locations = listOf("Swad Ratna" to "1000003", "All Locations" to null)
+    var selectedLocationName by remember { mutableStateOf(locations[0].first) }
+    var selectedLocationId by remember { mutableStateOf(locations[0].second) }
 
     // Date pickers state
     var showStartDatePicker by remember { mutableStateOf(false) }
@@ -178,41 +167,128 @@ fun FilterSection(
             .background(Color.White)
             .padding(16.dp)
     ) {
-        // Dropdown
-        Box(modifier = Modifier.fillMaxWidth()) {
-            OutlinedButton(
-                onClick = { expanded = true },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Row(
+        // Top Row: Date Filter Dropdown | Store Dropdown
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Date Filter Dropdown
+            Box(modifier = Modifier.weight(1f)) {
+                OutlinedButton(
+                    onClick = { expanded = true },
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
                 ) {
-                    Text(selectedFilter, color = Color.Black)
-                    Icon(
-                        painter = painterResource(android.R.drawable.arrow_down_float),
-                        contentDescription = null,
-                        tint = Color.Black
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(selectedFilter, color = Color.Black, maxLines = 1)
+                        Icon(
+                            painter = painterResource(android.R.drawable.arrow_down_float),
+                            contentDescription = null,
+                            tint = Color.Black
+                        )
+                    }
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.fillMaxWidth(0.5f)
+                ) {
+                    filters.forEach { filter ->
+                        DropdownMenuItem(
+                            text = { Text(filter) },
+                            onClick = {
+                                selectedFilter = filter
+                                expanded = false
+                                
+                                val calendar = java.util.Calendar.getInstance()
+                                val today = System.currentTimeMillis()
+                                
+                                when (filter) {
+                                    "Today" -> {
+                                        startDateMillis = today
+                                        endDateMillis = today
+                                        onFilterChanged(null, Date(startDateMillis), Date(endDateMillis), selectedLocationId)
+                                    }
+                                    "Yesterday" -> {
+                                        calendar.add(java.util.Calendar.DAY_OF_YEAR, -1)
+                                        startDateMillis = calendar.timeInMillis
+                                        endDateMillis = calendar.timeInMillis
+                                        onFilterChanged(null, Date(startDateMillis), Date(endDateMillis), selectedLocationId)
+                                    }
+                                    "This Week" -> {
+                                        val dayOfWeek = calendar.get(java.util.Calendar.DAY_OF_WEEK)
+                                        val daysFromSunday = dayOfWeek - java.util.Calendar.SUNDAY
+                                        val daysToSubtract = if (daysFromSunday < 0) daysFromSunday + 7 else daysFromSunday
+                                        calendar.add(java.util.Calendar.DAY_OF_YEAR, -daysToSubtract)
+                                        
+                                        startDateMillis = calendar.timeInMillis
+                                        endDateMillis = today
+                                        onFilterChanged(null, Date(startDateMillis), null, selectedLocationId)
+                                    }
+                                    "This Month" -> {
+                                        calendar.set(java.util.Calendar.DAY_OF_MONTH, 1)
+                                        startDateMillis = calendar.timeInMillis
+                                        endDateMillis = today
+                                        onFilterChanged(null, Date(startDateMillis), null, selectedLocationId)
+                                    }
+                                    "Custom" -> {
+                                        // No fetch
+                                    }
+                                }
+                            }
+                        )
+                    }
                 }
             }
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                filters.forEach { filter ->
-                    DropdownMenuItem(
-                        text = { Text(filter) },
-                        onClick = {
-                            selectedFilter = filter
-                            expanded = false
-                            // Logic to update dates based on filter can be added here
-                            // For now, just triggering a basic reload logic if needed
-                        }
-                    )
+
+            // Store Dropdown
+            Box(modifier = Modifier.weight(1f)) {
+                OutlinedButton(
+                    onClick = { storeExpanded = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(selectedLocationName, color = Color.Black, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        Icon(
+                            painter = painterResource(android.R.drawable.arrow_down_float),
+                            contentDescription = null,
+                            tint = Color.Black
+                        )
+                    }
+                }
+                DropdownMenu(
+                    expanded = storeExpanded,
+                    onDismissRequest = { storeExpanded = false }
+                ) {
+                    locations.forEach { (name, id) ->
+                        DropdownMenuItem(
+                            text = { Text(name) },
+                            onClick = {
+                                selectedLocationName = name
+                                selectedLocationId = id
+                                storeExpanded = false
+                                // Trigger fetch with new location and current dates
+                                if (selectedFilter == "This Week" || selectedFilter == "This Month") {
+                                     onFilterChanged(null, Date(startDateMillis), null, selectedLocationId)
+                                } else if (selectedFilter == "Custom") {
+                                     onFilterChanged(null, Date(startDateMillis), Date(endDateMillis), selectedLocationId)
+                                } else {
+                                     onFilterChanged(null, Date(startDateMillis), Date(endDateMillis), selectedLocationId)
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -226,26 +302,36 @@ fun FilterSection(
             // Start Date Button
             OutlinedButton(
                 onClick = { showStartDatePicker = true },
+                enabled = selectedFilter == "Custom",
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = if (selectedFilter == "Custom") Color.Black else Color.Gray,
+                    disabledContentColor = Color.Gray
+                )
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(dateFormatter.format(Date(startDateMillis)), color = Color.Black)
+                    Text(dateFormatter.format(Date(startDateMillis)))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Black)
+                    Icon(Icons.Default.DateRange, contentDescription = null, modifier = Modifier.size(16.dp))
                 }
             }
 
             // End Date Button
             OutlinedButton(
                 onClick = { showEndDatePicker = true },
+                enabled = selectedFilter == "Custom",
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = if (selectedFilter == "Custom") Color.Black else Color.Gray,
+                    disabledContentColor = Color.Gray
+                )
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(dateFormatter.format(Date(endDateMillis)), color = Color.Black)
+                    Text(dateFormatter.format(Date(endDateMillis)))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Icon(painter = painterResource(android.R.drawable.arrow_down_float), contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Black)
+                    Icon(painter = painterResource(android.R.drawable.arrow_down_float), contentDescription = null, modifier = Modifier.size(16.dp))
                 }
             }
         }
@@ -259,7 +345,7 @@ fun FilterSection(
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { 
                         startDateMillis = it
-                        onFilterChanged(null, Date(startDateMillis), Date(endDateMillis))
+                        onFilterChanged(null, Date(startDateMillis), Date(endDateMillis), selectedLocationId)
                     }
                     showStartDatePicker = false
                 }) {
@@ -284,7 +370,7 @@ fun FilterSection(
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { 
                         endDateMillis = it 
-                        onFilterChanged(null, Date(startDateMillis), Date(endDateMillis))
+                        onFilterChanged(null, Date(startDateMillis), Date(endDateMillis), selectedLocationId)
                     }
                     showEndDatePicker = false
                 }) {

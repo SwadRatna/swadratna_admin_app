@@ -30,7 +30,7 @@ class SalesViewModel @Inject constructor(
         date: String? = null,
         fromDate: String? = null,
         toDate: String? = null,
-        locationIds: String? = "1000003" // Default from curl
+        locationIds: String? = "1000003"
     ) {
         viewModelScope.launch {
             repository.getSales(date, fromDate, toDate, locationIds).collect { result ->
