@@ -45,7 +45,7 @@ class StaffManagementViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingStores = true, storesError = null) }
             try {
-                val result = storeRepository.getStores(page = 1, limit = 100, restaurantId = 1000001)
+                val result = storeRepository.getStores(page = 1, limit = 100, restaurantId = 1000007)
                 result.onSuccess { response ->
                     val stores = response.stores ?: emptyList()
                     _uiState.update { 

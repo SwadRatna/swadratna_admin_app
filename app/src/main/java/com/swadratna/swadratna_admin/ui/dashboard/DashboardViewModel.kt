@@ -128,7 +128,7 @@ class DashboardViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val restaurantId = 1000001
+            val restaurantId = 1000007
             val result = storeRepository.getStores(page = 1, limit = 1000, restaurantId = restaurantId)
             result.onSuccess { resp ->
                 val activeCount = resp.stores.count { it.status.equals("active", ignoreCase = true) }

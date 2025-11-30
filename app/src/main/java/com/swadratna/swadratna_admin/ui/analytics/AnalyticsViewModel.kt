@@ -45,7 +45,7 @@ class AnalyticsViewModel @Inject constructor(
     private fun loadFranchises() {
         viewModelScope.launch {
             runCatching {
-                storeRepository.getStores(page = 1, limit = 100, restaurantId = 1000001)
+                storeRepository.getStores(page = 1, limit = 100, restaurantId = 1000007)
             }.onSuccess { result ->
                 result.onSuccess { response ->
                     val names = response.stores.map { it.name }

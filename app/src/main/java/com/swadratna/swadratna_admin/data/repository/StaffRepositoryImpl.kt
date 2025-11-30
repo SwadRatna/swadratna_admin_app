@@ -53,7 +53,7 @@ class StaffRepositoryImpl @Inject constructor(
             }
 
             // Then fetch staff from each store
-            val storesResult = storeRepository.getStores(page = 1, limit = 1000, restaurantId = 1000001)
+            val storesResult = storeRepository.getStores(page = 1, limit = 1000, restaurantId = 1000007)
             if (storesResult.isSuccess) {
                 val stores = storesResult.getOrThrow().stores
                 for (store in stores) {

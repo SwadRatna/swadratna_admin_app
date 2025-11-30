@@ -46,7 +46,7 @@ class AllStaffViewModel @Inject constructor(
                 }
                 
                 // Also fetch staff from specific stores to ensure we have complete coverage
-                val storesResult = storeRepository.getStores(page = 1, limit = 1000, restaurantId = 1000001)
+                val storesResult = storeRepository.getStores(page = 1, limit = 1000, restaurantId = 1000007)
                 
                 storesResult.onSuccess { storeResponse ->
                     // Fetch staff for each store

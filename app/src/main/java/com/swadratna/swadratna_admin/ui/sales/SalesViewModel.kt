@@ -37,7 +37,7 @@ class SalesViewModel @Inject constructor(
     private fun fetchStores() {
         viewModelScope.launch {
             try {
-                val result = storeRepository.getStores(page = 1, limit = 100, restaurantId = 1000001)
+                val result = storeRepository.getStores(page = 1, limit = 100, restaurantId = 1000007)
                 result.onSuccess { response ->
                     _uiState.value = _uiState.value.copy(stores = response.stores)
                 }
