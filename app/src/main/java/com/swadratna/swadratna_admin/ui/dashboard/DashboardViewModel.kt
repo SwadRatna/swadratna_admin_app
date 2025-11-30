@@ -106,7 +106,7 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             when (val res = campaignRepository.adminListCampaigns(status = null, type = null, search = null, page = null, limit = 1000)) {
                 is Result.Success -> {
-                    val count = res.data.campaigns.size
+                    val count = res.data.campaigns?.size ?: 0
                     val prev = sharedPrefsManager.getPrevTotalCampaigns()
                     val percentText = if (prev == null) {
                         sharedPrefsManager.savePrevTotalCampaigns(count)
