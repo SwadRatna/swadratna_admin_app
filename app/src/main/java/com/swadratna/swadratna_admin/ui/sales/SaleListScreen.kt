@@ -1,11 +1,21 @@
 package com.swadratna.swadratna_admin.ui.sales
 
-import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,8 +24,32 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -24,8 +58,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.swadratna.swadratna_admin.R
 import com.swadratna.swadratna_admin.data.model.SaleDto
+import com.swadratna.swadratna_admin.data.model.Store
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -34,18 +68,15 @@ import java.util.Locale
 @Composable
 fun SaleListScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToNewSale: () -> Unit = {},
-    onNavigateToVisualize: () -> Unit = {},
     viewModel: SalesViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // Helper to format date for API
     val apiDateFormatter = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US) }
 
-    // Initial fetch
     LaunchedEffect(Unit) {
-        viewModel.fetchSales()
+        val today = java.util.Date()
+        viewModel.fetchSales(date = apiDateFormatter.format(today))
     }
 
     Scaffold(
@@ -57,12 +88,6 @@ fun SaleListScreen(
                             text = "Sale List",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "FAST v39.0 | 7906897228 | 1913",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontSize = 10.sp,
-                            color = Color.White.copy(alpha = 0.7f)
                         )
                     }
                 },
@@ -95,6 +120,7 @@ fun SaleListScreen(
         ) {
             // Filter Section
             FilterSection(
+                stores = uiState.stores,
                 onFilterChanged = { date, fromDate, toDate, locationId ->
                     val adjustedToDate = toDate?.let {
                         val c = java.util.Calendar.getInstance()
@@ -121,13 +147,11 @@ fun SaleListScreen(
                     Text("Error: ${uiState.error}", color = Color.Red)
                 }
             } else {
-                // Summary Section
                 SummarySection(
                     totalAmount = uiState.salesResponse?.summary?.totalAmount ?: 0.0,
                     totalCount = uiState.salesResponse?.summary?.count ?: 0
                 )
 
-                // Sales List
                 SaleList(
                     sales = uiState.salesResponse?.sales ?: emptyList()
                 )
@@ -139,23 +163,37 @@ fun SaleListScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilterSection(
+    stores: List<Store>,
     onFilterChanged: (Date?, Date?, Date?, String?) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     var selectedFilter by remember { mutableStateOf("Today") }
     val filters = listOf("Today", "Yesterday", "This Week", "This Month", "Custom")
 
-    // Store/Location State
     var storeExpanded by remember { mutableStateOf(false) }
-    val locations = listOf("Swad Ratna" to "1000003", "All Locations" to null)
-    var selectedLocationName by remember { mutableStateOf(locations[0].first) }
-    var selectedLocationId by remember { mutableStateOf(locations[0].second) }
+    
+    val locations = remember(stores) {
+        val list = mutableListOf<Pair<String, String?>>()
+        list.add("All Locations" to null)
+        list.addAll(stores.map { it.name to it.id.toString() })
+        list
+    }
+    
+    var selectedLocationName by remember { mutableStateOf("All Locations") }
+    var selectedLocationId by remember { mutableStateOf<String?>(null) }
 
-    // Date pickers state
+    LaunchedEffect(stores) {
+        if (selectedLocationId == null && selectedLocationName == "All Locations") {
+             val defaultStore = stores.find { it.id == 1000003 }
+             if (defaultStore != null) {
+                 selectedLocationName = defaultStore.name
+                 selectedLocationId = defaultStore.id.toString()
+             }
+        }
+    }
+
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
-    
-    // Initial dates (mocked as today for now)
     var startDateMillis by remember { mutableStateOf(System.currentTimeMillis()) }
     var endDateMillis by remember { mutableStateOf(System.currentTimeMillis()) }
 
@@ -167,12 +205,10 @@ fun FilterSection(
             .background(Color.White)
             .padding(16.dp)
     ) {
-        // Top Row: Date Filter Dropdown | Store Dropdown
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Date Filter Dropdown
             Box(modifier = Modifier.weight(1f)) {
                 OutlinedButton(
                     onClick = { expanded = true },
@@ -299,7 +335,6 @@ fun FilterSection(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Start Date Button
             OutlinedButton(
                 onClick = { showStartDatePicker = true },
                 enabled = selectedFilter == "Custom",

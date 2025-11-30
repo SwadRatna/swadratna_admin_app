@@ -132,8 +132,8 @@ fun StatisticsSection(uiState: DashboardUiState, onNavigateToSaleList: () -> Uni
             )
             StatCard(
                 title = "Total Sales",
-                value = "11200",
-                change = "+5%",
+                value = uiState.totalSales,
+                change = uiState.salesChange,
                 modifier = Modifier
                     .weight(1f)
                     .clickable { onNavigateToSaleList() }

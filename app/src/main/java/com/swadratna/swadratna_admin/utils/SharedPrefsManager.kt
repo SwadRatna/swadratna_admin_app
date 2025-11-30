@@ -125,5 +125,34 @@ class SharedPrefsManager @Inject constructor(
         // Baseline keys to persist previous dashboard totals
         private const val KEY_PREV_TOTAL_CAMPAIGNS = "prev_total_campaigns"
         private const val KEY_PREV_ACTIVE_STORES = "prev_active_stores"
+        
+        // Sales tracking keys
+        private const val KEY_BASELINE_SALES = "baseline_sales"
+        private const val KEY_LAST_RECORDED_SALES = "last_recorded_sales"
+        private const val KEY_LAST_RECORDED_DATE = "last_recorded_date"
+    }
+
+    fun saveSalesBaseline(amount: Double) {
+        sharedPreferences.edit { putString(KEY_BASELINE_SALES, amount.toString()) }
+    }
+
+    fun getSalesBaseline(): Double {
+        return sharedPreferences.getString(KEY_BASELINE_SALES, "0.0")?.toDoubleOrNull() ?: 0.0
+    }
+
+    fun saveLastRecordedSales(amount: Double) {
+        sharedPreferences.edit { putString(KEY_LAST_RECORDED_SALES, amount.toString()) }
+    }
+
+    fun getLastRecordedSales(): Double {
+        return sharedPreferences.getString(KEY_LAST_RECORDED_SALES, "0.0")?.toDoubleOrNull() ?: 0.0
+    }
+
+    fun saveLastRecordedDate(date: String) {
+        sharedPreferences.edit { putString(KEY_LAST_RECORDED_DATE, date) }
+    }
+
+    fun getLastRecordedDate(): String? {
+        return sharedPreferences.getString(KEY_LAST_RECORDED_DATE, null)
     }
 }

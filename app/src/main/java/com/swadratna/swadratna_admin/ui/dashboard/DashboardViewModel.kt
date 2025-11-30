@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.swadratna.swadratna_admin.data.repository.ActivityRepository
 import com.swadratna.swadratna_admin.data.repository.CampaignRepository
 import com.swadratna.swadratna_admin.data.repository.DashboardRepository
+import com.swadratna.swadratna_admin.data.repository.SalesRepository
 import com.swadratna.swadratna_admin.data.repository.StoreRepository
 import com.swadratna.swadratna_admin.data.wrapper.Result
 import com.swadratna.swadratna_admin.utils.SharedPrefsManager
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.onSuccess
 
 @HiltViewModel
 @RequiresApi(Build.VERSION_CODES.O)
@@ -26,6 +28,7 @@ class DashboardViewModel @Inject constructor(
     private val activityRepository: ActivityRepository,
     private val campaignRepository: CampaignRepository,
     private val storeRepository: StoreRepository,
+    private val salesRepository: SalesRepository,
     private val sharedPrefsManager: SharedPrefsManager
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -33,6 +36,51 @@ class DashboardViewModel @Inject constructor(
 
     init {
         loadDashboardData()
+        fetchSalesData()
+    }
+
+    private fun fetchSalesData() {
+        viewModelScope.launch {
+            val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+            salesRepository.getSales(date = today, fromDate = null, toDate = null, locationIds = null).collect { result ->
+                if (result is Result.Success) {
+                    val response = result.data
+                    val total = response.summary?.totalAmount ?: 0.0
+                    
+                    // Sales change logic
+                    val lastDate = sharedPrefsManager.getLastRecordedDate()
+                    val lastRecordedSales = sharedPrefsManager.getLastRecordedSales()
+                    var baselineSales = sharedPrefsManager.getSalesBaseline()
+
+                    // If date has changed since last record, promote last sales to baseline
+                    if (lastDate != null && lastDate != today) {
+                        baselineSales = lastRecordedSales
+                        sharedPrefsManager.saveSalesBaseline(baselineSales)
+                        sharedPrefsManager.saveLastRecordedDate(today)
+                    } else if (lastDate == null) {
+                        // First run ever
+                        sharedPrefsManager.saveLastRecordedDate(today)
+                    }
+
+                    // Calculate percentage
+                    val percentText = if (baselineSales > 0) {
+                        val diff = total - baselineSales
+                        val pct = ((diff / baselineSales) * 100).roundToInt()
+                        val sign = if (pct > 0) "+" else ""
+                        "$sign$pct% changes"
+                    } else if (baselineSales == 0.0 && total > 0) {
+                        "100% changes"
+                    } else {
+                        "0% changes"
+                    }
+
+                    // Always update current sales as "last recorded" for tomorrow's baseline
+                    sharedPrefsManager.saveLastRecordedSales(total)
+
+                    _uiState.update { it.copy(totalSales = total.toString(), salesChange = percentText) }
+                }
+            }
+        }
     }
 
     private fun loadDashboardData() {
@@ -140,7 +188,9 @@ data class DashboardUiState(
     val recentActivities: List<ActivityItem> = emptyList(),
     val topStore: List<StoreItem> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val totalSales: String = "0",
+    val salesChange: String = ""
 )
 
 data class ActivityItem(
