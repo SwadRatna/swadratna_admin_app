@@ -6,6 +6,7 @@ import com.swadratna.swadratna_admin.data.model.StaffResponse
 import com.swadratna.swadratna_admin.data.model.UpdateStaffRequest
 import com.swadratna.swadratna_admin.data.remote.api.StaffApiService
 import com.swadratna.swadratna_admin.data.repository.StoreRepository
+import com.swadratna.swadratna_admin.utils.ApiConstants
 import retrofit2.HttpException
 import java.io.IOException
 import javax.inject.Inject
@@ -53,7 +54,7 @@ class StaffRepositoryImpl @Inject constructor(
             }
 
             // Then fetch staff from each store
-            val storesResult = storeRepository.getStores(page = 1, limit = 1000, restaurantId = 1000007)
+            val storesResult = storeRepository.getStores(page = 1, limit = 1000, restaurantId = ApiConstants.RESTAURANT_ID)
             if (storesResult.isSuccess) {
                 val stores = storesResult.getOrThrow().stores
                 for (store in stores) {

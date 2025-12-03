@@ -11,6 +11,7 @@ import com.swadratna.swadratna_admin.data.repository.DashboardRepository
 import com.swadratna.swadratna_admin.data.repository.SalesRepository
 import com.swadratna.swadratna_admin.data.repository.StoreRepository
 import com.swadratna.swadratna_admin.data.wrapper.Result
+import com.swadratna.swadratna_admin.utils.ApiConstants
 import com.swadratna.swadratna_admin.utils.SharedPrefsManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -128,7 +129,7 @@ class DashboardViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val restaurantId = 1000007
+            val restaurantId = ApiConstants.RESTAURANT_ID
             val result = storeRepository.getStores(page = 1, limit = 1000, restaurantId = restaurantId)
             result.onSuccess { resp ->
                 val activeCount = resp.stores.count { it.status.equals("active", ignoreCase = true) }

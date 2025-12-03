@@ -5,4 +5,5 @@ object ApiConstants {
     const val API_KEY = "RMWvXbJYiKDtjtCEj03iGP"
     const val CONTENT_TYPE = "application/json"
     const val ACCEPT = "application/json"
+    const val RESTAURANT_ID = 1000007
 }
