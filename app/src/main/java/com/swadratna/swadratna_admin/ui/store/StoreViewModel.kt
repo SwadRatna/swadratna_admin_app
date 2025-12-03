@@ -9,6 +9,7 @@ import com.swadratna.swadratna_admin.data.model.StoreAddressRequest
 import com.swadratna.swadratna_admin.data.model.StoreRequest
 import com.swadratna.swadratna_admin.data.repository.ActivityRepository
 import com.swadratna.swadratna_admin.data.repository.StoreRepository
+import com.swadratna.swadratna_admin.utils.ApiConstants
 import com.swadratna.swadratna_admin.utils.SharedPrefsManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,7 +36,7 @@ class StoreViewModel @Inject constructor(
         
         viewModelScope.launch {
             try {
-                val result = storeRepository.getStores(page = 1, limit = 20, restaurantId = 1000001)
+                val result = storeRepository.getStores(page = 1, limit = 20, restaurantId = ApiConstants.RESTAURANT_ID)
                 result.onSuccess { response ->
                     _uiState.value = _uiState.value.copy(
                         stores = response.stores,
@@ -154,7 +155,7 @@ class StoreViewModel @Inject constructor(
                     ),
                     status = "active",
                     locationMobileNumber = event.locationMobileNumber,
-                    restaurantId = 1000001,
+                    restaurantId = ApiConstants.RESTAURANT_ID,
                     numberOfTables = event.numberOfTables,
                     name = event.name
                 )
@@ -207,7 +208,7 @@ class StoreViewModel @Inject constructor(
                     ),
                     status = "active",
                     locationMobileNumber = event.locationMobileNumber,
-                    restaurantId = 1000001,
+                    restaurantId = ApiConstants.RESTAURANT_ID,
                     numberOfTables = event.numberOfTables,
                     name = event.name
                 )

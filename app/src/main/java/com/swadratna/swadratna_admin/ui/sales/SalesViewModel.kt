@@ -7,6 +7,7 @@ import com.swadratna.swadratna_admin.data.model.Store
 import com.swadratna.swadratna_admin.data.repository.SalesRepository
 import com.swadratna.swadratna_admin.data.repository.StoreRepository
 import com.swadratna.swadratna_admin.data.wrapper.Result
+import com.swadratna.swadratna_admin.utils.ApiConstants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,7 +38,7 @@ class SalesViewModel @Inject constructor(
     private fun fetchStores() {
         viewModelScope.launch {
             try {
-                val result = storeRepository.getStores(page = 1, limit = 100, restaurantId = 1000001)
+                val result = storeRepository.getStores(page = 1, limit = 100, restaurantId = ApiConstants.RESTAURANT_ID)
                 result.onSuccess { response ->
                     _uiState.value = _uiState.value.copy(stores = response.stores)
                 }

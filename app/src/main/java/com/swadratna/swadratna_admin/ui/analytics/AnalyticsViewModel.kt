@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.swadratna.swadratna_admin.data.model.Analytics
 import com.swadratna.swadratna_admin.data.repository.AnalyticsRepository
 import com.swadratna.swadratna_admin.data.repository.StoreRepository
+import com.swadratna.swadratna_admin.utils.ApiConstants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -45,7 +46,7 @@ class AnalyticsViewModel @Inject constructor(
     private fun loadFranchises() {
         viewModelScope.launch {
             runCatching {
-                storeRepository.getStores(page = 1, limit = 100, restaurantId = 1000001)
+                storeRepository.getStores(page = 1, limit = 100, restaurantId = ApiConstants.RESTAURANT_ID)
             }.onSuccess { result ->
                 result.onSuccess { response ->
                     val names = response.stores.map { it.name }
