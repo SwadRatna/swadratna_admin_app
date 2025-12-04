@@ -97,6 +97,7 @@ data class UpdateStaffRequest(
     @SerializedName("profile_image") val imageUrl: String? = null,
     val status: String,
     val password: String? = null,
+    @SerializedName("reset_password") val resetPassword: Boolean = false,
     @SerializedName("store_id") val storeId: Int? = null
 )
 
