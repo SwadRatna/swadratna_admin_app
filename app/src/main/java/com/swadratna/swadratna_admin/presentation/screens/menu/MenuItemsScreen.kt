@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
@@ -60,6 +61,20 @@ fun MenuItemsScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = {
+                        viewModel.loadMenuItems(
+                            categoryId = uiState.selectedCategoryId,
+                            isAvailable = uiState.availabilityFilter,
+                            search = uiState.searchQuery.takeIf { it.isNotBlank() },
+                            page = 1,
+                            limit = uiState.limit
+                        )
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Refresh"
+                        )
+                    }
                     IconButton(onClick = onNavigateToAddMenuItem) {
                         Icon(
                             imageVector = Icons.Default.Add,
