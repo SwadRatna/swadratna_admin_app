@@ -43,6 +43,9 @@ class MenuManagementViewModel @Inject constructor(
     private val _isNextPageLoading = MutableStateFlow(false)
     val isNextPageLoading: StateFlow<Boolean> = _isNextPageLoading.asStateFlow()
 
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
     private var currentPage = 1
     private var totalItems = 0
     private val PAGE_LIMIT = 20
@@ -67,10 +70,15 @@ class MenuManagementViewModel @Inject constructor(
     }
 
     fun loadMenuItems(categoryId: Int? = null) {
-        loadMenuItemsInternal(categoryId, 1, false)
+        loadMenuItemsInternal(categoryId, _searchQuery.value, 1, false)
     }
 
-    private fun loadMenuItemsInternal(categoryId: Int?, page: Int, append: Boolean) {
+    fun searchMenuItems(query: String) {
+        _searchQuery.value = query
+        loadMenuItemsInternal(_selectedCategory.value?.id, query, 1, false)
+    }
+
+    private fun loadMenuItemsInternal(categoryId: Int?, search: String, page: Int, append: Boolean) {
         viewModelScope.launch {
             if (!append) {
                 _menuItemsState.value = MenuUiState.Loading
@@ -79,7 +87,7 @@ class MenuManagementViewModel @Inject constructor(
                 _isNextPageLoading.value = true
             }
 
-            repository.getMenuItems(categoryId = categoryId, page = page, limit = PAGE_LIMIT)
+            repository.getMenuItems(categoryId = categoryId, search = search.takeIf { it.isNotBlank() }, page = page, limit = PAGE_LIMIT)
                 .onSuccess { response ->
                     val newItems = response.items?.map { it.toDomain() } ?: emptyList()
                     totalItems = response.pagination?.total ?: 0
@@ -110,7 +118,7 @@ class MenuManagementViewModel @Inject constructor(
         if (_isNextPageLoading.value) return
         if (currentPage * PAGE_LIMIT >= totalItems) return
 
-        loadMenuItemsInternal(_selectedCategory.value?.id, currentPage + 1, true)
+        loadMenuItemsInternal(_selectedCategory.value?.id, _searchQuery.value, currentPage + 1, true)
     }
 
     fun selectCategory(category: MenuCategory?) {

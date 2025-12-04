@@ -77,7 +77,6 @@ class MenuItemsViewModel @Inject constructor(
                         currentPage = response.pagination?.page ?: 1,
                         limit = response.pagination?.limit ?: 20,
                         selectedCategoryId = categoryId,
-                        searchQuery = search ?: "",
                         availabilityFilter = isAvailable
                     )
                 }
@@ -352,6 +351,7 @@ class MenuItemsViewModel @Inject constructor(
     }
 
     fun searchMenuItems(query: String) {
+        _uiState.value = _uiState.value.copy(searchQuery = query)
         loadMenuItems(
             categoryId = _uiState.value.selectedCategoryId,
             isAvailable = _uiState.value.availabilityFilter,

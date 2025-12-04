@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import com.swadratna.swadratna_admin.R
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -40,6 +41,7 @@ fun MenuManagementScreen(
     val menuItemsState by viewModel.menuItemsState.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val isNextPageLoading by viewModel.isNextPageLoading.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
     val context = LocalContext.current
     
     // Handle success messages with Toast
@@ -119,6 +121,18 @@ fun MenuManagementScreen(
                     }
                 }
             }
+            
+            // Search Bar
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { viewModel.searchMenuItems(it) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                placeholder = { Text("Search menu items...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+                singleLine = true
+            )
             
             // Categories Section
             Text(
