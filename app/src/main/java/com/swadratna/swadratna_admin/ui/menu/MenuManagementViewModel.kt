@@ -40,6 +40,16 @@ class MenuManagementViewModel @Inject constructor(
     private val _isCreatingCategory = MutableStateFlow(false)
     val isCreatingCategory: StateFlow<Boolean> = _isCreatingCategory.asStateFlow()
 
+    private val _isNextPageLoading = MutableStateFlow(false)
+    val isNextPageLoading: StateFlow<Boolean> = _isNextPageLoading.asStateFlow()
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private var currentPage = 1
+    private var totalItems = 0
+    private val PAGE_LIMIT = 20
+
     init {
         loadCategories()
         loadMenuItems()
@@ -60,19 +70,55 @@ class MenuManagementViewModel @Inject constructor(
     }
 
     fun loadMenuItems(categoryId: Int? = null) {
+        loadMenuItemsInternal(categoryId, _searchQuery.value, 1, false)
+    }
+
+    fun searchMenuItems(query: String) {
+        _searchQuery.value = query
+        loadMenuItemsInternal(_selectedCategory.value?.id, query, 1, false)
+    }
+
+    private fun loadMenuItemsInternal(categoryId: Int?, search: String, page: Int, append: Boolean) {
         viewModelScope.launch {
-            _menuItemsState.value = MenuUiState.Loading
-            repository.getMenuItems(categoryId = categoryId)
+            if (!append) {
+                _menuItemsState.value = MenuUiState.Loading
+                currentPage = 1
+            } else {
+                _isNextPageLoading.value = true
+            }
+
+            repository.getMenuItems(categoryId = categoryId, search = search.takeIf { it.isNotBlank() }, page = page, limit = PAGE_LIMIT)
                 .onSuccess { response ->
-                    val items = response.items?.map { it.toDomain() } ?: emptyList()
-                    _menuItemsState.value =
-                        MenuUiState.Success(items = items, successMessage = null)
+                    val newItems = response.items?.map { it.toDomain() } ?: emptyList()
+                    totalItems = response.pagination?.total ?: 0
+                    currentPage = page
+
+                    if (append) {
+                        val currentItems = (_menuItemsState.value as? MenuUiState.Success)?.items ?: emptyList()
+                        _menuItemsState.value = MenuUiState.Success(currentItems + newItems)
+                        _isNextPageLoading.value = false
+                    } else {
+                        _menuItemsState.value =
+                            MenuUiState.Success(items = newItems, successMessage = null)
+                    }
                 }
                 .onFailure { error ->
-                    _menuItemsState.value =
-                        MenuUiState.Error(error.message ?: "Failed to load menu items")
+                    if (!append) {
+                        _menuItemsState.value =
+                            MenuUiState.Error(error.message ?: "Failed to load menu items")
+                    } else {
+                        _isNextPageLoading.value = false
+                        // Optionally handle error for next page loading (e.g. toast)
+                    }
                 }
         }
+    }
+
+    fun loadNextPage() {
+        if (_isNextPageLoading.value) return
+        if (currentPage * PAGE_LIMIT >= totalItems) return
+
+        loadMenuItemsInternal(_selectedCategory.value?.id, _searchQuery.value, currentPage + 1, true)
     }
 
     fun selectCategory(category: MenuCategory?) {

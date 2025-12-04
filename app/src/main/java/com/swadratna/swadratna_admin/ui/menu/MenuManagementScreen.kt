@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import com.swadratna.swadratna_admin.R
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -39,6 +41,8 @@ fun MenuManagementScreen(
     val categoriesState by viewModel.categoriesState.collectAsState()
     val menuItemsState by viewModel.menuItemsState.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
+    val isNextPageLoading by viewModel.isNextPageLoading.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
     val context = LocalContext.current
     
     // Handle success messages with Toast
@@ -59,6 +63,17 @@ fun MenuManagementScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = {
+                        viewModel.loadCategories()
+                        viewModel.loadMenuItems(selectedCategory?.id)
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Refresh"
                         )
                     }
                 }
@@ -118,6 +133,18 @@ fun MenuManagementScreen(
                     }
                 }
             }
+            
+            // Search Bar
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { viewModel.searchMenuItems(it) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                placeholder = { Text("Search menu items...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+                singleLine = true
+            )
             
             // Categories Section
             Text(
@@ -191,10 +218,26 @@ fun MenuManagementScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             val currentMenuState = menuItemsState
+            
+            val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+            
+            // Infinite scroll logic
+            LaunchedEffect(listState, currentMenuState) {
+                androidx.compose.runtime.snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+                    .collect { index ->
+                        val itemsCount = (currentMenuState as? MenuUiState.Success)?.items?.size ?: 0
+                        if (index != null && itemsCount > 0 && index >= (itemsCount - 2)) {
+                            viewModel.loadNextPage()
+                        }
+                    }
+            }
+
             when (currentMenuState) {
                 is MenuUiState.Loading -> {
                     Box(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator()
@@ -202,6 +245,8 @@ fun MenuManagementScreen(
                 }
                 is MenuUiState.Success -> {
                     LazyColumn(
+                        state = listState,
+                        modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(currentMenuState.items) { item ->
@@ -210,20 +255,34 @@ fun MenuManagementScreen(
                                 onToggleAvailability = { viewModel.toggleAvailability(item) }
                             )
                         }
+                        if (isNextPageLoading) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                }
+                            }
+                        }
                     }
                 }
                 is MenuUiState.Error -> {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        )
-                    ) {
-                        Text(
-                            text = currentMenuState.message,
-                            modifier = Modifier.padding(16.dp),
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
+                    Box(modifier = Modifier.weight(1f)) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer
+                            )
+                        ) {
+                            Text(
+                                text = currentMenuState.message,
+                                modifier = Modifier.padding(16.dp),
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
                     }
                 }
             }

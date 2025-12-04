@@ -56,22 +56,27 @@ class MenuItemsViewModel @Inject constructor(
         isAvailable: Boolean? = null,
         search: String? = null,
         page: Int = 1,
-        limit: Int = 20
+        limit: Int = 20,
+        append: Boolean = false
     ) {
         viewModelScope.launch {
+            // Only set loading to true if not appending (or handle differently if needed)
+            // If appending, we might want to keep showing the list, so we don't clear it.
+            // But we still need to indicate loading status for the spinner at the bottom.
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
             repository.getMenuItems(categoryId, isAvailable, search, page, limit)
                 .onSuccess { response ->
-                    val items = response.items?.map { it.toDomain() } ?: emptyList()
+                    val newItems = response.items?.map { it.toDomain() } ?: emptyList()
+                    val currentItems = if (append) _uiState.value.menuItems else emptyList()
+                    
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        menuItems = items,
+                        menuItems = currentItems + newItems,
                         total = response.pagination?.total ?: 0,
                         currentPage = response.pagination?.page ?: 1,
                         limit = response.pagination?.limit ?: 20,
                         selectedCategoryId = categoryId,
-                        searchQuery = search ?: "",
                         availabilityFilter = isAvailable
                     )
                 }
@@ -346,6 +351,7 @@ class MenuItemsViewModel @Inject constructor(
     }
 
     fun searchMenuItems(query: String) {
+        _uiState.value = _uiState.value.copy(searchQuery = query)
         loadMenuItems(
             categoryId = _uiState.value.selectedCategoryId,
             isAvailable = _uiState.value.availabilityFilter,
@@ -356,13 +362,14 @@ class MenuItemsViewModel @Inject constructor(
     }
 
     fun loadNextPage() {
-        if (_uiState.value.currentPage * _uiState.value.limit < _uiState.value.total) {
+        if (!_uiState.value.isLoading && _uiState.value.currentPage * _uiState.value.limit < _uiState.value.total) {
             loadMenuItems(
                 categoryId = _uiState.value.selectedCategoryId,
                 isAvailable = _uiState.value.availabilityFilter,
                 search = _uiState.value.searchQuery.takeIf { it.isNotBlank() },
                 page = _uiState.value.currentPage + 1,
-                limit = _uiState.value.limit
+                limit = _uiState.value.limit,
+                append = true
             )
         }
     }
