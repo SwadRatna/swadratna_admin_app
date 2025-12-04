@@ -18,11 +18,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swadratna.swadratna_admin.presentation.viewmodels.MenuItemsViewModel
-import com.swadratna.swadratna_admin.presentation.viewmodels.MenuItemsUiState
 import coil.compose.AsyncImage
 import androidx.compose.foundation.background
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.border
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 
@@ -69,22 +69,32 @@ fun MenuItemsScreen(
             )
         }
     ) { paddingValues ->
-        when {
-            uiState.isLoading -> {
+        val listState = rememberLazyListState()
+        
+        LaunchedEffect(listState) {
+            snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+                .collect { index ->
+                    if (index != null && index >= (uiState.menuItems.size - 2)) {
+                        viewModel.loadNextPage()
+                    }
+                }
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            if (uiState.isLoading && uiState.menuItems.isEmpty()) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator()
                 }
-            }
-            uiState.error != null -> {
+            } else if (uiState.error != null && uiState.menuItems.isEmpty()) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -92,12 +102,11 @@ fun MenuItemsScreen(
                         color = MaterialTheme.colorScheme.error
                     )
                 }
-            }
-            else -> {
+            } else {
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(paddingValues)
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -112,6 +121,19 @@ fun MenuItemsScreen(
                                 showDeleteDialog = true
                             }
                         )
+                    }
+
+                    if (uiState.isLoading) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            }
+                        }
                     }
                 }
             }
