@@ -33,6 +33,7 @@ import com.swadratna.swadratna_admin.data.model.Staff
 import com.swadratna.swadratna_admin.data.model.StaffStatus
 import com.swadratna.swadratna_admin.ui.components.AppSearchField
 import com.swadratna.swadratna_admin.ui.store.StoreEvent
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import coil.compose.AsyncImage
 
@@ -218,7 +219,7 @@ fun StaffManagementScreen(
                                     onEdit = { staffId -> onNavigateToEditStaff(staffId) },
                                     onDelete = { staffId -> viewModel.deleteStaff(staffId) },
                                     snackbarHostState = snackbarHostState,
-                                    password = staff.password ?: uiState.passwordsByStaffId[staff.id],
+                                    passwordProvider = { staff.password ?: viewModel.uiState.value.passwordsByStaffId[staff.id] },
                                     localImageUrl = uiState.imagesByStaffId[staff.id]
                                 )
                             }
@@ -254,7 +255,7 @@ fun StaffItem(
     onEdit: (Int) -> Unit,
     onDelete: (Int) -> Unit,
     snackbarHostState: SnackbarHostState,
-    password: String?,
+    passwordProvider: () -> String?,
     localImageUrl: String? = null
 ) {
     Card(
@@ -346,12 +347,24 @@ fun StaffItem(
                 val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
                 val coroutineScope = rememberCoroutineScope()
                 IconButton(onClick = {
-                    val email = staff.email ?: ""
-                    val pwd = password ?: ""
-                    val text = "Email: $email" + if (pwd.isNotBlank()) "\nPassword: $pwd" else ""
-                    clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(text))
                     coroutineScope.launch {
-                        val msg = if (pwd.isBlank()) "Login details copied. Password may not be available." else "Login details copied"
+                        var pwd = passwordProvider()
+                        
+                        // Wait up to 3 seconds if password is not available
+                        if (pwd.isNullOrBlank()) {
+                            val startTime = System.currentTimeMillis()
+                            while (pwd.isNullOrBlank() && System.currentTimeMillis() - startTime < 3000) {
+                                delay(500)
+                                pwd = passwordProvider()
+                            }
+                        }
+                        
+                        val email = staff.email ?: ""
+                        val finalPwd = pwd ?: ""
+                        val text = "Email: $email" + if (finalPwd.isNotBlank()) "\nPassword: $finalPwd" else ""
+                        clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(text))
+                        
+                        val msg = if (finalPwd.isBlank()) "Login details copied. Password may not be available." else "Login details copied"
                         snackbarHostState.showSnackbar(msg)
                     }
                 }) {
@@ -368,7 +381,7 @@ fun StaffItem(
             }
         }
     }
- }
+}
 
 @Composable
 fun StaffFilterMenu(
