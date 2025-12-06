@@ -1,11 +1,13 @@
 package com.swadratna.swadratna_admin.ui.dashboard
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import kotlin.math.roundToInt
 import androidx.lifecycle.viewModelScope
 import com.swadratna.swadratna_admin.data.repository.ActivityRepository
+import com.swadratna.swadratna_admin.data.repository.AnalyticsRepository
 import com.swadratna.swadratna_admin.data.repository.CampaignRepository
 import com.swadratna.swadratna_admin.data.repository.DashboardRepository
 import com.swadratna.swadratna_admin.data.repository.SalesRepository
@@ -26,6 +28,7 @@ import kotlin.onSuccess
 @RequiresApi(Build.VERSION_CODES.O)
 class DashboardViewModel @Inject constructor(
     private val dashboardRepository: DashboardRepository,
+    private val analyticsRepository: AnalyticsRepository,
     private val activityRepository: ActivityRepository,
     private val campaignRepository: CampaignRepository,
     private val storeRepository: StoreRepository,
@@ -89,11 +92,14 @@ class DashboardViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
                 val response = dashboardRepository.getDashboardData()
+                val analytics = analyticsRepository.loadDashboard(null, null, null)
+                val totalReferrals = analytics.referralStats?.totalReferrals ?: 0
+
                 _uiState.update {
                     it.copy(
                         topSeller = response.topSeller,
                         topSellerMetric = response.topSellerMetric,
-                        newUsers = response.newUsers,
+                        newUsers = totalReferrals, // Use totalReferrals from analytics
                         newUsersChange = response.newUsersChange,
                         topStore = response.topStore.map { StoreItem(name = it.name, revenue = it.revenue) },
                         isLoading = false

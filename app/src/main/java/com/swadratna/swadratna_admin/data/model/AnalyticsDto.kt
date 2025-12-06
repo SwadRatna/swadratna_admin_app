@@ -23,7 +23,8 @@ data class Analytics(
     val cards: Cards,
     val salesPerformance: List<Series>,
     val monthlyOrderVolume: List<MonthVolume>,
-    val topProductCategories: List<CategoryShare>
+    val topProductCategories: List<CategoryShare>,
+    val referralStats: ReferralStats? = null
 )
 data class Cards(
     val totalSales: List<CardRow>,
@@ -36,3 +37,20 @@ data class Series(val name: String, val points: List<Point>)
 data class Point(val xLabel: String, val y: Double)
 data class MonthVolume(val month: String, val dineIn: Double, val delivery: Double)
 data class CategoryShare(val name: String, val percent: Double)
+
+data class ReferralStats(
+    val activeReferralCodes: Int,
+    val topReferrers: List<TopReferrer>,
+    val totalReferrals: Int,
+    val totalReferrers: Int
+)
+
+data class TopReferrer(
+    val amountEarned: Double,
+    val email: String,
+    val name: String,
+    val pointsEarned: Double,
+    val referralCode: String,
+    val totalReferrals: Int,
+    val userId: Long
+)
