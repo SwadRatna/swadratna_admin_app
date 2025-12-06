@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -136,7 +137,8 @@ fun StatisticsSection(uiState: DashboardUiState, onNavigateToSaleList: () -> Uni
                 change = uiState.salesChange,
                 modifier = Modifier
                     .weight(1f)
-                    .clickable { onNavigateToSaleList() }
+                    .clickable { onNavigateToSaleList() },
+                showArrow = true
             )
         }
     }
@@ -147,7 +149,8 @@ fun StatCard(
     title: String,
     value: String,
     change: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showArrow: Boolean = false
 ) {
     Card(
         modifier = modifier,
@@ -158,11 +161,26 @@ fun StatCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    modifier = Modifier.weight(1f)
+                )
+                if (showArrow) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = value,
