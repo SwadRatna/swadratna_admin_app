@@ -21,6 +21,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.swadratna.swadratna_admin.data.model.CardRow
 import com.swadratna.swadratna_admin.data.model.Cards
 
+import androidx.compose.ui.graphics.toArgb
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminAnalyticsScreen(
@@ -28,6 +30,7 @@ fun AdminAnalyticsScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
+    val textColor = MaterialTheme.colorScheme.onSurface.toArgb()
 
     Scaffold(
         topBar = {
@@ -79,7 +82,8 @@ fun AdminAnalyticsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(240.dp)
-                            .padding(top = 8.dp)
+                            .padding(top = 8.dp),
+                        textColor = textColor
                     )
 
                     Spacer(Modifier.height(16.dp))
@@ -94,7 +98,8 @@ fun AdminAnalyticsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(280.dp)
-                                    .padding(top = 8.dp)
+                                    .padding(top = 8.dp),
+                                textColor = textColor
                             )
                         }
                     }

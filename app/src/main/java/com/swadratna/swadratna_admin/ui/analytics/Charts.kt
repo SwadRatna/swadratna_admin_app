@@ -1,12 +1,9 @@
 package com.swadratna.swadratna_admin.ui.analytics
 
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.github.mikephil.charting.animation.Easing
 import com.github.mikephil.charting.charts.BarChart
@@ -34,7 +31,8 @@ import java.util.Locale
 @Composable
 fun LineChartView(
     series: List<Series>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    textColor: Int = Color.Black.toArgb()
 ) {
     AndroidView(
         modifier = modifier,
@@ -47,9 +45,19 @@ fun LineChartView(
                 xAxis.setDrawGridLines(false)
                 axisLeft.setDrawGridLines(true)
                 legend.isEnabled = true
+                
+                // Set text colors
+                xAxis.textColor = textColor
+                axisLeft.textColor = textColor
+                legend.textColor = textColor
             }
         },
         update = { chart ->
+            // Update text colors on theme change
+            chart.xAxis.textColor = textColor
+            chart.axisLeft.textColor = textColor
+            chart.legend.textColor = textColor
+
             val dataSets = series.mapIndexed { idx, s ->
                 val entries = s.points.mapIndexed { i, p -> Entry(i.toFloat(), p.y.toFloat()) }
                 LineDataSet(entries, s.name).apply {
@@ -73,7 +81,8 @@ fun LineChartView(
 @Composable
 fun GroupedBarChartView(
     months: List<MonthVolume>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    textColor: Int = Color.Black.toArgb()
 ) {
     AndroidView(
         modifier = modifier,
@@ -86,9 +95,19 @@ fun GroupedBarChartView(
                 xAxis.setDrawGridLines(false)
                 axisLeft.setDrawGridLines(true)
                 legend.isEnabled = true
+                
+                // Set text colors
+                xAxis.textColor = textColor
+                axisLeft.textColor = textColor
+                legend.textColor = textColor
             }
         },
         update = { chart ->
+            // Update text colors
+            chart.xAxis.textColor = textColor
+            chart.axisLeft.textColor = textColor
+            chart.legend.textColor = textColor
+
             val now = LocalDate.now()
             val fmt = DateTimeFormatter.ofPattern("MMM", Locale.ENGLISH)
             val lastSixLabels = (0..5).map { offset -> now.minusMonths((5 - offset).toLong()).format(fmt) }
@@ -129,7 +148,8 @@ fun GroupedBarChartView(
 @Composable
 fun DonutChartView(
     categories: List<CategoryShare>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    textColor: Int = Color.Black.toArgb()
 ) {
     AndroidView(
         modifier = modifier,
@@ -139,6 +159,10 @@ fun DonutChartView(
                 isDrawHoleEnabled = true
                 holeRadius = 65f
                 setUsePercentValues(true)
+                
+                // Set hole color to transparent or match background if needed, 
+                // but for now we just focus on text
+                setHoleColor(Color.Transparent.toArgb())
 
                 legend.apply {
                     isEnabled = true
@@ -149,12 +173,16 @@ fun DonutChartView(
                     xEntrySpace = 8f
                     yEntrySpace = 4f
                     textSize = 12f
+                    this.textColor = textColor
                 }
 
                 setDrawEntryLabels(false)
             }
         },
         update = { chart ->
+            // Update text color
+            chart.legend.textColor = textColor
+            
             val entries = categories.map { PieEntry(it.percent.toFloat(), it.name) }
             val ds = PieDataSet(entries, "").apply {
                 sliceSpace = 2f
