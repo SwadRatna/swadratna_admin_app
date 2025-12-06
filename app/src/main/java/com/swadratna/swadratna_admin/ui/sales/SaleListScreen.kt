@@ -93,21 +93,17 @@ fun SaleListScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
                     IconButton(onClick = { /* TODO */ }) {
-                        Icon(Icons.Default.Search, contentDescription = "Search", tint = Color.White)
+                        Icon(Icons.Default.Search, contentDescription = "Search")
                     }
                     IconButton(onClick = { /* TODO */ }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "Menu", tint = Color.White)
+                        Icon(Icons.Default.MoreVert, contentDescription = "Menu")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = Color.White
-                )
+                }
             )
         },
         bottomBar = { }
@@ -116,7 +112,6 @@ fun SaleListScreen(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
-                .background(Color(0xFFF5F5F5))
         ) {
             // Filter Section
             FilterSection(
@@ -202,7 +197,7 @@ fun FilterSection(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
             .padding(16.dp)
     ) {
         Row(
@@ -221,11 +216,11 @@ fun FilterSection(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(selectedFilter, color = Color.Black, maxLines = 1)
+                        Text(selectedFilter, color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
                         Icon(
                             painter = painterResource(android.R.drawable.arrow_down_float),
                             contentDescription = null,
-                            tint = Color.Black
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -295,11 +290,11 @@ fun FilterSection(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(selectedLocationName, color = Color.Black, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        Text(selectedLocationName, color = MaterialTheme.colorScheme.onSurface, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                         Icon(
                             painter = painterResource(android.R.drawable.arrow_down_float),
                             contentDescription = null,
-                            tint = Color.Black
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -341,8 +336,8 @@ fun FilterSection(
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = if (selectedFilter == "Custom") Color.Black else Color.Gray,
-                    disabledContentColor = Color.Gray
+                    contentColor = if (selectedFilter == "Custom") MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                    disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                 )
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -359,8 +354,8 @@ fun FilterSection(
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = if (selectedFilter == "Custom") Color.Black else Color.Gray,
-                    disabledContentColor = Color.Gray
+                    contentColor = if (selectedFilter == "Custom") MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+                    disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                 )
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -435,7 +430,7 @@ fun SummarySection(totalAmount: Double, totalCount: Int) {
             modifier = Modifier
                 .weight(1f)
                 .border(1.dp, Color.Green, RoundedCornerShape(8.dp)),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             shape = RoundedCornerShape(8.dp)
         ) {
             Column(modifier = Modifier.padding(8.dp)) {
@@ -447,7 +442,7 @@ fun SummarySection(totalAmount: Double, totalCount: Int) {
             modifier = Modifier
                 .weight(1f)
                 .border(1.dp, Color.Blue, RoundedCornerShape(8.dp)),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             shape = RoundedCornerShape(8.dp)
         ) {
             Column(modifier = Modifier.padding(8.dp)) {
@@ -458,11 +453,11 @@ fun SummarySection(totalAmount: Double, totalCount: Int) {
         Box(
             modifier = Modifier
                 .size(50.dp)
-                .background(Color.LightGray, RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
                 .clickable { /* Clear Filter */ },
             contentAlignment = Alignment.Center
         ) {
-             Icon(painter = painterResource(android.R.drawable.ic_menu_close_clear_cancel), contentDescription = "Clear", tint = Color.Gray)
+             Icon(painter = painterResource(android.R.drawable.ic_menu_close_clear_cancel), contentDescription = "Clear", tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -499,9 +494,9 @@ fun SaleItemRow(item: SaleDto) {
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(8.dp),
-        border = BorderStroke(1.dp, Color.LightGray)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
@@ -516,7 +511,7 @@ fun SaleItemRow(item: SaleDto) {
                 Text(
                     text = "${item.paymentMode?.uppercase() ?: ""} | $displayDate",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Spacer(modifier = Modifier.height(4.dp))
@@ -534,7 +529,7 @@ fun SaleItemRow(item: SaleDto) {
                  Icon(
                     painter = painterResource(android.R.drawable.checkbox_on_background),
                     contentDescription = null,
-                    tint = if (item.status == "paid") Color(0xFF4CAF50) else Color.Gray,
+                    tint = if (item.status == "paid") Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -547,7 +542,7 @@ fun SaleItemRow(item: SaleDto) {
                 Text(
                     text = if (!item.editedBy.isNullOrEmpty()) "Edited by: ${item.editedBy}" else "",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 10.sp,
                     modifier = Modifier.weight(1f)
                 )

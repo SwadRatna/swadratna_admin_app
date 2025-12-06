@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
+import java.io.IOException
 import javax.inject.Inject
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -42,7 +44,22 @@ class LoginViewModel @Inject constructor(
                     _loginState.value = LoginState(isSuccess = true)
                 },
                 onFailure = { exception ->
-                    _loginState.value = LoginState(errorMessage = exception.message ?: "An error occurred")
+                    val errorMessage = when (exception) {
+                        is HttpException -> {
+                            when (exception.code()) {
+                                400 -> "Something seems off in the request. Please review your details and try again."
+                                401 -> "The email or password you entered doesn’t match. Please try again."
+                                403 -> "You don’t have permission to do this action."
+                                404 -> "We couldn’t reach the server. The requested page wasn’t found."
+                                408 -> "The request took too long. Please check your connection and try again."
+                                500, 502, 503, 504 -> "The server is having trouble right now. Please try again in a little while."
+                                else -> "Something went wrong. (Error code: ${exception.code()})"
+                            }
+                        }
+                        is IOException -> "No internet connection. Please check your network."
+                        else -> exception.message ?: "An unexpected error occurred"
+                    }
+                    _loginState.value = LoginState(errorMessage = errorMessage)
                 }
             )
         }
