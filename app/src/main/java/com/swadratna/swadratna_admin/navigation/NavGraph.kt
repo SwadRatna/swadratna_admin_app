@@ -210,7 +210,21 @@ fun NavGraph(
                 },
                 onNavigateToAttendance = { selectedStoreId ->
                     navController.navigate(NavRoute.AttendancePayment.route)
+                },
+                onNavigateToInventory = { selectedStoreId ->
+                    navController.navigate(NavRoute.ManageInventory.createRoute(selectedStoreId))
                 }
+            )
+        }
+
+        composable(
+            route = NavRoute.ManageInventory.route,
+            arguments = listOf(navArgument("storeId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val storeId = backStackEntry.arguments?.getString("storeId") ?: ""
+            com.swadratna.swadratna_admin.ui.inventory.ManageInventoryScreen(
+                storeId = storeId,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

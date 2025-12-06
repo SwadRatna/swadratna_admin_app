@@ -37,4 +37,7 @@ sealed class NavRoute(val route: String) {
     object Notifications : NavRoute("notifications")
     object AllStaffManagement : NavRoute("all_staff_management")
     object SaleList : NavRoute("sale_list")
+    object ManageInventory : NavRoute("manage_inventory/{storeId}") {
+        fun createRoute(storeId: String) = "manage_inventory/$storeId"
+    }
 }

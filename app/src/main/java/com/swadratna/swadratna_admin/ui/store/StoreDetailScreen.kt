@@ -28,6 +28,7 @@ fun StoreDetailScreen(
     onNavigateToStaffManagement: (String) -> Unit,
     onNavigateToMenuManagement: (String) -> Unit,
     onNavigateToAttendance: (String) -> Unit,
+    onNavigateToInventory: (String) -> Unit,
     viewModel: StoreViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -56,7 +57,8 @@ fun StoreDetailScreen(
                 storeId = storeId,
                 onNavigateToStaffManagement = onNavigateToStaffManagement,
                 onNavigateToMenuManagement = onNavigateToMenuManagement,
-                onNavigateToAttendance = onNavigateToAttendance
+                onNavigateToAttendance = onNavigateToAttendance,
+                onNavigateToInventory = onNavigateToInventory
             ) }
         }
     }
@@ -132,7 +134,8 @@ fun ManagementCardsSection(
     storeId: String,
     onNavigateToStaffManagement: (String) -> Unit,
     onNavigateToMenuManagement: (String) -> Unit,
-    onNavigateToAttendance: (String) -> Unit
+    onNavigateToAttendance: (String) -> Unit,
+    onNavigateToInventory: (String) -> Unit
 ) {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         Text(
@@ -141,6 +144,8 @@ fun ManagementCardsSection(
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(16.dp))
+        
+        // Row 1
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -157,10 +162,25 @@ fun ManagementCardsSection(
                 onClick = { onNavigateToMenuManagement(storeId) },
                 modifier = Modifier.weight(1f)
             )
+        }
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        // Row 2
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             ManagementCard(
                 title = "Attendance",
                 iconResId = R.drawable.ic_attendance,
                 onClick = { onNavigateToAttendance(storeId) },
+                modifier = Modifier.weight(1f)
+            )
+            ManagementCard(
+                title = "Inventory",
+                iconResId = R.drawable.ic_store, // Using store icon for inventory
+                onClick = { onNavigateToInventory(storeId) },
                 modifier = Modifier.weight(1f)
             )
         }
