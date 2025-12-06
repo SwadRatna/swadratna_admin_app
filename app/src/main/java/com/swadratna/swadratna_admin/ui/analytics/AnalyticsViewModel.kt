@@ -1,6 +1,6 @@
 package com.swadratna.swadratna_admin.ui.analytics
 
-import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swadratna.swadratna_admin.data.model.Analytics
@@ -37,12 +37,6 @@ class AnalyticsViewModel @Inject constructor(
         loadFranchises()
     }
 
-    fun setFranchiseFilter(name: String?) {
-        val normalized = name?.takeIf { it.isNotBlank() && it.lowercase() != "all" }
-        _state.update { it.copy(franchiseFilter = normalized) }
-        refresh()
-    }
-
     private fun loadFranchises() {
         viewModelScope.launch {
             runCatching {
@@ -53,7 +47,6 @@ class AnalyticsViewModel @Inject constructor(
                     val franchises = listOf("All") + names
                     _state.update { it.copy(availableFranchises = franchises) }
                 }.onFailure { e ->
-                    // Fallback to an empty list (plus All) on failure
                     _state.update { it.copy(availableFranchises = listOf("All")) }
                 }
             }.onFailure {

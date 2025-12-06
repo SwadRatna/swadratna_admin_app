@@ -313,7 +313,8 @@ class StaffManagementViewModel @Inject constructor(
         status: String,
         imageUrl: String? = null,
         password: String? = null,
-        storeId: Int? = null
+        storeId: Int? = null,
+        resetPassword: Boolean = false
     ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
@@ -338,6 +339,7 @@ class StaffManagementViewModel @Inject constructor(
                 imageUrl = sanitizedImage,
                 status = sanitizeText(status),
                 password = password,
+                resetPassword = resetPassword,
                 storeId = storeId ?: 0
             )
             

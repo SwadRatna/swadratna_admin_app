@@ -83,6 +83,7 @@ fun EditStaffScreen(
     var status by remember { mutableStateOf("active") }
     var imageUrl by remember { mutableStateOf<String?>(null) }
     var selectedStoreId by remember { mutableStateOf<Int?>(null) }
+    var resetPassword by remember { mutableStateOf(false) }
     
     // Dropdown state for role selection
     var roleDropdownExpanded by remember { mutableStateOf(false) }
@@ -406,6 +407,15 @@ fun EditStaffScreen(
                 StatusRadioButton(text = "Active", selected = status == "active", onClick = { status = "active" })
                 StatusRadioButton(text = "Inactive", selected = status == "inactive", onClick = { status = "inactive" })
             }
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(text = "Reset Password", style = MaterialTheme.typography.bodyLarge)
+                Switch(checked = resetPassword, onCheckedChange = { resetPassword = it })
+            }
             Spacer(modifier = Modifier.height(32.dp))
             
             // Submit Button
@@ -430,6 +440,7 @@ fun EditStaffScreen(
                                 status = status,
                                 imageUrl = imageUrl,
                                 storeId = selectedStoreId
+                                , resetPassword = resetPassword
                             )
                         } else { salaryError = "Please enter a valid salary amount" }
                     }

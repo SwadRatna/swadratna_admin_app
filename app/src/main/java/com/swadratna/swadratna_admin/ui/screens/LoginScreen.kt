@@ -10,8 +10,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
+import com.swadratna.swadratna_admin.R
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.swadratna.swadratna_admin.ui.viewmodels.LoginViewModel
 
@@ -25,6 +28,7 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var passwordVisible by remember { mutableStateOf(false) }
 
     // Observe login state
     LaunchedEffect(viewModel) {
@@ -77,7 +81,19 @@ fun LoginScreen(
             label = { Text("Password") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
-            visualTransformation = PasswordVisualTransformation(),
+            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            trailingIcon = {
+                val iconPainter = if (passwordVisible)
+                    painterResource(id = R.drawable.ic_visibility)
+                else
+                    painterResource(id = R.drawable.ic_visibility_off)
+
+                val description = if (passwordVisible) "Hide password" else "Show password"
+
+                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    Icon(painter = iconPainter, contentDescription = description)
+                }
+            },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Done
