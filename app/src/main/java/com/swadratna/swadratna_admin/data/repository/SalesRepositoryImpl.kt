@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 
+import com.swadratna.swadratna_admin.utils.NetworkErrorHandler
+
 class SalesRepositoryImpl @Inject constructor(
     private val api: SalesApi
 ) : SalesRepository {
@@ -25,7 +27,7 @@ class SalesRepositoryImpl @Inject constructor(
                 emit(Result.Error(response.message() ?: "Unknown error"))
             }
         } catch (e: Exception) {
-            emit(Result.Error(e.message ?: "Network error"))
+            emit(Result.Error(NetworkErrorHandler.getErrorMessage(e), e))
         }
     }
 }

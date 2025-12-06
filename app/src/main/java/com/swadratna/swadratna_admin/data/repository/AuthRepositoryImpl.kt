@@ -8,6 +8,7 @@ import com.swadratna.swadratna_admin.data.remote.api.AuthApiService
 import com.swadratna.swadratna_admin.utils.SharedPrefsManager
 import com.swadratna.swadratna_admin.utils.SessionManager
 import javax.inject.Inject
+import com.swadratna.swadratna_admin.utils.NetworkErrorHandler
 
 @RequiresApi(Build.VERSION_CODES.O)
 class AuthRepositoryImpl @Inject constructor(
@@ -24,7 +25,7 @@ class AuthRepositoryImpl @Inject constructor(
             sessionManager.startSession()
             Result.success(response)
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception(NetworkErrorHandler.getErrorMessage(e), e))
         }
     }
 

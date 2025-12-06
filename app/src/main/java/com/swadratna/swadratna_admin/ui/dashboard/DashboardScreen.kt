@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -60,6 +61,9 @@ fun DashboardScreen(
                         }
                         IconButton(onClick = onNavigateToAllStaffManagement) {
                             Icon(painter = painterResource(R.drawable.ic_person), contentDescription = "All Staff")
+                        }
+                        IconButton(onClick = { viewModel.refreshDashboardData() }) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                         }
                     }
                 },
