@@ -43,6 +43,11 @@ class DashboardViewModel @Inject constructor(
         fetchSalesData()
     }
 
+    fun refreshDashboardData() {
+        loadDashboardData()
+        fetchSalesData()
+    }
+
     private fun fetchSalesData() {
         viewModelScope.launch {
             val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())

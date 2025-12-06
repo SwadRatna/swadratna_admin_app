@@ -12,6 +12,8 @@ import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 
+import com.swadratna.swadratna_admin.utils.NetworkErrorHandler
+
 class AssetRepositoryImpl @Inject constructor(
     private val api: AssetApi
 ) : AssetRepository {
@@ -23,7 +25,7 @@ class AssetRepositoryImpl @Inject constructor(
         context: String,
         type: String
     ): Result<Asset> = withContext(Dispatchers.IO) {
-        runCatching {
+        try {
             val mediaType = mimeType.toMediaTypeOrNull()
             val requestBody = bytes.toRequestBody(mediaType)
             val filePart = MultipartBody.Part.createFormData(
@@ -33,16 +35,26 @@ class AssetRepositoryImpl @Inject constructor(
             )
             val contextPart: RequestBody = context.toRequestBody("text/plain".toMediaTypeOrNull())
             val typePart: RequestBody = type.toRequestBody("text/plain".toMediaTypeOrNull())
-            api.uploadAsset(filePart, contextPart, typePart).toDomain()
+            Result.success(api.uploadAsset(filePart, contextPart, typePart).toDomain())
+        } catch (e: Throwable) {
+            Result.failure(Exception(NetworkErrorHandler.getErrorMessage(e), e))
         }
     }
 
     override suspend fun getAsset(id: Long): Result<Asset> = withContext(Dispatchers.IO) {
-        runCatching { api.getAsset(id).toDomain() }
+        try {
+            Result.success(api.getAsset(id).toDomain())
+        } catch (e: Throwable) {
+            Result.failure(Exception(NetworkErrorHandler.getErrorMessage(e), e))
+        }
     }
 
     override suspend fun deleteAsset(id: Long): Result<Asset> = withContext(Dispatchers.IO) {
-        runCatching { api.deleteAsset(id).toDomain() }
+        try {
+            Result.success(api.deleteAsset(id).toDomain())
+        } catch (e: Throwable) {
+            Result.failure(Exception(NetworkErrorHandler.getErrorMessage(e), e))
+        }
     }
 
     // Remove confirm implementation as API not required now
