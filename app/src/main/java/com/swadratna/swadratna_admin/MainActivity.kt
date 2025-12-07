@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     
-                    val mainRoutes = listOf("dashboard", "campaigns", "store", "analytics")
+                    val mainRoutes = listOf("dashboard", "campaigns", "store", "analytics", "referral")
                     val currentRoute = navBackStackEntry?.destination?.route
                     
                     val showBottomBar = currentRoute in mainRoutes && currentRoute != "login"

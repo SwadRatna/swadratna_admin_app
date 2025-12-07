@@ -502,5 +502,9 @@ fun NavGraph(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
+
+        composable(NavRoute.Referral.route) {
+            com.swadratna.swadratna_admin.ui.referral.ReferralScreen()
+        }
     }
 }
