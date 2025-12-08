@@ -23,7 +23,8 @@ val bottomNavItems = listOf(
     BottomNavItem("dashboard", R.drawable.ic_home, "Dashboard"),
     BottomNavItem("campaigns", R.drawable.ic_campaign, "Campaigns"),
     BottomNavItem("store", R.drawable.ic_store, "Store"),
-    BottomNavItem("analytics", R.drawable.ic_analytics, "Analytics")
+    BottomNavItem("analytics", R.drawable.ic_analytics, "Analytics"),
+    BottomNavItem("referral", R.drawable.ic_people, "Referral")
 )
 
 @Composable
