@@ -27,6 +27,7 @@ class SalesRepositoryImpl @Inject constructor(
                 emit(Result.Error(response.message() ?: "Unknown error"))
             }
         } catch (e: Exception) {
+            if (e is java.util.concurrent.CancellationException) throw e
             emit(Result.Error(NetworkErrorHandler.getErrorMessage(e), e))
         }
     }

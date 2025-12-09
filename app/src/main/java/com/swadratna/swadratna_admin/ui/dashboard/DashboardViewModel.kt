@@ -12,6 +12,8 @@ import com.swadratna.swadratna_admin.data.repository.CampaignRepository
 import com.swadratna.swadratna_admin.data.repository.DashboardRepository
 import com.swadratna.swadratna_admin.data.repository.SalesRepository
 import com.swadratna.swadratna_admin.data.repository.StoreRepository
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.filter
 import com.swadratna.swadratna_admin.data.wrapper.Result
 import com.swadratna.swadratna_admin.utils.ApiConstants
 import com.swadratna.swadratna_admin.utils.SharedPrefsManager
@@ -23,6 +25,13 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.onSuccess
+
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import java.util.Calendar
+import java.util.Date
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @HiltViewModel
 @RequiresApi(Build.VERSION_CODES.O)
@@ -93,9 +102,11 @@ class DashboardViewModel @Inject constructor(
     }
 
     private fun loadDashboardData() {
+        Log.d("DashboardViewModel", "loadDashboardData called")
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
+                Log.d("DashboardViewModel", "Fetching dashboard stats...")
                 val response = dashboardRepository.getDashboardData()
                 val analytics = analyticsRepository.loadDashboard(null, null, null)
                 val totalReferrals = analytics.referralStats?.totalReferrals ?: 0
@@ -138,7 +149,7 @@ class DashboardViewModel @Inject constructor(
                         topSellerMetric = response.topSellerMetric,
                         newUsers = totalReferrals, // Use totalReferrals from analytics
                         newUsersChange = newUsersPercentText,
-                        topStore = response.topStore.map { StoreItem(name = it.name, revenue = it.revenue) },
+                        // topStore = response.topStore.map { StoreItem(name = it.name, revenue = it.revenue) }, // Don't overwrite topStore with potential mock data
                         isLoading = false
                     )
                 }
@@ -173,10 +184,13 @@ class DashboardViewModel @Inject constructor(
 
         viewModelScope.launch {
             val restaurantId = ApiConstants.RESTAURANT_ID
+            Log.d("DashboardViewModel", "Fetching stores for restaurantId: $restaurantId")
             val result = storeRepository.getStores(page = 1, limit = 1000, restaurantId = restaurantId)
             result.onSuccess { resp ->
-                val activeCount = resp.stores.count { it.status.equals("active", ignoreCase = true) }
-                sharedPrefsManager.saveStores(resp.stores)
+                val stores = resp.stores ?: emptyList()
+                Log.d("DashboardViewModel", "Stores fetch success. Count: ${stores.size}")
+                val activeCount = stores.count { it.status.equals("active", ignoreCase = true) }
+                sharedPrefsManager.saveStores(stores)
                 val prev = sharedPrefsManager.getPrevActiveStores()
                 val hasLocalStores = sharedPrefsManager.getStores().isNotEmpty()
                 val percentText = if (prev == null || !hasLocalStores) {
@@ -187,8 +201,62 @@ class DashboardViewModel @Inject constructor(
                     val pct = if (prev == 0) 100 else ((diff.toDouble() / prev.toDouble()) * 100).roundToInt()
                     "${pct} % changes since last 3 months"
                 }
-                val topSellerName = if (resp.stores.size == 1) resp.stores.first().name else "N/A"
-                _uiState.update { it.copy(activeStore = activeCount, storeChange = percentText, topSeller = topSellerName) }
+
+                val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                val calendar = Calendar.getInstance()
+                val today = dateFormat.format(calendar.time)
+                
+                calendar.add(Calendar.DAY_OF_YEAR, -7)
+                val fromDate = dateFormat.format(calendar.time)
+
+                val storeSalesDeferred = stores.map { store ->
+                    async {
+                        var revenue = 0.0
+                        try {
+                            Log.d("DashboardViewModel", "Fetching sales for store: ${store.name} (ID: ${store.id})")
+                            val salesResult = salesRepository.getSales(
+                                date = null, 
+                                fromDate = fromDate, 
+                                toDate = today, 
+                                locationIds = store.id.toString()
+                            ).filter { it !is Result.Loading }.first()
+
+                            if (salesResult is Result.Success) {
+                                revenue = salesResult.data.summary?.totalAmount ?: 0.0
+                                Log.d("DashboardViewModel", "Sales fetched for ${store.name}: $revenue")
+                            } else if (salesResult is Result.Error) {
+                                Log.e("DashboardViewModel", "Error fetching sales for ${store.name}: ${salesResult.throwable?.message}")
+                            }
+                        } catch (e: Exception) {
+                            Log.e("DashboardViewModel", "Exception in sales fetch for ${store.name}", e)
+                        }
+                        store to revenue
+                    }
+                }
+
+                val storeSales = storeSalesDeferred.awaitAll()
+
+                val topPerformingStores = storeSales
+                    .sortedByDescending { it.second }
+                    .take(3)
+                    .map { (store, revenue) ->
+                        StoreItem(
+                            name = store.name,
+                            revenue = "₹ ${String.format("%.2f", revenue)}"
+                        )
+                    }
+                Log.d("DashboardViewModel", "Top performers count: ${topPerformingStores.size}")
+
+                val topSellerName = if (topPerformingStores.isNotEmpty()) topPerformingStores.first().name else "N/A"
+
+                _uiState.update { 
+                    it.copy(
+                        activeStore = activeCount, 
+                        storeChange = percentText, 
+                        topSeller = topSellerName,
+                        topStore = topPerformingStores 
+                    ) 
+                }
             }.onFailure {
                 val cachedStores = sharedPrefsManager.getStores()
                 val activeCount = cachedStores.count { it.status.equals("active", ignoreCase = true) }
@@ -200,8 +268,25 @@ class DashboardViewModel @Inject constructor(
                     val pct = if (prev == 0) 100 else ((diff.toDouble() / prev.toDouble()) * 100).roundToInt()
                     "${pct} % changes since last 3 months"
                 }
+                
                 val topSellerName = if (cachedStores.size == 1) cachedStores.first().name else "N/A"
-                _uiState.update { it.copy(activeStore = activeCount, storeChange = percentText, topSeller = topSellerName) }
+                
+                // Populate Top Stores from cache (with 0 revenue as fallback) to avoid "No data available"
+                val topPerformingStores = cachedStores.take(3).map { store ->
+                    StoreItem(
+                        name = store.name,
+                        revenue = "₹ 0.00" // Fallback revenue
+                    )
+                }
+                 
+                _uiState.update { 
+                    it.copy(
+                        activeStore = activeCount, 
+                        storeChange = percentText, 
+                        topSeller = topSellerName,
+                        topStore = topPerformingStores
+                    ) 
+                }
             }
         }
 
