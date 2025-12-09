@@ -15,7 +15,6 @@ import com.swadratna.swadratna_admin.data.remote.api.AdminCampaignListResponse
 import com.swadratna.swadratna_admin.data.remote.api.ValidatePromoRequest
 import com.swadratna.swadratna_admin.data.remote.api.ValidatePromoResponse
 import com.swadratna.swadratna_admin.data.wrapper.Result
-import com.swadratna.swadratna_admin.utils.NetworkErrorHandler
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -33,7 +32,11 @@ class CampaignRepository @Inject constructor(
         try {
             Result.Success(api.getCampaigns())
         } catch (e: Throwable) {
-            Result.Error(NetworkErrorHandler.getErrorMessage(e, "Failed to load campaigns"), e)
+            if (e is IOException) {
+                Result.Success(emptyList())
+            } else {
+                Result.Error(e.message ?: "Unknown error", e)
+            }
         }
     }
 
@@ -42,7 +45,7 @@ class CampaignRepository @Inject constructor(
         try {
             Result.Success(api.createCampaign(req))
         } catch (e: Throwable) {
-            Result.Error(NetworkErrorHandler.getErrorMessage(e, "Failed to create campaign"), e)
+            Result.Error(e.message ?: "Unknown error", e)
         }
     }
 
@@ -51,7 +54,7 @@ class CampaignRepository @Inject constructor(
         try {
             Result.Success(api.createAdminCampaign(req))
         } catch (e: Throwable) {
-            Result.Error(NetworkErrorHandler.getErrorMessage(e, "Failed to create campaign"), e)
+            Result.Error(e.message ?: "Failed to create campaign", e)
         }
     }
 
@@ -65,7 +68,7 @@ class CampaignRepository @Inject constructor(
         try {
             Result.Success(api.listAdminCampaigns(status, type, search, page, limit))
         } catch (e: Throwable) {
-            Result.Error(NetworkErrorHandler.getErrorMessage(e, "Failed to load campaigns"), e)
+            Result.Error(e.message ?: "Failed to load campaigns", e)
         }
     }
 
@@ -75,7 +78,7 @@ class CampaignRepository @Inject constructor(
             android.util.Log.d("CampaignRepository", "Raw API response for campaign $id: youtubeVideoUrl = ${response.youtubeVideoUrl}")
             Result.Success(response)
         } catch (e: Throwable) {
-            Result.Error(NetworkErrorHandler.getErrorMessage(e, "Failed to get details"), e)
+            Result.Error(e.message ?: "Failed to get details", e)
         }
     }
 
@@ -83,7 +86,7 @@ class CampaignRepository @Inject constructor(
         try {
             Result.Success(api.updateAdminCampaign(id, req))
         } catch (e: Throwable) {
-            Result.Error(NetworkErrorHandler.getErrorMessage(e, "Failed to update campaign"), e)
+            Result.Error(e.message ?: "Failed to update campaign", e)
         }
     }
 
@@ -91,7 +94,7 @@ class CampaignRepository @Inject constructor(
         try {
             Result.Success(api.updateAdminCampaignStatus(id, AdminUpdateCampaignStatusRequest(status)))
         } catch (e: Throwable) {
-            Result.Error(NetworkErrorHandler.getErrorMessage(e, "Failed to update status"), e)
+            Result.Error(e.message ?: "Failed to update status", e)
         }
     }
 
@@ -100,7 +103,7 @@ class CampaignRepository @Inject constructor(
             val res = api.deleteAdminCampaign(id)
             Result.Success(res.success)
         } catch (e: Throwable) {
-            Result.Error(NetworkErrorHandler.getErrorMessage(e, "Failed to delete campaign"), e)
+            Result.Error(e.message ?: "Failed to delete campaign", e)
         }
     }
 
@@ -109,7 +112,7 @@ class CampaignRepository @Inject constructor(
         try {
             Result.Success(api.getActiveCampaigns(storeId, categoryIdsCsv))
         } catch (e: Throwable) {
-            Result.Error(NetworkErrorHandler.getErrorMessage(e, "Failed to load active campaigns"), e)
+            Result.Error(e.message ?: "Failed to load active campaigns", e)
         }
     }
 
@@ -117,7 +120,7 @@ class CampaignRepository @Inject constructor(
         try {
             Result.Success(api.validatePromo(ValidatePromoRequest(promoCode, storeId)))
         } catch (e: Throwable) {
-            Result.Error(NetworkErrorHandler.getErrorMessage(e, "Failed to validate promo"), e)
+            Result.Error(e.message ?: "Failed to validate promo", e)
         }
     }
 }

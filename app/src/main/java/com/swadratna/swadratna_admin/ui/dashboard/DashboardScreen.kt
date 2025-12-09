@@ -193,7 +193,12 @@ fun StatCard(
                         fontWeight = FontWeight.Bold
                     )
                 } else {
-                    MaterialTheme.typography.headlineMedium.copy(
+                    val baseStyle = when {
+                        value.length >= 10 -> MaterialTheme.typography.titleMedium
+                        value.length >= 6 -> MaterialTheme.typography.titleLarge
+                        else -> MaterialTheme.typography.headlineMedium
+                    }
+                    baseStyle.copy(
                         fontWeight = FontWeight.Bold
                     )
                 },
