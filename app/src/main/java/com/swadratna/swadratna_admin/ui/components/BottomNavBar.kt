@@ -20,7 +20,7 @@ data class BottomNavItem(
 )
 
 val bottomNavItems = listOf(
-    BottomNavItem("dashboard", R.drawable.ic_home, "Dashboard"),
+    BottomNavItem("dashboard", R.drawable.ic_home, "Home"),
     BottomNavItem("campaigns", R.drawable.ic_campaign, "Campaigns"),
     BottomNavItem("store", R.drawable.ic_store, "Store"),
     BottomNavItem("analytics", R.drawable.ic_analytics, "Analytics"),
