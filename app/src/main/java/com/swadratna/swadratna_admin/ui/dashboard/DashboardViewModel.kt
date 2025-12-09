@@ -100,12 +100,44 @@ class DashboardViewModel @Inject constructor(
                 val analytics = analyticsRepository.loadDashboard(null, null, null)
                 val totalReferrals = analytics.referralStats?.totalReferrals ?: 0
 
+                val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+                val lastDate = sharedPrefsManager.getLastRecordedNewUsersDate()
+                val lastRecordedNewUsers = sharedPrefsManager.getLastRecordedNewUsers()
+                var baselineNewUsers = sharedPrefsManager.getNewUsersBaseline()
+
+                if (lastDate == null) {
+                    baselineNewUsers = totalReferrals
+                    sharedPrefsManager.saveNewUsersBaseline(baselineNewUsers)
+                    sharedPrefsManager.saveLastRecordedNewUsersDate(today)
+                } else if (lastDate != today) {
+                    baselineNewUsers = lastRecordedNewUsers
+                    sharedPrefsManager.saveNewUsersBaseline(baselineNewUsers)
+                    sharedPrefsManager.saveLastRecordedNewUsersDate(today)
+                }
+                
+                sharedPrefsManager.saveLastRecordedNewUsers(totalReferrals)
+
+                val newUsersPercentText = if (baselineNewUsers > 0) {
+                    val diff = totalReferrals - baselineNewUsers
+                    if (diff == 0) {
+                        "0% changes"
+                    } else {
+                        val pct = ((diff.toDouble() / baselineNewUsers) * 100).roundToInt()
+                        val sign = if (pct > 0) "+" else ""
+                        "$sign$pct% changes"
+                    }
+                } else if (baselineNewUsers == 0 && totalReferrals > 0) {
+                    "100% changes"
+                } else {
+                    "0% changes"
+                }
+
                 _uiState.update {
                     it.copy(
                         topSeller = response.topSeller,
                         topSellerMetric = response.topSellerMetric,
                         newUsers = totalReferrals, // Use totalReferrals from analytics
-                        newUsersChange = response.newUsersChange,
+                        newUsersChange = newUsersPercentText,
                         topStore = response.topStore.map { StoreItem(name = it.name, revenue = it.revenue) },
                         isLoading = false
                     )
