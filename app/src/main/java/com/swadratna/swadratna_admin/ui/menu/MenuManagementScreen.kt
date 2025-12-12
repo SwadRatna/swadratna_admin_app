@@ -379,7 +379,7 @@ private fun MenuItemCard(
                             )
                         }
                         Text(
-                            text = "$${item.price}",
+                            text = "₹ ${item.price}",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,

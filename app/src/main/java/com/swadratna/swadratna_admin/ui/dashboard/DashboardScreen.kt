@@ -193,7 +193,12 @@ fun StatCard(
                         fontWeight = FontWeight.Bold
                     )
                 } else {
-                    MaterialTheme.typography.headlineMedium.copy(
+                    val baseStyle = when {
+                        value.length >= 10 -> MaterialTheme.typography.titleMedium
+                        value.length >= 6 -> MaterialTheme.typography.titleLarge
+                        else -> MaterialTheme.typography.headlineMedium
+                    }
+                    baseStyle.copy(
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -277,14 +282,14 @@ fun ActivityItem(activity: ActivityItem) {
 fun TopPerformingStoreSection(storeItem: List<StoreItem>) {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         Text(
-            text = "Top Performing Store",
-            style = MaterialTheme.typography.titleLarge,
+            text = "Top Performing Store (This Week)",
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(16.dp))
-        if (storeItem.size <= 1) {
+        if (storeItem.isEmpty()) {
             Text(
-                text = "No comparison available",
+                text = "No data available",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 modifier = Modifier.padding(vertical = 8.dp)
@@ -297,43 +302,40 @@ fun TopPerformingStoreSection(storeItem: List<StoreItem>) {
                         0 -> Color(0xFFE8F5E9)
                         1 -> Color(0xFFFFEBEE)
                         else -> Color(0xFFF3E5F5)
-                    }
+                    },
+                    rank = index + 1
                 )
             }
-            Text(
-                text = "View Full Leaderboard",
-                style = MaterialTheme.typography.labelLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    textDecoration = TextDecoration.Underline
-                ),
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .padding(top = 8.dp)
-                    .clickable { /* TODO */ }
-            )
         }
     }
 }
 
 
-
 @Composable
-fun StoreItem(store: StoreItem, color: Color) {
+fun StoreItem(store: StoreItem, color: Color, rank: Int) {
+    val icon = when (rank) {
+        1 -> painterResource(R.drawable.ic_first)
+        2 ->  painterResource(R.drawable.ic_second)
+        else ->  painterResource(R.drawable.ic_third)
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(color)
+
+        Icon(
+            painter = icon,
+            contentDescription = null,
+            modifier = Modifier.size(26.dp),
+            tint = Color.Unspecified
         )
-        Spacer(modifier = Modifier.width(16.dp))
+
+        Spacer(modifier = Modifier.width(10.dp))
         Text(
-            text = store.name,
+            text = "${store.name}",
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.weight(1f)
         )
