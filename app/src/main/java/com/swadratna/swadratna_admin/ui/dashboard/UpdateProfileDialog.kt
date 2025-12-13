@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.swadratna.swadratna_admin.data.model.RestaurantProfileRequest
+import com.swadratna.swadratna_admin.data.model.OtherDetails
 
 @Composable
 fun UpdateProfileDialog(
@@ -26,6 +27,7 @@ fun UpdateProfileDialog(
     var youtubeUrl by remember { mutableStateOf("") }
     var youtubeDescription by remember { mutableStateOf("") }
     var hqEmail by remember { mutableStateOf("") }
+    var instagram by remember { mutableStateOf("") }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -106,6 +108,14 @@ fun UpdateProfileDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = instagram,
+                    onValueChange = { instagram = it },
+                    label = { Text("Instagram") },
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Spacer(Modifier.height(24.dp))
 
                 Row(
@@ -126,7 +136,8 @@ fun UpdateProfileDialog(
                                     fassaiLicenceNo = fassaiLicenceNo,
                                     youtubeUrl = youtubeUrl,
                                     youtubeDescription = youtubeDescription,
-                                    hqEmail = hqEmail
+                                    hqEmail = hqEmail,
+                                    otherDetails = OtherDetails(instagram = instagram)
                                 )
                             )
                         },
