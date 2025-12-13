@@ -169,6 +169,11 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideRestaurantApiService(retrofit: Retrofit): com.swadratna.swadratna_admin.data.remote.api.RestaurantApiService =
+        retrofit.create(com.swadratna.swadratna_admin.data.remote.api.RestaurantApiService::class.java)
+
+    @Provides
+    @Singleton
     fun provideWithdrawalApi(retrofit: Retrofit): com.swadratna.swadratna_admin.data.remote.api.WithdrawalApi =
         retrofit.create(com.swadratna.swadratna_admin.data.remote.api.WithdrawalApi::class.java)
 }
