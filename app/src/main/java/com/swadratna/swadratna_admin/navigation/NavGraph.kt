@@ -117,8 +117,13 @@ fun NavGraph(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
-        composable(NavRoute.AttendancePayment.route) {
-            com.swadratna.swadratna_admin.ui.attendance.AttendancePaymentScreen(
+        composable(
+            route = NavRoute.AttendancePayment.route,
+            arguments = listOf(navArgument("storeId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val storeId = backStackEntry.arguments?.getString("storeId") ?: ""
+            com.swadratna.swadratna_admin.ui.attendance.AttendanceScreen(
+                storeId = storeId,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
@@ -209,7 +214,7 @@ fun NavGraph(
                     navController.navigate(NavRoute.MenuManagement.route)
                 },
                 onNavigateToAttendance = { selectedStoreId ->
-                    navController.navigate(NavRoute.AttendancePayment.route)
+                    navController.navigate(NavRoute.AttendancePayment.createRoute(selectedStoreId))
                 }
             )
         }

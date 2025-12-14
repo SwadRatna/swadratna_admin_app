@@ -59,4 +59,8 @@ interface RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindWithdrawalRepository(impl: com.swadratna.swadratna_admin.data.repository.WithdrawalRepositoryImpl): com.swadratna.swadratna_admin.data.repository.WithdrawalRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAttendanceRepository(impl: com.swadratna.swadratna_admin.data.repository.AttendanceRepositoryImpl): com.swadratna.swadratna_admin.data.repository.AttendanceRepository
 }

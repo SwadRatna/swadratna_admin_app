@@ -1,24 +1,45 @@
-package com.swadratna.swadratna_admin.model
+package com.swadratna.swadratna_admin.data.model
 
-import java.time.LocalDate
+import com.google.gson.annotations.SerializedName
 
-enum class AttendanceStatus {
-    PRESENT,
-    ABSENT,
-    LEAVE
-}
+data class AttendanceResponse(
+    @SerializedName("attendance")
+    val attendance: List<AttendanceDay>
+)
 
-data class Attendance(
-    val id: String,
-    val staffId: String,
-    val date: LocalDate,
-    val status: AttendanceStatus,
-    val dailyWage: Double
+data class AttendanceDay(
+    @SerializedName("date")
+    val date: String,
+    @SerializedName("staff")
+    val staff: List<AttendanceStaff>,
+    @SerializedName("summary")
+    val summary: AttendanceSummary
+)
+
+data class AttendanceStaff(
+    @SerializedName("staff_id")
+    val staffId: Int,
+    @SerializedName("name")
+    val name: String,
+    @SerializedName("status")
+    val status: String,
+    @SerializedName("check_in")
+    val checkIn: String?,
+    @SerializedName("check_out")
+    val checkOut: String?,
+    @SerializedName("total_hours")
+    val totalHours: Double,
+    @SerializedName("is_late")
+    val isLate: Boolean
 )
 
 data class AttendanceSummary(
-    val totalStaff: Int,
-    val presentCount: Int,
-    val absentCount: Int,
-    val leaveCount: Int
+    @SerializedName("total")
+    val total: Int,
+    @SerializedName("present")
+    val present: Int,
+    @SerializedName("absent")
+    val absent: Int,
+    @SerializedName("on_leave")
+    val onLeave: Int
 )

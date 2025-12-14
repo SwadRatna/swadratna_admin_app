@@ -176,4 +176,9 @@ object NetworkModule {
     @Singleton
     fun provideWithdrawalApi(retrofit: Retrofit): com.swadratna.swadratna_admin.data.remote.api.WithdrawalApi =
         retrofit.create(com.swadratna.swadratna_admin.data.remote.api.WithdrawalApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAttendanceApi(retrofit: Retrofit): com.swadratna.swadratna_admin.data.remote.api.AttendanceApi =
+        retrofit.create(com.swadratna.swadratna_admin.data.remote.api.AttendanceApi::class.java)
 }
