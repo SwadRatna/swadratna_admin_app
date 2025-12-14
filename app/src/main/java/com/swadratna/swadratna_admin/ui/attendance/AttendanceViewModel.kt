@@ -31,12 +31,14 @@ data class StaffAttendanceAggregate(
     val absentCount: Int,
     val halfDayCount: Int,
     val leaveCount: Int,
-    val totalHours: Double
+    val totalHours: Double,
+    val calculatedSalary: Double
 )
 
 @HiltViewModel
 class AttendanceViewModel @Inject constructor(
-    private val repository: AttendanceRepository
+    private val repository: AttendanceRepository,
+    private val staffRepository: com.swadratna.swadratna_admin.data.repository.StaffRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AttendanceUiState())
@@ -60,7 +62,11 @@ class AttendanceViewModel @Inject constructor(
             _uiState.update { state ->
                 when (result) {
                     is Result.Success -> {
-                        val aggregated = calculateAggregation(result.data)
+                        val storeIdInt = storeId.toIntOrNull() ?: 0
+                        val staffList = staffRepository.getStaff(storeIdInt)
+                            .getOrNull()?.staff ?: emptyList()
+                            
+                        val aggregated = calculateAggregation(result.data, staffList)
                         state.copy(
                             isLoading = false,
                             attendanceResponse = result.data,
@@ -77,23 +83,95 @@ class AttendanceViewModel @Inject constructor(
         }
     }
 
-    private fun calculateAggregation(response: AttendanceResponse): List<StaffAttendanceAggregate> {
-        val allStaffEntries = response.attendance.flatMap { it.staff }
+    private fun calculateAggregation(
+        response: AttendanceResponse,
+        staffList: List<com.swadratna.swadratna_admin.data.model.Staff>
+    ): List<StaffAttendanceAggregate> {
+        // Flatten to get all staff entries but keep the date context for salary calculation
+        val allEntriesWithDate = response.attendance.flatMap { day ->
+            day.staff.map { staffEntry ->
+                Pair(day.date, staffEntry)
+            }
+        }
         
-        return allStaffEntries
-            .groupBy { it.staffId }
-            .map { (id, entries) ->
+        return allEntriesWithDate
+            .groupBy { it.second.staffId }
+            .map { (id, entriesWithDate) ->
+                val entries = entriesWithDate.map { it.second }
                 val name = entries.firstOrNull()?.name ?: "Unknown"
+                val presentCount = entries.count { it.status.equals("present", ignoreCase = true) }
+                val absentCount = entries.count { it.status.equals("absent", ignoreCase = true) }
+                val halfDayCount = entries.count { it.status.equals("half_day", ignoreCase = true) }
+                val leaveCount = entries.count { it.status.equals("on_leave", ignoreCase = true) }
+                
+                // Calculate salary dynamically based on days in month
+                val staff = staffList.find { it.id == id }
+                val monthlySalary = staff?.salary ?: 0.0
+                
+                var totalSalary = 0.0
+                
+                if (monthlySalary > 0) {
+                    entriesWithDate.forEach { (dateStr, entry) ->
+                        try {
+                            val date = parseDate(dateStr)
+                            val daysInMonth = date.lengthOfMonth()
+                            val dailySalary = monthlySalary / daysInMonth.toDouble()
+                            
+                            if (entry.status.equals("present", ignoreCase = true)) {
+                                totalSalary += dailySalary
+                            } else if (entry.status.equals("half_day", ignoreCase = true)) {
+                                totalSalary += (dailySalary * 0.5)
+                            }
+                        } catch (e: Exception) {
+                            // Fallback to 30 days if date parsing fails
+                            val dailySalary = monthlySalary / 30.0
+                            if (entry.status.equals("present", ignoreCase = true)) {
+                                totalSalary += dailySalary
+                            } else if (entry.status.equals("half_day", ignoreCase = true)) {
+                                totalSalary += (dailySalary * 0.5)
+                            }
+                        }
+                    }
+                }
+                
                 StaffAttendanceAggregate(
                     staffId = id,
                     name = name,
-                    presentCount = entries.count { it.status.equals("present", ignoreCase = true) },
-                    absentCount = entries.count { it.status.equals("absent", ignoreCase = true) },
-                    halfDayCount = entries.count { it.status.equals("half_day", ignoreCase = true) },
-                    leaveCount = entries.count { it.status.equals("on_leave", ignoreCase = true) },
-                    totalHours = entries.sumOf { it.totalHours }
+                    presentCount = presentCount,
+                    absentCount = absentCount,
+                    halfDayCount = halfDayCount,
+                    leaveCount = leaveCount,
+                    totalHours = entries.sumOf { it.totalHours },
+                    calculatedSalary = totalSalary
                 )
             }
             .sortedBy { it.name }
+    }
+
+    private fun parseDate(dateStr: String): LocalDate {
+        return try {
+            LocalDate.parse(dateStr)
+        } catch (e: Exception) {
+            try {
+                // Try removing time component if ISO format
+                if (dateStr.length >= 10) {
+                    LocalDate.parse(dateStr.take(10))
+                } else {
+                    throw e
+                }
+            } catch (e2: Exception) {
+                try {
+                    // Try dd-MM-yyyy
+                    LocalDate.parse(dateStr, DateTimeFormatter.ofPattern("dd-MM-yyyy"))
+                } catch (e3: Exception) {
+                    try {
+                        // Try dd/MM/yyyy
+                        LocalDate.parse(dateStr, DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                    } catch (e4: Exception) {
+                        throw e4
+                    }
+                }
+            }
+        }
     }
 }
