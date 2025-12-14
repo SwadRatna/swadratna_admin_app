@@ -10,6 +10,8 @@ import com.swadratna.swadratna_admin.data.repository.ActivityRepository
 import com.swadratna.swadratna_admin.data.repository.AnalyticsRepository
 import com.swadratna.swadratna_admin.data.repository.CampaignRepository
 import com.swadratna.swadratna_admin.data.repository.DashboardRepository
+import com.swadratna.swadratna_admin.data.repository.RestaurantRepository
+import com.swadratna.swadratna_admin.data.model.RestaurantProfileRequest
 import com.swadratna.swadratna_admin.data.repository.SalesRepository
 import com.swadratna.swadratna_admin.data.repository.StoreRepository
 import kotlinx.coroutines.flow.first
@@ -41,6 +43,7 @@ class DashboardViewModel @Inject constructor(
     private val activityRepository: ActivityRepository,
     private val campaignRepository: CampaignRepository,
     private val storeRepository: StoreRepository,
+    private val restaurantRepository: RestaurantRepository,
     private val salesRepository: SalesRepository,
     private val sharedPrefsManager: SharedPrefsManager
 ) : ViewModel() {
@@ -55,6 +58,20 @@ class DashboardViewModel @Inject constructor(
     fun refreshDashboardData() {
         loadDashboardData()
         fetchSalesData()
+    }
+
+    fun updateRestaurantProfile(request: RestaurantProfileRequest, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isProfileUpdating = true) }
+            val result = restaurantRepository.updateRestaurantProfile(ApiConstants.RESTAURANT_ID, request)
+            _uiState.update { it.copy(isProfileUpdating = false) }
+            
+            when (result) {
+                is Result.Success -> onSuccess()
+                is Result.Error -> onError(result.throwable?.message ?: "Unknown error")
+                is Result.Loading -> {}
+            }
+        }
     }
 
     private fun fetchSalesData() {
@@ -319,7 +336,8 @@ data class DashboardUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val totalSales: String = "0",
-    val salesChange: String = ""
+    val salesChange: String = "",
+    val isProfileUpdating: Boolean = false
 )
 
 data class ActivityItem(

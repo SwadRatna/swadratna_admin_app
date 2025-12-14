@@ -23,6 +23,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.layout.WindowInsets
 import com.swadratna.swadratna_admin.R
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
+import androidx.compose.material.icons.filled.Edit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +38,27 @@ fun DashboardScreen(
     onNavigateToSaleList: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    var showUpdateProfileDialog by remember { mutableStateOf(false) }
+
+    if (showUpdateProfileDialog) {
+        UpdateProfileDialog(
+            onDismiss = { showUpdateProfileDialog = false },
+            onSubmit = { request ->
+                viewModel.updateRestaurantProfile(
+                    request = request,
+                    onSuccess = {
+                        showUpdateProfileDialog = false
+                        Toast.makeText(context, "Profile Updated Successfully", Toast.LENGTH_SHORT).show()
+                    },
+                    onError = { error ->
+                        Toast.makeText(context, "Error: $error", Toast.LENGTH_SHORT).show()
+                    }
+                )
+            },
+            isLoading = uiState.isProfileUpdating
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -64,6 +88,9 @@ fun DashboardScreen(
                         }
                         IconButton(onClick = { viewModel.refreshDashboardData() }) {
                             Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        }
+                        IconButton(onClick = { showUpdateProfileDialog = true }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Update Profile")
                         }
                     }
                 },
