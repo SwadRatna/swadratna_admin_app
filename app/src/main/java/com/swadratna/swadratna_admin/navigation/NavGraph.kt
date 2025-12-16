@@ -39,6 +39,7 @@ import com.swadratna.swadratna_admin.ui.staff.StaffManagementScreen
 import com.swadratna.swadratna_admin.ui.store.CreateStoreScreen
 import com.swadratna.swadratna_admin.ui.store.StoreDetailScreen
 import com.swadratna.swadratna_admin.ui.store.StoreScreen
+import com.swadratna.swadratna_admin.ui.user.UserAccountScreen
 import com.swadratna.swadratna_admin.ui.viewmodels.AuthViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -106,6 +107,9 @@ fun NavGraph(
                 },
                 onNavigateToSaleList = {
                     navController.navigate(NavRoute.SaleList.route)
+                },
+                onNavigateToUserAccount = {
+                    navController.navigate(NavRoute.UserAccount.route)
                 }
             )
         }
@@ -505,6 +509,12 @@ fun NavGraph(
         composable(NavRoute.SaleList.route) {
             SaleListScreen(
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(NavRoute.UserAccount.route) {
+            UserAccountScreen(
+                onBackClick = { navController.popBackStack() }
             )
         }
 
