@@ -39,6 +39,7 @@ import com.swadratna.swadratna_admin.ui.staff.StaffManagementScreen
 import com.swadratna.swadratna_admin.ui.store.CreateStoreScreen
 import com.swadratna.swadratna_admin.ui.store.StoreDetailScreen
 import com.swadratna.swadratna_admin.ui.store.StoreScreen
+import com.swadratna.swadratna_admin.ui.user.UserAccountScreen
 import com.swadratna.swadratna_admin.ui.viewmodels.AuthViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -106,6 +107,9 @@ fun NavGraph(
                 },
                 onNavigateToSaleList = {
                     navController.navigate(NavRoute.SaleList.route)
+                },
+                onNavigateToUserAccount = {
+                    navController.navigate(NavRoute.UserAccount.route)
                 }
             )
         }
@@ -117,8 +121,13 @@ fun NavGraph(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
-        composable(NavRoute.AttendancePayment.route) {
-            com.swadratna.swadratna_admin.ui.attendance.AttendancePaymentScreen(
+        composable(
+            route = NavRoute.AttendancePayment.route,
+            arguments = listOf(navArgument("storeId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val storeId = backStackEntry.arguments?.getString("storeId") ?: ""
+            com.swadratna.swadratna_admin.ui.attendance.AttendanceScreen(
+                storeId = storeId,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
@@ -209,7 +218,7 @@ fun NavGraph(
                     navController.navigate(NavRoute.MenuManagement.route)
                 },
                 onNavigateToAttendance = { selectedStoreId ->
-                    navController.navigate(NavRoute.AttendancePayment.route)
+                    navController.navigate(NavRoute.AttendancePayment.createRoute(selectedStoreId))
                 },
                 onNavigateToInventory = { selectedStoreId ->
                     navController.navigate(NavRoute.ManageInventory.createRoute(selectedStoreId))
@@ -515,6 +524,16 @@ fun NavGraph(
             SaleListScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
+        }
+
+        composable(NavRoute.UserAccount.route) {
+            UserAccountScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable(NavRoute.Referral.route) {
+            com.swadratna.swadratna_admin.ui.referral.ReferralScreen()
         }
     }
 }

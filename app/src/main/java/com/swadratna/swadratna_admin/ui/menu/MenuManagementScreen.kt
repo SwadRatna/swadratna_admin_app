@@ -250,10 +250,7 @@ fun MenuManagementScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(currentMenuState.items) { item ->
-                            MenuItemCard(
-                                item = item,
-                                onToggleAvailability = { viewModel.toggleAvailability(item) }
-                            )
+                            MenuItemCard(item = item)
                         }
                         if (isNextPageLoading) {
                             item {
@@ -315,7 +312,6 @@ private fun CategoryChip(
 @Composable
 private fun MenuItemCard(
     item: com.swadratna.swadratna_admin.data.model.MenuItem,
-    onToggleAvailability: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -379,7 +375,7 @@ private fun MenuItemCard(
                             )
                         }
                         Text(
-                            text = "$${item.price}",
+                            text = "₹ ${item.price}",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
@@ -387,10 +383,6 @@ private fun MenuItemCard(
                         )
                     }
                 }
-                Switch(
-                    checked = item.isAvailable,
-                    onCheckedChange = { onToggleAvailability() }
-                )
             }
         }
     }

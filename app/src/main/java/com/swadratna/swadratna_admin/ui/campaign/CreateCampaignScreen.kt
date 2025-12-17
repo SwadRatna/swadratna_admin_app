@@ -85,11 +85,6 @@ fun CreateCampaignScreen(
     val uiState by viewModel.uiState.collectAsState()
     val isEditMode = uiState.isEditMode
     val campaignToEdit = uiState.campaignToEdit
-    
-    // Debug logging for campaignToEdit changes
-    LaunchedEffect(campaignToEdit) {
-        android.util.Log.d("CreateCampaignScreen", "campaignToEdit changed: ${campaignToEdit?.id}, youtubeVideoUrl: ${campaignToEdit?.youtubeVideoUrl}")
-    }
 
     var selectedStatus by remember { mutableStateOf(campaignToEdit?.status) }
     LaunchedEffect(campaignToEdit?.status) { selectedStatus = campaignToEdit?.status }
@@ -105,8 +100,6 @@ fun CreateCampaignScreen(
     var selectedCategoryIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
     LaunchedEffect(Unit) {
         menuViewModel.loadCategories()
-        // Debug log to check initial state
-        android.util.Log.d("CreateCampaignScreen", "Initial campaignToEdit: ${campaignToEdit?.youtubeVideoUrl}")
     }
     
     var campaignTitle by remember { mutableStateOf(campaignToEdit?.title ?: "") }
@@ -452,21 +445,6 @@ fun CreateCampaignScreen(
                     }
                 }
             }
-
-            Spacer(Modifier.height(16.dp))
-            
-            Text("YouTube Video URL (Optional)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-            Spacer(Modifier.height(8.dp))
-            android.util.Log.d("CreateCampaignScreen", "Rendering YouTube field with value: '$youtubeVideoUrl'")
-            OutlinedTextField(
-                value = youtubeVideoUrl,
-                onValueChange = { youtubeVideoUrl = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Write youtube link here") },
-                singleLine = true,
-                shape = RoundedCornerShape(8.dp)
-            )
-
             Spacer(Modifier.height(16.dp))
             Text("Banner Image URL (Optional)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(8.dp))

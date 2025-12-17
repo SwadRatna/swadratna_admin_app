@@ -130,6 +130,11 @@ class SharedPrefsManager @Inject constructor(
         private const val KEY_BASELINE_SALES = "baseline_sales"
         private const val KEY_LAST_RECORDED_SALES = "last_recorded_sales"
         private const val KEY_LAST_RECORDED_DATE = "last_recorded_date"
+
+        // New Users tracking keys
+        private const val KEY_BASELINE_NEW_USERS = "baseline_new_users"
+        private const val KEY_LAST_RECORDED_NEW_USERS = "last_recorded_new_users"
+        private const val KEY_LAST_RECORDED_NEW_USERS_DATE = "last_recorded_new_users_date"
     }
 
     fun saveSalesBaseline(amount: Double) {
@@ -154,5 +159,30 @@ class SharedPrefsManager @Inject constructor(
 
     fun getLastRecordedDate(): String? {
         return sharedPreferences.getString(KEY_LAST_RECORDED_DATE, null)
+    }
+
+    // New Users methods
+    fun saveNewUsersBaseline(count: Int) {
+        sharedPreferences.edit { putInt(KEY_BASELINE_NEW_USERS, count) }
+    }
+
+    fun getNewUsersBaseline(): Int {
+        return sharedPreferences.getInt(KEY_BASELINE_NEW_USERS, 0)
+    }
+
+    fun saveLastRecordedNewUsers(count: Int) {
+        sharedPreferences.edit { putInt(KEY_LAST_RECORDED_NEW_USERS, count) }
+    }
+
+    fun getLastRecordedNewUsers(): Int {
+        return sharedPreferences.getInt(KEY_LAST_RECORDED_NEW_USERS, 0)
+    }
+
+    fun saveLastRecordedNewUsersDate(date: String) {
+        sharedPreferences.edit { putString(KEY_LAST_RECORDED_NEW_USERS_DATE, date) }
+    }
+
+    fun getLastRecordedNewUsersDate(): String? {
+        return sharedPreferences.getString(KEY_LAST_RECORDED_NEW_USERS_DATE, null)
     }
 }

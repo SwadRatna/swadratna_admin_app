@@ -14,6 +14,8 @@ import com.swadratna.swadratna_admin.data.repository.StaffRepository
 import com.swadratna.swadratna_admin.data.repository.StaffRepositoryImpl
 import com.swadratna.swadratna_admin.data.repository.StoreRepository
 import com.swadratna.swadratna_admin.data.repository.StoreRepositoryImpl
+import com.swadratna.swadratna_admin.data.repository.CustomersRepository
+import com.swadratna.swadratna_admin.data.repository.CustomersRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -51,4 +53,20 @@ interface RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindStaffRepository(impl: StaffRepositoryImpl): StaffRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindRestaurantRepository(impl: com.swadratna.swadratna_admin.data.repository.RestaurantRepositoryImpl): com.swadratna.swadratna_admin.data.repository.RestaurantRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindWithdrawalRepository(impl: com.swadratna.swadratna_admin.data.repository.WithdrawalRepositoryImpl): com.swadratna.swadratna_admin.data.repository.WithdrawalRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAttendanceRepository(impl: com.swadratna.swadratna_admin.data.repository.AttendanceRepositoryImpl): com.swadratna.swadratna_admin.data.repository.AttendanceRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCustomersRepository(impl: CustomersRepositoryImpl): CustomersRepository
 }

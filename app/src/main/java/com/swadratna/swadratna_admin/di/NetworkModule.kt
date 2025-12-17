@@ -12,6 +12,7 @@ import com.swadratna.swadratna_admin.data.remote.api.AuthInterceptor
 import com.swadratna.swadratna_admin.data.remote.api.CampaignApi
 import com.swadratna.swadratna_admin.data.remote.api.DashboardApi
 import com.swadratna.swadratna_admin.data.remote.api.MenuApi
+import com.swadratna.swadratna_admin.data.remote.api.CustomersApi
 import com.swadratna.swadratna_admin.data.remote.api.HeaderInterceptor
 import com.swadratna.swadratna_admin.data.remote.api.StaffApiService
 import com.swadratna.swadratna_admin.data.remote.api.StoreApiService
@@ -166,4 +167,24 @@ object NetworkModule {
     @Singleton
     fun provideSalesRepository(api: com.swadratna.swadratna_admin.data.remote.api.SalesApi): com.swadratna.swadratna_admin.data.repository.SalesRepository =
         com.swadratna.swadratna_admin.data.repository.SalesRepositoryImpl(api)
+
+    @Provides
+    @Singleton
+    fun provideRestaurantApiService(retrofit: Retrofit): com.swadratna.swadratna_admin.data.remote.api.RestaurantApiService =
+        retrofit.create(com.swadratna.swadratna_admin.data.remote.api.RestaurantApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideWithdrawalApi(retrofit: Retrofit): com.swadratna.swadratna_admin.data.remote.api.WithdrawalApi =
+        retrofit.create(com.swadratna.swadratna_admin.data.remote.api.WithdrawalApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAttendanceApi(retrofit: Retrofit): com.swadratna.swadratna_admin.data.remote.api.AttendanceApi =
+        retrofit.create(com.swadratna.swadratna_admin.data.remote.api.AttendanceApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideCustomersApi(retrofit: Retrofit): CustomersApi =
+        retrofit.create(CustomersApi::class.java)
 }

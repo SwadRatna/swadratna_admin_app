@@ -4,6 +4,7 @@ import com.swadratna.swadratna_admin.data.model.Store
 import com.swadratna.swadratna_admin.data.model.StoreRequest
 import com.swadratna.swadratna_admin.data.model.StoreResponse
 import com.swadratna.swadratna_admin.data.remote.api.StoreApiService
+import com.swadratna.swadratna_admin.utils.NetworkErrorHandler
 import javax.inject.Inject
 
 class StoreRepositoryImpl @Inject constructor(
@@ -15,7 +16,7 @@ class StoreRepositoryImpl @Inject constructor(
             val response = storeApiService.getStores(page, limit, restaurantId)
             Result.success(response)
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception(NetworkErrorHandler.getErrorMessage(e), e))
         }
     }
     
@@ -24,7 +25,7 @@ class StoreRepositoryImpl @Inject constructor(
             val response = storeApiService.createStore(storeRequest)
             Result.success(response)
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception(NetworkErrorHandler.getErrorMessage(e), e))
         }
     }
     
@@ -33,7 +34,7 @@ class StoreRepositoryImpl @Inject constructor(
             val response = storeApiService.updateStore(storeId, storeRequest)
             Result.success(response)
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception(NetworkErrorHandler.getErrorMessage(e), e))
         }
     }
     
@@ -42,7 +43,7 @@ class StoreRepositoryImpl @Inject constructor(
             storeApiService.deleteStore(storeId)
             Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(e)
+            Result.failure(Exception(NetworkErrorHandler.getErrorMessage(e), e))
         }
     }
 }
