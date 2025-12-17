@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,39 +16,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.swadratna.swadratna_admin.ui.components.AppSearchField
 import androidx.compose.material.icons.filled.Delete
-
-data class User(
-    val id: String,
-    val name: String,
-    val email: String,
-    val isBlocked: Boolean,
-    val isDeleted: Boolean
-)
+import com.swadratna.swadratna_admin.data.remote.dto.CustomerDto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserAccountScreen(
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    viewModel: UserAccountViewModel = hiltViewModel()
 ) {
-    var searchQuery by remember { mutableStateOf("") }
-    
-    // Static list of users
-    val initialUsers = remember {
-        listOf(
-            User("1", "John Doe", "john.doe@example.com", isBlocked = false, isDeleted = false),
-            User("2", "Jane Smith", "jane.smith@example.com", isBlocked = true, isDeleted = false),
-            User("3", "Alice Johnson", "alice.j@example.com", isBlocked = false, isDeleted = true),
-            User("4", "Bob Brown", "bob.brown@test.com", isBlocked = false, isDeleted = false),
-            User("5", "Charlie Davis", "charlie.d@example.com", isBlocked = true, isDeleted = true)
-        )
-    }
-
-    var users by remember { mutableStateOf(initialUsers) }
-
-    val filteredUsers = users.filter { 
-        it.email.contains(searchQuery, ignoreCase = true) || 
-        it.name.contains(searchQuery, ignoreCase = true)
-    }
+    val uiState by viewModel.uiState.collectAsState()
+    LaunchedEffect(Unit) { viewModel.load(reset = true) }
+    var searchQuery by remember(uiState.search) { mutableStateOf(uiState.search) }
 
     Scaffold(
         topBar = {
@@ -69,8 +48,11 @@ fun UserAccountScreen(
         ) {
             AppSearchField(
                 value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = "Search by email or name...",
+                onValueChange = {
+                    searchQuery = it
+                    viewModel.search(it)
+                },
+                placeholder = "Search by email/phone/name",
                 modifier = Modifier.fillMaxWidth()
             )
             
@@ -79,21 +61,24 @@ fun UserAccountScreen(
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(filteredUsers) { user ->
+                items(uiState.customers) { user ->
                     UserCard(
                         user = user,
-                        onBlockToggle = { isBlocked ->
-                            users = users.map { 
-                                if (it.id == user.id) it.copy(isBlocked = isBlocked) else it 
-                            }
-                        },
-                        onDeleteClick = {
-                            users = users.map { 
-                                if (it.id == user.id) it.copy(isDeleted = true) else it 
-                            }
-                        }
+                        onBlockToggle = { isBlocked -> viewModel.toggleBlock(user, isBlocked) },
+                        onDeleteClick = { viewModel.delete(user) }
                     )
                 }
+                item {
+                    if (uiState.hasNext && !uiState.isLoading) {
+                        OutlinedButton(onClick = { viewModel.loadNextPage() }, modifier = Modifier.fillMaxWidth()) {
+                            Text("Load more")
+                        }
+                    }
+                }
+            }
+            if (uiState.isLoading) {
+                Spacer(Modifier.height(8.dp))
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
         }
     }
@@ -101,7 +86,7 @@ fun UserAccountScreen(
 
 @Composable
 fun UserCard(
-    user: User,
+    user: CustomerDto,
     onBlockToggle: (Boolean) -> Unit,
     onDeleteClick: () -> Unit
 ) {
@@ -122,19 +107,19 @@ fun UserCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = user.name,
+                        text = user.name ?: "",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = user.email,
+                        text = user.email ?: "",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 }
                 
                 // Delete Button
-                if (!user.isDeleted) {
+                if (user.deleted != true) {
                     IconButton(onClick = onDeleteClick) {
                         Icon(
                             imageVector = Icons.Default.Delete,
@@ -160,12 +145,12 @@ fun UserCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = if (user.isBlocked) "Blocked" else "Active",
+                    text = if (user.blocked == true || user.status == "blocked") "Blocked" else "Active",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (user.isBlocked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                    color = if (user.blocked == true || user.status == "blocked") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                 )
                 Switch(
-                    checked = user.isBlocked,
+                    checked = user.blocked == true || user.status == "blocked",
                     onCheckedChange = onBlockToggle,
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
