@@ -39,5 +39,6 @@ sealed class NavRoute(val route: String) {
     object Notifications : NavRoute("notifications")
     object AllStaffManagement : NavRoute("all_staff_management")
     object SaleList : NavRoute("sale_list")
+    object UserAccount : NavRoute("user_account")
     object Referral : NavRoute("referral")
 }

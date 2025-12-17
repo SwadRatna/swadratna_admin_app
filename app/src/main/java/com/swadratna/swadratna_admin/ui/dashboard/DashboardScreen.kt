@@ -35,7 +35,8 @@ fun DashboardScreen(
     onNavigateToSettings: () -> Unit = {},
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToAllStaffManagement: () -> Unit = {},
-    onNavigateToSaleList: () -> Unit = {}
+    onNavigateToSaleList: () -> Unit = {},
+    onNavigateToUserAccount: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -120,7 +121,7 @@ fun DashboardScreen(
                         .padding(paddingValues),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    item { StatisticsSection(uiState, onNavigateToSaleList) }
+                    item { StatisticsSection(uiState, onNavigateToSaleList, onNavigateToUserAccount) }
                     item { RecentActivitySection(uiState.recentActivities, onNavigateToNotifications) }
                     item { TopPerformingStoreSection(uiState.topStore) }
                 }
@@ -132,8 +133,39 @@ fun DashboardScreen(
 
 
 @Composable
-fun StatisticsSection(uiState: DashboardUiState, onNavigateToSaleList: () -> Unit) {
+fun StatisticsSection(
+    uiState: DashboardUiState,
+    onNavigateToSaleList: () -> Unit,
+    onNavigateToUserAccount: () -> Unit
+) {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        
+        Card(
+            onClick = onNavigateToUserAccount,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Handle User Account",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowRight,
+                    contentDescription = null
+                )
+            }
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)

@@ -12,6 +12,7 @@ import com.swadratna.swadratna_admin.data.remote.api.AuthInterceptor
 import com.swadratna.swadratna_admin.data.remote.api.CampaignApi
 import com.swadratna.swadratna_admin.data.remote.api.DashboardApi
 import com.swadratna.swadratna_admin.data.remote.api.MenuApi
+import com.swadratna.swadratna_admin.data.remote.api.CustomersApi
 import com.swadratna.swadratna_admin.data.remote.api.HeaderInterceptor
 import com.swadratna.swadratna_admin.data.remote.api.StaffApiService
 import com.swadratna.swadratna_admin.data.remote.api.StoreApiService
@@ -181,4 +182,9 @@ object NetworkModule {
     @Singleton
     fun provideAttendanceApi(retrofit: Retrofit): com.swadratna.swadratna_admin.data.remote.api.AttendanceApi =
         retrofit.create(com.swadratna.swadratna_admin.data.remote.api.AttendanceApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideCustomersApi(retrofit: Retrofit): CustomersApi =
+        retrofit.create(CustomersApi::class.java)
 }
