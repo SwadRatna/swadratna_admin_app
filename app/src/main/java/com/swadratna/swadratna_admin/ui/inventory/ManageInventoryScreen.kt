@@ -1,27 +1,28 @@
 package com.swadratna.swadratna_admin.ui.inventory
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -32,18 +33,21 @@ fun ManageInventoryScreen(
     onNavigateBack: () -> Unit
 ) {
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
-    var showAddDialog by remember { mutableStateOf(false) }
-    var editingItem by remember { mutableStateOf<InventoryItem?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var showAddIngredientDialog by remember { mutableStateOf(false) }
+    var editingIngredient by remember { mutableStateOf<com.swadratna.swadratna_admin.data.model.Ingredient?>(null) }
+    var deletingIngredient by remember { mutableStateOf<com.swadratna.swadratna_admin.data.model.Ingredient?>(null) }
+    var stockInIngredient by remember { mutableStateOf<com.swadratna.swadratna_admin.data.model.Ingredient?>(null) }
+    var stockOutIngredient by remember { mutableStateOf<com.swadratna.swadratna_admin.data.model.Ingredient?>(null) }
+    var wastageIngredient by remember { mutableStateOf<com.swadratna.swadratna_admin.data.model.Ingredient?>(null) }
+    var manualIngredient by remember { mutableStateOf<com.swadratna.swadratna_admin.data.model.Ingredient?>(null) }
 
-    // Mock Data
-    val inventoryItems = remember {
-        mutableStateListOf(
-            InventoryItem("1", "Rice", 50.0, "kg", 2500.0),
-            InventoryItem("2", "Oil", 20.0, "L", 3000.0),
-            InventoryItem("3", "Chicken", 10.0, "kg", 2000.0),
-            InventoryItem("4", "Spices", 2.0, "kg", 1500.0)
-        )
+    val viewModel: InventoryViewModel = hiltViewModel()
+    val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(storeId) {
+        val sid = storeId.toIntOrNull() ?: 0
+        viewModel.init(sid)
     }
 
     if (showDatePicker) {
@@ -89,7 +93,7 @@ fun ManageInventoryScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }) {
+            FloatingActionButton(onClick = { showAddIngredientDialog = true }) {
                 Icon(Icons.Default.Add, contentDescription = "Add Inventory")
             }
         }
@@ -131,7 +135,7 @@ fun ManageInventoryScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Inventory Items",
+                text = "Ingredients",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
@@ -143,52 +147,259 @@ fun ManageInventoryScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.padding(horizontal = 16.dp)
             ) {
-                items(inventoryItems) { item ->
-                    InventoryItemCard(
-                        item = item,
-                        onEdit = { editingItem = item }
-                    )
+                if (uiState.isLoading) {
+                    item {
+                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                } else if (uiState.error != null) {
+                    item {
+                        Text(
+                            text = uiState.error ?: "",
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                } else if (uiState.ingredients.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No ingredients found",
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                } else {
+                    items(uiState.ingredients) { ing ->
+                        IngredientCard(
+                            ingredient = ing,
+                            onEdit = { editingIngredient = ing },
+                            onDelete = { deletingIngredient = ing },
+                            onStockIn = { stockInIngredient = ing },
+                            onStockOut = { stockOutIngredient = ing },
+                            onWastage = { wastageIngredient = ing },
+                            onManual = { manualIngredient = ing }
+                        )
+                    }
                 }
             }
         }
     }
 
-    if (showAddDialog) {
-        AddInventoryDialog(
-            onDismiss = { showAddDialog = false },
-            onSave = { name, quantity, unit, value ->
-                inventoryItems.add(
-                    InventoryItem(
-                        id = System.currentTimeMillis().toString(),
-                        name = name,
-                        quantity = quantity,
-                        unit = unit,
-                        totalValue = value
-                    )
-                )
-                showAddDialog = false
+    if (showAddIngredientDialog) {
+        AddIngredientDialog(
+            onDismiss = { showAddIngredientDialog = false },
+            onSave = { name, category, unit, reorderLevel, costPerUnit ->
+                viewModel.createIngredient(
+                    name = name,
+                    category = category,
+                    unit = unit,
+                    reorderLevel = reorderLevel,
+                    costPerUnit = costPerUnit
+                ) { success, _ ->
+                    if (success) {
+                        showAddIngredientDialog = false
+                    }
+                }
             }
         )
     }
 
-    if (editingItem != null) {
-        AddInventoryDialog(
-            item = editingItem,
-            onDismiss = { editingItem = null },
-            onSave = { name, quantity, unit, value ->
-                val index = inventoryItems.indexOfFirst { it.id == editingItem?.id }
-                if (index != -1) {
-                    inventoryItems[index] = inventoryItems[index].copy(
-                        name = name,
-                        quantity = quantity,
-                        unit = unit,
-                        totalValue = value
-                    )
+    if (editingIngredient != null) {
+        EditIngredientDialog(
+            ingredient = editingIngredient!!,
+            onDismiss = { editingIngredient = null },
+            onSave = { rl, cpu ->
+                val id = editingIngredient?.id ?: return@EditIngredientDialog
+                viewModel.updateIngredient(id, rl, cpu) { success, _ ->
+                    if (success) editingIngredient = null
                 }
-                editingItem = null
             }
         )
     }
+
+    if (deletingIngredient != null) {
+        DeleteIngredientDialog(
+            ingredient = deletingIngredient!!,
+            onDismiss = { deletingIngredient = null },
+            onConfirm = {
+                val id = deletingIngredient?.id ?: return@DeleteIngredientDialog
+                viewModel.deleteIngredient(id) { success, _ ->
+                    if (success) deletingIngredient = null
+                }
+            }
+        )
+    }
+
+    if (stockInIngredient != null) {
+        StockInDialog(
+            ingredient = stockInIngredient!!,
+            onDismiss = { stockInIngredient = null },
+            onSave = { qty, cpu, vendor, invoice, notes ->
+                val id = stockInIngredient?.id ?: return@StockInDialog
+                viewModel.stockIn(id, qty, cpu, vendor, invoice, notes) { success, _ ->
+                    if (success) stockInIngredient = null
+                }
+            }
+        )
+    }
+
+    if (stockOutIngredient != null) {
+        StockOutDialog(
+            ingredient = stockOutIngredient!!,
+            onDismiss = { stockOutIngredient = null },
+            onSave = { qty, reason ->
+                val id = stockOutIngredient?.id ?: return@StockOutDialog
+                viewModel.stockOut(id, qty, reason) { success, _ ->
+                    if (success) stockOutIngredient = null
+                }
+            }
+        )
+    }
+
+    if (wastageIngredient != null) {
+        WastageDialog(
+            ingredient = wastageIngredient!!,
+            onDismiss = { wastageIngredient = null },
+            onSave = { qty, reason ->
+                val id = wastageIngredient?.id ?: return@WastageDialog
+                viewModel.stockWastage(id, qty, reason) { success, _ ->
+                    if (success) wastageIngredient = null
+                }
+            }
+        )
+    }
+
+    if (manualIngredient != null) {
+        ManualAdjustmentDialog(
+            ingredient = manualIngredient!!,
+            onDismiss = { manualIngredient = null },
+            onSave = { newStock, reason ->
+                val id = manualIngredient?.id ?: return@ManualAdjustmentDialog
+                viewModel.stockAdjustment(id, newStock, reason) { success, _ ->
+                    if (success) manualIngredient = null
+                }
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddIngredientDialog(
+    onDismiss: () -> Unit,
+    onSave: (String, String, String, Int, Double) -> Unit
+) {
+    val categories = listOf("grains", "vegetables", "dairy", "meat", "spices", "beverages", "other")
+    val units = listOf("kg", "g", "litre", "ml", "piece")
+
+    var name by remember { mutableStateOf("") }
+    var category by remember { mutableStateOf("") }
+    var unit by remember { mutableStateOf("") }
+    var reorderLevel by remember { mutableStateOf("") }
+    var costPerUnit by remember { mutableStateOf("") }
+
+    var categoryExpanded by remember { mutableStateOf(false) }
+    var unitExpanded by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add Ingredient") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                ExposedDropdownMenuBox(
+                    expanded = categoryExpanded,
+                    onExpandedChange = { categoryExpanded = !categoryExpanded }
+                ) {
+                    TextField(
+                        readOnly = true,
+                        value = category,
+                        onValueChange = {},
+                        label = { Text("Category") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = categoryExpanded,
+                        onDismissRequest = { categoryExpanded = false }
+                    ) {
+                        categories.forEach { c ->
+                            DropdownMenuItem(
+                                text = { Text(c) },
+                                onClick = {
+                                    category = c
+                                    categoryExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                ExposedDropdownMenuBox(
+                    expanded = unitExpanded,
+                    onExpandedChange = { unitExpanded = !unitExpanded }
+                ) {
+                    TextField(
+                        readOnly = true,
+                        value = unit,
+                        onValueChange = {},
+                        label = { Text("Unit") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = unitExpanded) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = unitExpanded,
+                        onDismissRequest = { unitExpanded = false }
+                    ) {
+                        units.forEach { u ->
+                            DropdownMenuItem(
+                                text = { Text(u) },
+                                onClick = {
+                                    unit = u
+                                    unitExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = reorderLevel,
+                    onValueChange = { reorderLevel = it },
+                    label = { Text("Reorder Level") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = costPerUnit,
+                    onValueChange = { costPerUnit = it },
+                    label = { Text("Cost Per Unit") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                val rl = reorderLevel.toIntOrNull() ?: 0
+                val cpu = costPerUnit.toDoubleOrNull() ?: 0.0
+                if (name.isNotBlank() && category.isNotBlank() && unit.isNotBlank()) {
+                    onSave(name, category, unit, rl, cpu)
+                }
+            }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
 
 @Composable
@@ -244,15 +455,16 @@ fun DateScroller(
 }
 
 @Composable
-fun InventoryItemCard(
-    item: InventoryItem,
-    onEdit: () -> Unit
+fun IngredientCard(
+    ingredient: com.swadratna.swadratna_admin.data.model.Ingredient,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onStockIn: () -> Unit,
+    onStockOut: () -> Unit,
+    onWastage: () -> Unit,
+    onManual: () -> Unit
 ) {
-    var quantity by remember(item.quantity) { mutableDoubleStateOf(item.quantity) }
-
-    Card(
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
+    Card(elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -260,49 +472,65 @@ fun InventoryItemCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = item.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(text = "Unit: ${item.unit}", style = MaterialTheme.typography.bodySmall)
+                    Text(text = ingredient.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(text = "Category: ${ingredient.category}", style = MaterialTheme.typography.bodySmall)
+                    Text(text = "Unit: ${ingredient.unit}", style = MaterialTheme.typography.bodySmall)
                 }
-                IconButton(onClick = onEdit) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
+                if (ingredient.id != null) {
+                    IconButton(onClick = onEdit) {
+                        Icon(Icons.Filled.Edit, contentDescription = "Edit")
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(Icons.Filled.Delete, contentDescription = "Delete")
+                    }
                 }
             }
-            
             Spacer(modifier = Modifier.height(12.dp))
-            
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = "₹${item.totalValue}",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
-                )
-                
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(
-                        onClick = { if (quantity > 0) quantity-- },
-                        modifier = Modifier.size(32.dp).background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
-                    ) {
-                        Icon(Icons.Default.KeyboardArrowLeft, contentDescription = "Decrease", modifier = Modifier.size(16.dp)) 
-                    }
-                    
-                    Text(
-                        text = "$quantity ${item.unit}",
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                        fontWeight = FontWeight.Bold
-                    )
-                    
-                    IconButton(
-                        onClick = { quantity++ },
-                        modifier = Modifier.size(32.dp).background(MaterialTheme.colorScheme.surfaceVariant, CircleShape)
-                    ) {
-                        Icon(Icons.Default.KeyboardArrowRight, contentDescription = "Increase", modifier = Modifier.size(16.dp))
-                    }
+                Text(text = "Reorder: ${ingredient.reorderLevel}")
+                Text(text = "Stock: ${ingredient.currentStock ?: 0}")
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Text(text = "Cost: ₹${ingredient.costPerUnit}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilledTonalButton(onClick = onStockIn) {
+                    Icon(Icons.Filled.Add, contentDescription = null)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Stock In")
                 }
+                FilledTonalButton(onClick = onStockOut) {
+                    Icon(Icons.Filled.Delete, contentDescription = null)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Stock Out")
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilledTonalButton(onClick = onWastage) {
+                    Icon(Icons.Filled.Warning, contentDescription = null)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Wastage")
+                }
+    FilledTonalButton(onClick = onManual) {
+        Icon(Icons.Filled.Build, contentDescription = null)
+        Spacer(modifier = Modifier.width(6.dp))
+        Text("Manual")
+    }
             }
         }
     }
@@ -310,72 +538,247 @@ fun InventoryItemCard(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddInventoryDialog(
-    item: InventoryItem? = null,
+fun EditIngredientDialog(
+    ingredient: com.swadratna.swadratna_admin.data.model.Ingredient,
     onDismiss: () -> Unit,
-    onSave: (String, Double, String, Double) -> Unit
+    onSave: (Int, Double) -> Unit
 ) {
-    var name by remember { mutableStateOf(item?.name ?: "") }
-    var quantity by remember { mutableStateOf(item?.quantity?.toString() ?: "") }
-    var unit by remember { mutableStateOf(item?.unit ?: "") }
-    var totalValue by remember { mutableStateOf(item?.totalValue?.toString() ?: "") }
+    var reorderLevel by remember { mutableStateOf(ingredient.reorderLevel.toString()) }
+    var costPerUnit by remember { mutableStateOf(ingredient.costPerUnit.toString()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (item == null) "Add Inventory" else "Edit Inventory") },
+        title = { Text("Update Ingredient") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Name") },
+                    value = reorderLevel,
+                    onValueChange = { reorderLevel = it },
+                    label = { Text("Reorder Level") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = quantity,
-                        onValueChange = { quantity = it },
-                        label = { Text("Quantity") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = unit,
-                        onValueChange = { unit = it },
-                        label = { Text("Unit") },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
                 OutlinedTextField(
-                    value = totalValue,
-                    onValueChange = { totalValue = it },
-                    label = { Text("Total Value (₹)") },
+                    value = costPerUnit,
+                    onValueChange = { costPerUnit = it },
+                    label = { Text("Cost Per Unit") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
             Button(onClick = {
-                val qty = quantity.toDoubleOrNull() ?: 0.0
-                val value = totalValue.toDoubleOrNull() ?: 0.0
-                if (name.isNotBlank() && qty > 0 && unit.isNotBlank()) {
-                    onSave(name, qty, unit, value)
-                }
+                val rl = reorderLevel.toIntOrNull() ?: return@Button
+                val cpu = costPerUnit.toDoubleOrNull() ?: return@Button
+                onSave(rl, cpu)
             }) {
-                Text(if (item == null) "Add" else "Save")
+                Text("Save")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
 }
 
-data class InventoryItem(
-    val id: String,
-    val name: String,
-    val quantity: Double,
-    val unit: String,
-    val totalValue: Double
-)
+ 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DeleteIngredientDialog(
+    ingredient: com.swadratna.swadratna_admin.data.model.Ingredient,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete Ingredient") },
+        text = { Text("Are you sure you want to delete ${ingredient.name}?") },
+        confirmButton = {
+            Button(onClick = onConfirm) { Text("Delete") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun StockInDialog(
+    ingredient: com.swadratna.swadratna_admin.data.model.Ingredient,
+    onDismiss: () -> Unit,
+    onSave: (Int, Double, String?, String?, String?) -> Unit
+) {
+    var quantity by remember { mutableStateOf("") }
+    var costPerUnit by remember { mutableStateOf(ingredient.costPerUnit.toString()) }
+    var vendorName by remember { mutableStateOf("") }
+    var invoiceNumber by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Stock In: ${ingredient.name}") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = quantity,
+                    onValueChange = { quantity = it },
+                    label = { Text("Quantity") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = costPerUnit,
+                    onValueChange = { costPerUnit = it },
+                    label = { Text("Cost Per Unit") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = vendorName,
+                    onValueChange = { vendorName = it },
+                    label = { Text("Vendor Name") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = invoiceNumber,
+                    onValueChange = { invoiceNumber = it },
+                    label = { Text("Invoice Number") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Notes") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                val qty = quantity.toIntOrNull() ?: return@Button
+                val cpu = costPerUnit.toDoubleOrNull() ?: return@Button
+                onSave(qty, cpu, vendorName.ifBlank { null }, invoiceNumber.ifBlank { null }, notes.ifBlank { null })
+            }) { Text("Save") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun StockOutDialog(
+    ingredient: com.swadratna.swadratna_admin.data.model.Ingredient,
+    onDismiss: () -> Unit,
+    onSave: (Int, String?) -> Unit
+) {
+    var quantity by remember { mutableStateOf("") }
+    var reason by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Stock Out: ${ingredient.name}") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = quantity,
+                    onValueChange = { quantity = it },
+                    label = { Text("Quantity") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = reason,
+                    onValueChange = { reason = it },
+                    label = { Text("Reason") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                val qty = quantity.toIntOrNull() ?: return@Button
+                onSave(qty, reason.ifBlank { null })
+            }) { Text("Save") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
+}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WastageDialog(
+    ingredient: com.swadratna.swadratna_admin.data.model.Ingredient,
+    onDismiss: () -> Unit,
+    onSave: (Int, String?) -> Unit
+) {
+    var quantity by remember { mutableStateOf("") }
+    var reason by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Wastage: ${ingredient.name}") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = quantity,
+                    onValueChange = { quantity = it },
+                    label = { Text("Quantity") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = reason,
+                    onValueChange = { reason = it },
+                    label = { Text("Reason") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                val qty = quantity.toIntOrNull() ?: return@Button
+                onSave(qty, reason.ifBlank { null })
+            }) { Text("Save") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
+}
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ManualAdjustmentDialog(
+    ingredient: com.swadratna.swadratna_admin.data.model.Ingredient,
+    onDismiss: () -> Unit,
+    onSave: (Int, String?) -> Unit
+) {
+    var newStock by remember { mutableStateOf("") }
+    var reason by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Manual Adjustment: ${ingredient.name}") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = newStock,
+                    onValueChange = { newStock = it },
+                    label = { Text("New Stock") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = reason,
+                    onValueChange = { reason = it },
+                    label = { Text("Reason") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                val ns = newStock.toIntOrNull() ?: return@Button
+                onSave(ns, reason.ifBlank { null })
+            }) { Text("Save") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
+}
