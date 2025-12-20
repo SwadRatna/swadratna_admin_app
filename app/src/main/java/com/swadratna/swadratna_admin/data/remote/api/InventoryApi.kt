@@ -11,6 +11,7 @@ import com.swadratna.swadratna_admin.data.remote.WastageRequestDto
 import com.swadratna.swadratna_admin.data.remote.AdjustmentRequestDto
 import com.swadratna.swadratna_admin.data.remote.LowStockResponse
 import com.swadratna.swadratna_admin.data.remote.InventoryMovementsResponse
+import com.swadratna.swadratna_admin.data.remote.InventoryUsageResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -69,4 +70,12 @@ interface InventoryApi {
         @Query("page") page: Int = 1,
         @Query("limit") limit: Int = 200
     ): InventoryMovementsResponse
+
+    @GET("api/v1/admin/inventory/usage")
+    suspend fun getUsage(
+        @Query("period") period: String,
+        @Query("start_date") startDate: String? = null,
+        @Query("end_date") endDate: String? = null,
+        @Query("type") type: String = "all"
+    ): InventoryUsageResponse
 }

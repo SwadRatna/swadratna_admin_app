@@ -117,7 +117,6 @@ fun ManageInventoryScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Date Scroller
             DateScroller(
                 selectedDate = selectedDate,
                 onDateSelected = { selectedDate = it }
@@ -125,7 +124,6 @@ fun ManageInventoryScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Summary Section (Optional but helpful based on description)
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -133,7 +131,12 @@ fun ManageInventoryScreen(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Summary for ${selectedDate.format(DateTimeFormatter.ofPattern("MMM dd"))}", fontWeight = FontWeight.Bold)
+                    Text("Summary (Report) for ${selectedDate.format(DateTimeFormatter.ofPattern("MMM dd"))}", fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilledTonalButton(onClick = { viewModel.loadUsage("weekly") }) { Text("Weekly") }
+                        FilledTonalButton(onClick = { viewModel.loadUsage("monthly") }) { Text("Monthly") }
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Stock In Total:")
@@ -150,15 +153,6 @@ fun ManageInventoryScreen(
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Adjustment Net:")
                         Text("₹${String.format("%.2f", uiState.dailyAdjustmentNetCost)}", fontWeight = FontWeight.Bold)
-                    }
-                    Divider(modifier = Modifier.padding(vertical = 8.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Total Added Value:")
-                        Text("₹${String.format("%.2f", uiState.dailyAddedValue)}", fontWeight = FontWeight.Bold)
-                    }
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Total Spent Value:")
-                        Text("₹${String.format("%.2f", uiState.dailySpentValue)}", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -330,6 +324,15 @@ fun ManageInventoryScreen(
             onDismiss = { viewModel.dismissMovementsDialog() }
         )
     }
+
+    if (uiState.showUsageDialog) {
+        UsageDialog(
+            periodLabel = uiState.usagePeriodLabel,
+            items = uiState.usageItems,
+            totals = uiState.usageTotals,
+            onDismiss = { viewModel.dismissUsageDialog() }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -381,6 +384,63 @@ fun MovementsDialog(
                                 Text("After: ${m.stockAfter ?: 0}")
                             }
                             Text(m.createdAt?.substringBefore("T") ?: "")
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { Button(onClick = onDismiss) { Text("Close") } }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun UsageDialog(
+    periodLabel: String,
+    items: List<com.swadratna.swadratna_admin.data.model.InventoryUsageItem>,
+    totals: com.swadratna.swadratna_admin.data.model.InventoryUsageTotals?,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Usage Report (${periodLabel.uppercase()})") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (totals != null) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Total Cost")
+                        Text("₹${String.format("%.2f", totals.totalCost)}")
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Total Quantity")
+                        Text(totals.totalQuantity.toString())
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Transactions")
+                        Text(totals.totalTransactions.toString())
+                    }
+                    Divider()
+                }
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = 420.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(items) { it ->
+                        Card {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text(it.ingredientName)
+                                    Text("₹${String.format("%.2f", it.totalCost)}")
+                                }
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text("Used: ${it.usedQty} ${it.unit}")
+                                    Text("Wasted: ${it.wastedQty} ${it.unit}")
+                                }
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text("Total Qty: ${it.totalQty}")
+                                    Text("Txns: ${it.transactions}")
+                                }
+                            }
                         }
                     }
                 }

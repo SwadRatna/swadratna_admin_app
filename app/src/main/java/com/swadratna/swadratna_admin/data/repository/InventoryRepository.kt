@@ -16,6 +16,11 @@ import com.swadratna.swadratna_admin.utils.NetworkErrorHandler
 import com.swadratna.swadratna_admin.data.remote.InventoryMovementsResponse
 import com.swadratna.swadratna_admin.data.remote.InventoryMovementDto
 import com.swadratna.swadratna_admin.data.model.InventoryMovement
+import com.swadratna.swadratna_admin.data.model.InventoryUsageItem
+import com.swadratna.swadratna_admin.data.model.InventoryUsageTotals
+import com.swadratna.swadratna_admin.data.remote.InventoryUsageResponse
+import com.swadratna.swadratna_admin.data.remote.InventoryUsageItemDto
+import com.swadratna.swadratna_admin.data.remote.InventoryUsageTotalsDto
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -111,6 +116,17 @@ class InventoryRepository @Inject constructor(
         try {
             val response = api.getMovements(page, limit)
             Result.success((response.movements ?: emptyList()).map { it.toDomain() })
+        } catch (e: Throwable) {
+            Result.failure(Exception(NetworkErrorHandler.getErrorMessage(e), e))
+        }
+    }
+
+    suspend fun getUsage(period: String, startDate: String? = null, endDate: String? = null, type: String = "all"): Result<Pair<List<InventoryUsageItem>, InventoryUsageTotals?>> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.getUsage(period, startDate, endDate, type)
+            val items = (response.items ?: emptyList()).map { it.toDomain() }
+            val totals = response.totals?.toDomain()
+            Result.success(items to totals)
         } catch (e: Throwable) {
             Result.failure(Exception(NetworkErrorHandler.getErrorMessage(e), e))
         }

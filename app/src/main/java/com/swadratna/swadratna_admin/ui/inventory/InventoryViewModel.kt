@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.swadratna.swadratna_admin.data.model.CreateIngredientRequest
 import com.swadratna.swadratna_admin.data.model.Ingredient
 import com.swadratna.swadratna_admin.data.model.InventoryMovement
+import com.swadratna.swadratna_admin.data.model.InventoryUsageItem
+import com.swadratna.swadratna_admin.data.model.InventoryUsageTotals
 import com.swadratna.swadratna_admin.data.model.StockInRequest
 import com.swadratna.swadratna_admin.data.model.StockOutRequest
 import com.swadratna.swadratna_admin.data.model.WastageRequest
@@ -29,7 +31,11 @@ data class InventoryUiState(
     val dailyWastageCost: Double = 0.0,
     val dailyAdjustmentNetCost: Double = 0.0,
     val movementsForIngredient: List<InventoryMovement> = emptyList(),
-    val showMovementsDialog: Boolean = false
+    val showMovementsDialog: Boolean = false,
+    val usageItems: List<InventoryUsageItem> = emptyList(),
+    val usageTotals: InventoryUsageTotals? = null,
+    val showUsageDialog: Boolean = false,
+    val usagePeriodLabel: String = ""
 )
 
 @HiltViewModel
@@ -317,5 +323,28 @@ class InventoryViewModel @Inject constructor(
 
     fun dismissMovementsDialog() {
         _uiState.value = _uiState.value.copy(showMovementsDialog = false)
+    }
+
+    fun loadUsage(period: String) {
+        viewModelScope.launch {
+            val result = repository.getUsage(period = period, startDate = null, endDate = null, type = "all")
+            result.fold(
+                onSuccess = { (items, totals) ->
+                    _uiState.value = _uiState.value.copy(
+                        usageItems = items,
+                        usageTotals = totals,
+                        showUsageDialog = true,
+                        usagePeriodLabel = period
+                    )
+                },
+                onFailure = {
+                    _uiState.value = _uiState.value.copy(error = it.message)
+                }
+            )
+        }
+    }
+
+    fun dismissUsageDialog() {
+        _uiState.value = _uiState.value.copy(showUsageDialog = false)
     }
 }
