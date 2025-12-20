@@ -204,7 +204,7 @@ fun StatisticsSection(
             )
             StatCard(
                 title = "Total Sales",
-                value = uiState.totalSales,
+                value = formatToTwoDecimal(uiState.totalSales),
                 change = uiState.salesChange,
                 modifier = Modifier
                     .weight(1f)
@@ -288,6 +288,16 @@ fun StatCard(
         }
     }
 }
+
+fun formatToTwoDecimal(value: String): String {
+    return try {
+        val number = value.toDouble()
+        String.format("%.2f", number)
+    } catch (e: Exception) {
+        value
+    }
+}
+
 
 @Composable
 fun RecentActivitySection(activities: List<ActivityItem>, onNavigateToNotifications: () -> Unit) {
