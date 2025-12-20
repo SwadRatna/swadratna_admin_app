@@ -14,6 +14,8 @@ import com.swadratna.swadratna_admin.data.repository.RestaurantRepository
 import com.swadratna.swadratna_admin.data.model.RestaurantProfileRequest
 import com.swadratna.swadratna_admin.data.repository.SalesRepository
 import com.swadratna.swadratna_admin.data.repository.StoreRepository
+import com.swadratna.swadratna_admin.data.repository.InventoryRepository
+import com.swadratna.swadratna_admin.data.model.Ingredient
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.filter
 import com.swadratna.swadratna_admin.data.wrapper.Result
@@ -45,6 +47,7 @@ class DashboardViewModel @Inject constructor(
     private val storeRepository: StoreRepository,
     private val restaurantRepository: RestaurantRepository,
     private val salesRepository: SalesRepository,
+    private val inventoryRepository: InventoryRepository,
     private val sharedPrefsManager: SharedPrefsManager
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -53,11 +56,13 @@ class DashboardViewModel @Inject constructor(
     init {
         loadDashboardData()
         fetchSalesData()
+        loadLowStock()
     }
 
     fun refreshDashboardData() {
         loadDashboardData()
         fetchSalesData()
+        loadLowStock(prompt = true)
     }
 
     fun updateRestaurantProfile(request: RestaurantProfileRequest, onSuccess: () -> Unit, onError: (String) -> Unit) {
@@ -319,6 +324,26 @@ class DashboardViewModel @Inject constructor(
             }
         }
     }
+
+    private fun loadLowStock(prompt: Boolean = false) {
+        viewModelScope.launch {
+            val prev = _uiState.value.lowStock
+            val result = inventoryRepository.getLowStock()
+            result.fold(
+                onSuccess = { items ->
+                    val shouldPrompt = if (prompt) true else prev.isEmpty() && items.isNotEmpty()
+                    _uiState.update { it.copy(lowStock = items, shouldPromptLowStock = shouldPrompt) }
+                },
+                onFailure = { e ->
+                    _uiState.update { it.copy(error = e.message) }
+                }
+            )
+        }
+    }
+
+    fun onLowStockDialogDismissed() {
+        _uiState.update { it.copy(shouldPromptLowStock = false) }
+    }
 }
 
 data class DashboardUiState(
@@ -338,6 +363,8 @@ data class DashboardUiState(
     val totalSales: String = "0",
     val salesChange: String = "",
     val isProfileUpdating: Boolean = false
+    , val lowStock: List<Ingredient> = emptyList()
+    , val shouldPromptLowStock: Boolean = false
 )
 
 data class ActivityItem(

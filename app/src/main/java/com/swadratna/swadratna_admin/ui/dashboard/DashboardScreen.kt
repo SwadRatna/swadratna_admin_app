@@ -26,6 +26,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
 import androidx.compose.material.icons.filled.Edit
+import com.swadratna.swadratna_admin.ui.inventory.LowStockDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -127,6 +128,13 @@ fun DashboardScreen(
                 }
             }
         }
+    }
+
+    if (uiState.shouldPromptLowStock && uiState.lowStock.isNotEmpty()) {
+        LowStockDialog(
+            items = uiState.lowStock,
+            onDismiss = { viewModel.onLowStockDialogDismissed() }
+        )
     }
 }
 
