@@ -68,10 +68,24 @@ fun UserAccountScreen(
                         onDeleteClick = { viewModel.delete(user) }
                     )
                 }
-                item {
-                    if (uiState.hasNext && !uiState.isLoading) {
-                        OutlinedButton(onClick = { viewModel.loadNextPage() }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Load more")
+                if (uiState.hasNext) {
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = { viewModel.loadNextPage() },
+                                enabled = !uiState.isLoading,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Load more")
+                            }
+                            Button(
+                                onClick = { viewModel.loadAll() },
+                                enabled = !uiState.isLoading,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Load all")
+                            }
                         }
                     }
                 }

@@ -16,7 +16,7 @@ data class UserAccountUiState(
     val error: String? = null,
     val customers: List<CustomerDto> = emptyList(),
     val page: Int = 1,
-    val limit: Int = 20,
+    val limit: Int? = 20,
     val hasNext: Boolean = false,
     val search: String = "",
     val status: String? = null
@@ -38,7 +38,12 @@ class UserAccountViewModel @Inject constructor(
             result.fold(
                 onSuccess = { resp ->
                     val newList = if (reset || pageToLoad == 1) resp.data else current.customers + resp.data
-                    val hasNext = resp.pagination?.has_next == true
+                    val p = resp.pagination
+                    val hasNext = when {
+                        p?.has_next != null -> p.has_next == true
+                        p?.total_pages != null && p.page != null -> (p.page ?: 1) < (p.total_pages ?: 1)
+                        else -> resp.data.size >= ((p?.limit) ?: (current.limit ?: 20))
+                    }
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         customers = newList,
@@ -61,6 +66,40 @@ class UserAccountViewModel @Inject constructor(
         if (!_uiState.value.hasNext || _uiState.value.isLoading) return
         _uiState.value = _uiState.value.copy(page = _uiState.value.page + 1)
         load(reset = false)
+    }
+
+    fun loadAll() {
+        val current = _uiState.value
+        _uiState.value = current.copy(isLoading = true, error = null, page = 1, customers = emptyList())
+        viewModelScope.launch {
+            var page = 1
+            val limit = current.limit
+            val status = current.status
+            val search = current.search.takeIf { it.isNotBlank() }
+            val all = mutableListOf<CustomerDto>()
+            while (true) {
+                val result = repo.list(page, limit, status, search)
+                var continueLoading = false
+                result.fold(
+                    onSuccess = { resp ->
+                        all.addAll(resp.data)
+                        val p = resp.pagination
+                        continueLoading = when {
+                            p?.has_next != null -> p.has_next == true
+                            p?.total_pages != null && p.page != null -> (p.page ?: 1) < (p.total_pages ?: 1)
+                            else -> resp.data.size >= ((p?.limit) ?: (limit ?: 20))
+                        }
+                    },
+                    onFailure = { e ->
+                        _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
+                        return@launch
+                    }
+                )
+                if (!continueLoading) break
+                page += 1
+            }
+            _uiState.value = _uiState.value.copy(isLoading = false, customers = all, hasNext = false, page = page)
+        }
     }
 
     fun toggleBlock(customer: CustomerDto, block: Boolean) {
