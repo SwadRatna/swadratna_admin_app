@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Warning
@@ -50,6 +51,8 @@ fun ManageInventoryScreen(
         viewModel.init(sid)
     }
 
+    
+
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = selectedDate.toEpochDay() * 24 * 60 * 60 * 1000
@@ -88,6 +91,12 @@ fun ManageInventoryScreen(
                 actions = {
                     IconButton(onClick = { showDatePicker = true }) {
                         Icon(Icons.Default.DateRange, contentDescription = "Select Date")
+                    }
+                    IconButton(onClick = {
+                        viewModel.loadIngredients()
+                        viewModel.loadLowStock(prompt = true)
+                    }) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
                 }
             )
@@ -279,6 +288,13 @@ fun ManageInventoryScreen(
                     if (success) manualIngredient = null
                 }
             }
+        )
+    }
+
+    if (uiState.shouldPromptLowStock && uiState.lowStock.isNotEmpty()) {
+        LowStockDialog(
+            items = uiState.lowStock,
+            onDismiss = { viewModel.onLowStockDialogDismissed() }
         )
     }
 }
@@ -780,5 +796,40 @@ fun ManualAdjustmentDialog(
             }) { Text("Save") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LowStockDialog(
+    items: List<com.swadratna.swadratna_admin.data.model.Ingredient>,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Low Stock Items") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (items.isEmpty()) {
+                    Text("No low-stock items")
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.heightIn(max = 300.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(items) { ing ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(ing.name)
+                                Text("Stock: ${ing.currentStock ?: 0}")
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { Button(onClick = onDismiss) { Text("OK") } }
     )
 }

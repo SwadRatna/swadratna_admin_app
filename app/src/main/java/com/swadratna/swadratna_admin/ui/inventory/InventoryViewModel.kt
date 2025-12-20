@@ -18,7 +18,9 @@ import kotlinx.coroutines.launch
 data class InventoryUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
-    val ingredients: List<Ingredient> = emptyList()
+    val ingredients: List<Ingredient> = emptyList(),
+    val lowStock: List<Ingredient> = emptyList(),
+    val shouldPromptLowStock: Boolean = false
 )
 
 @HiltViewModel
@@ -34,6 +36,7 @@ class InventoryViewModel @Inject constructor(
     fun init(storeId: Int) {
         currentStoreId = storeId
         loadIngredients()
+        loadLowStock()
     }
 
     fun loadIngredients() {
@@ -41,8 +44,8 @@ class InventoryViewModel @Inject constructor(
         viewModelScope.launch {
             val result = repository.getIngredients(null)
             _uiState.value = result.fold(
-                onSuccess = { InventoryUiState(isLoading = false, ingredients = it) },
-                onFailure = { InventoryUiState(isLoading = false, error = it.message) }
+                onSuccess = { _uiState.value.copy(isLoading = false, ingredients = it, error = null) },
+                onFailure = { _uiState.value.copy(isLoading = false, error = it.message) }
             )
         }
     }
@@ -204,5 +207,25 @@ class InventoryViewModel @Inject constructor(
                 onFailure = { onResult(false, it.message ?: "Failed to adjust stock") }
             )
         }
+    }
+
+    fun loadLowStock(prompt: Boolean = false) {
+        viewModelScope.launch {
+            val prev = _uiState.value.lowStock
+            val result = repository.getLowStock()
+            result.fold(
+                onSuccess = {
+                    val shouldPrompt = if (prompt) true else prev.isEmpty() && it.isNotEmpty()
+                    _uiState.value = _uiState.value.copy(lowStock = it, shouldPromptLowStock = shouldPrompt)
+                },
+                onFailure = {
+                    _uiState.value = _uiState.value.copy(error = it.message)
+                }
+            )
+        }
+    }
+
+    fun onLowStockDialogDismissed() {
+        _uiState.value = _uiState.value.copy(shouldPromptLowStock = false)
     }
 }

@@ -94,4 +94,13 @@ class InventoryRepository @Inject constructor(
             Result.failure(Exception(NetworkErrorHandler.getErrorMessage(e), e))
         }
     }
+
+    suspend fun getLowStock(): Result<List<Ingredient>> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.getLowStock()
+            Result.success((response.lowStockIngredients ?: emptyList()).map { it.toDomain() })
+        } catch (e: Throwable) {
+            Result.failure(Exception(NetworkErrorHandler.getErrorMessage(e), e))
+        }
+    }
 }

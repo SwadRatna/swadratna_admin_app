@@ -9,6 +9,7 @@ import com.swadratna.swadratna_admin.data.remote.StockInRequestDto
 import com.swadratna.swadratna_admin.data.remote.StockOutRequestDto
 import com.swadratna.swadratna_admin.data.remote.WastageRequestDto
 import com.swadratna.swadratna_admin.data.remote.AdjustmentRequestDto
+import com.swadratna.swadratna_admin.data.remote.LowStockResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -58,4 +59,7 @@ interface InventoryApi {
     suspend fun stockAdjustment(
         @Body body: AdjustmentRequestDto
     ): StockOperationResponse
+
+    @GET("api/v1/admin/inventory/low-stock")
+    suspend fun getLowStock(): LowStockResponse
 }

@@ -60,6 +60,11 @@ data class IngredientsResponse(
     val total: Int = 0
 )
 
+data class LowStockResponse(
+    @SerializedName("low_stock_ingredients") val lowStockIngredients: List<IngredientDto>? = null,
+    val total: Int = 0
+)
+
 fun IngredientDto.toDomain() = Ingredient(
     id = id,
     name = name,
