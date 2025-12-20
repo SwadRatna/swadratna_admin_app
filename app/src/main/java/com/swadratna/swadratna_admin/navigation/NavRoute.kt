@@ -44,4 +44,5 @@ sealed class NavRoute(val route: String) {
     }
     object UserAccount : NavRoute("user_account")
     object Referral : NavRoute("referral")
+    object OverallReport : NavRoute("overall_report")
 }

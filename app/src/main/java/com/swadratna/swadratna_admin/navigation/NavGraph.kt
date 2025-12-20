@@ -110,6 +110,9 @@ fun NavGraph(
                 },
                 onNavigateToUserAccount = {
                     navController.navigate(NavRoute.UserAccount.route)
+                },
+                onNavigateToOverallReport = {
+                    navController.navigate(NavRoute.OverallReport.route)
                 }
             )
         }
@@ -534,6 +537,12 @@ fun NavGraph(
 
         composable(NavRoute.Referral.route) {
             com.swadratna.swadratna_admin.ui.referral.ReferralScreen()
+        }
+
+        composable(NavRoute.OverallReport.route) {
+            com.swadratna.swadratna_admin.ui.dashboard.OverallReportScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }
