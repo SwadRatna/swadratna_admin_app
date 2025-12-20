@@ -4,7 +4,7 @@ data class CustomerDto(
     val id: String,
     val name: String?,
     val email: String?,
-    val phone: String?,
+    val mobile_number: String?,
     val status: String?,
     val blocked: Boolean? = null,
     val deleted: Boolean? = null

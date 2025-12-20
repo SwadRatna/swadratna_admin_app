@@ -14,6 +14,10 @@ import com.swadratna.swadratna_admin.data.repository.RestaurantRepository
 import com.swadratna.swadratna_admin.data.model.RestaurantProfileRequest
 import com.swadratna.swadratna_admin.data.repository.SalesRepository
 import com.swadratna.swadratna_admin.data.repository.StoreRepository
+import com.swadratna.swadratna_admin.data.repository.InventoryRepository
+import com.swadratna.swadratna_admin.data.repository.AttendanceRepository
+import com.swadratna.swadratna_admin.data.repository.StaffRepository
+import com.swadratna.swadratna_admin.data.model.Ingredient
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.filter
 import com.swadratna.swadratna_admin.data.wrapper.Result
@@ -45,6 +49,9 @@ class DashboardViewModel @Inject constructor(
     private val storeRepository: StoreRepository,
     private val restaurantRepository: RestaurantRepository,
     private val salesRepository: SalesRepository,
+    private val inventoryRepository: InventoryRepository,
+    private val attendanceRepository: AttendanceRepository,
+    private val staffRepository: StaffRepository,
     private val sharedPrefsManager: SharedPrefsManager
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -53,11 +60,13 @@ class DashboardViewModel @Inject constructor(
     init {
         loadDashboardData()
         fetchSalesData()
+        loadLowStock()
     }
 
     fun refreshDashboardData() {
         loadDashboardData()
         fetchSalesData()
+        loadLowStock(prompt = true)
     }
 
     fun updateRestaurantProfile(request: RestaurantProfileRequest, onSuccess: () -> Unit, onError: (String) -> Unit) {
@@ -319,6 +328,151 @@ class DashboardViewModel @Inject constructor(
             }
         }
     }
+
+    private fun loadLowStock(prompt: Boolean = false) {
+        viewModelScope.launch {
+            val prev = _uiState.value.lowStock
+            val result = inventoryRepository.getLowStock()
+            result.fold(
+                onSuccess = { items ->
+                    val shouldPrompt = if (prompt) true else prev.isEmpty() && items.isNotEmpty()
+                    _uiState.update { it.copy(lowStock = items, shouldPromptLowStock = shouldPrompt) }
+                },
+                onFailure = { e ->
+                    _uiState.update { it.copy(error = e.message) }
+                }
+            )
+        }
+    }
+
+    fun onLowStockDialogDismissed() {
+        _uiState.update { it.copy(shouldPromptLowStock = false) }
+    }
+
+    fun loadOverallReport(period: String) {
+        viewModelScope.launch {
+            val (fromDate, toDate) = computeRange(period)
+            var salesTotal = 0.0
+            try {
+                val salesResult = salesRepository.getSales(
+                    date = null,
+                    fromDate = fromDate,
+                    toDate = toDate,
+                    locationIds = null
+                ).filter { it !is Result.Loading }.first()
+                if (salesResult is Result.Success) {
+                    salesTotal = salesResult.data.summary?.totalAmount ?: 0.0
+                }
+            } catch (_: Exception) {}
+
+            var inventoryCost = 0.0
+            try {
+                val usageResult = inventoryRepository.getUsage(period = period)
+                usageResult.fold(
+                    onSuccess = { (_, totals) -> inventoryCost = totals?.totalCost ?: 0.0 },
+                    onFailure = { }
+                )
+            } catch (_: Exception) {}
+
+            var salaryTotal = 0.0
+            try {
+                val restaurantId = ApiConstants.RESTAURANT_ID
+                val storesRes = storeRepository.getStores(page = 1, limit = 1000, restaurantId = restaurantId)
+                storesRes.onSuccess { resp ->
+                    val stores = resp.stores ?: emptyList()
+                    stores.forEach { store ->
+                        val attRes = attendanceRepository.getAttendance(fromDate, toDate, store.id?.toString() ?: "")
+                        when (attRes) {
+                            is Result.Success -> {
+                                val attendance = attRes.data
+                                val staffList = staffRepository.getStaff(store.id ?: 0).getOrNull()?.staff ?: emptyList()
+                                salaryTotal += calculateTotalSalary(attendance, staffList)
+                            }
+                            is Result.Error -> { }
+                            is Result.Loading -> { }
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+
+            val extras = _uiState.value.overallExtras
+            val finalEarning = salesTotal - (salaryTotal + inventoryCost + extras)
+
+            _uiState.update {
+                it.copy(
+                    overallPeriodLabel = period,
+                    overallSalesTotal = salesTotal,
+                    overallSalaryTotal = salaryTotal,
+                    overallInventoryCostTotal = inventoryCost,
+                    overallFinalEarning = finalEarning,
+                    showOverallReportDialog = true
+                )
+            }
+        }
+    }
+
+    fun updateOverallExtras(value: Double) {
+        _uiState.update { state ->
+            val final = state.overallSalesTotal - (state.overallSalaryTotal + state.overallInventoryCostTotal + value)
+            state.copy(overallExtras = value, overallFinalEarning = final)
+        }
+    }
+
+    fun dismissOverallReportDialog() {
+        _uiState.update { it.copy(showOverallReportDialog = false) }
+    }
+
+    private fun computeRange(period: String): Pair<String, String> {
+        val today = java.time.LocalDate.now()
+        return if (period.equals("weekly", true)) {
+            val from = today.minusDays(6)
+            from.toString() to today.toString()
+        } else {
+            val from = today.withDayOfMonth(1)
+            from.toString() to today.toString()
+        }
+    }
+
+    private fun calculateTotalSalary(
+        response: com.swadratna.swadratna_admin.data.model.AttendanceResponse,
+        staffList: List<com.swadratna.swadratna_admin.data.model.Staff>
+    ): Double {
+        val allEntriesWithDate = response.attendance.flatMap { day ->
+            day.staff.map { staffEntry ->
+                Pair(day.date, staffEntry)
+            }
+        }
+        return allEntriesWithDate
+            .groupBy { it.second.staffId }
+            .map { (id, entriesWithDate) ->
+                val staff = staffList.find { it.id == id }
+                val monthlySalary = staff?.salary ?: 0.0
+                var totalSalary = 0.0
+                if (monthlySalary > 0) {
+                    entriesWithDate.forEach { (dateStr, entry) ->
+                        try {
+                            val date = java.time.LocalDate.parse(dateStr.take(10))
+                            val daysInMonth = date.lengthOfMonth()
+                            val dailySalary = monthlySalary / daysInMonth.toDouble()
+                            if (entry.status.equals("present", true)) {
+                                totalSalary += dailySalary
+                            } else if (entry.status.equals("half_day", true)) {
+                                totalSalary += (dailySalary * 0.5)
+                            }
+                        } catch (_: Exception) {
+                            val dailySalary = monthlySalary / 30.0
+                            if (entry.status.equals("present", true)) {
+                                totalSalary += dailySalary
+                            } else if (entry.status.equals("half_day", true)) {
+                                totalSalary += (dailySalary * 0.5)
+                            }
+                        }
+                    }
+                }
+                totalSalary
+            }
+            .sum()
+    }
 }
 
 data class DashboardUiState(
@@ -338,6 +492,15 @@ data class DashboardUiState(
     val totalSales: String = "0",
     val salesChange: String = "",
     val isProfileUpdating: Boolean = false
+    , val lowStock: List<Ingredient> = emptyList()
+    , val shouldPromptLowStock: Boolean = false
+    , val overallPeriodLabel: String = ""
+    , val overallSalesTotal: Double = 0.0
+    , val overallSalaryTotal: Double = 0.0
+    , val overallInventoryCostTotal: Double = 0.0
+    , val overallExtras: Double = 0.0
+    , val overallFinalEarning: Double = 0.0
+    , val showOverallReportDialog: Boolean = false
 )
 
 data class ActivityItem(
