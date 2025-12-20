@@ -11,6 +11,8 @@ interface SalesApi {
         @Query("date") date: String?,
         @Query("from_date") fromDate: String?,
         @Query("to_date") toDate: String?,
-        @Query("location_ids") locationIds: String?
+        @Query("location_ids") locationIds: String?,
+        @Query("page") page: Int? = null,
+        @Query("limit") limit: Int? = null
     ): Response<SalesResponse>
 }
