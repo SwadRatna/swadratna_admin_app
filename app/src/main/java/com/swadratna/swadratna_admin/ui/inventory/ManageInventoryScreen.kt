@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -51,6 +52,9 @@ fun ManageInventoryScreen(
         viewModel.init(sid)
     }
 
+    LaunchedEffect(selectedDate) {
+        viewModel.loadDailySummary(selectedDate)
+    }
     
 
     if (showDatePicker) {
@@ -95,6 +99,7 @@ fun ManageInventoryScreen(
                     IconButton(onClick = {
                         viewModel.loadIngredients()
                         viewModel.loadLowStock(prompt = true)
+                        viewModel.loadDailySummary(selectedDate)
                     }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
@@ -131,12 +136,29 @@ fun ManageInventoryScreen(
                     Text("Summary for ${selectedDate.format(DateTimeFormatter.ofPattern("MMM dd"))}", fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Total Added Value:")
-                        Text("₹9,000", fontWeight = FontWeight.Bold)
+                        Text("Stock In Total:")
+                        Text("₹${String.format("%.2f", uiState.dailyInCost)}", fontWeight = FontWeight.Bold)
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Total Spent Value:") // Assuming spent means used
-                        Text("₹2,000", fontWeight = FontWeight.Bold)
+                        Text("Stock Out Total:")
+                        Text("₹${String.format("%.2f", uiState.dailyOutCost)}", fontWeight = FontWeight.Bold)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Wastage Total:")
+                        Text("₹${String.format("%.2f", uiState.dailyWastageCost)}", fontWeight = FontWeight.Bold)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Adjustment Net:")
+                        Text("₹${String.format("%.2f", uiState.dailyAdjustmentNetCost)}", fontWeight = FontWeight.Bold)
+                    }
+                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Total Added Value:")
+                        Text("₹${String.format("%.2f", uiState.dailyAddedValue)}", fontWeight = FontWeight.Bold)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Total Spent Value:")
+                        Text("₹${String.format("%.2f", uiState.dailySpentValue)}", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -186,7 +208,11 @@ fun ManageInventoryScreen(
                             onStockIn = { stockInIngredient = ing },
                             onStockOut = { stockOutIngredient = ing },
                             onWastage = { wastageIngredient = ing },
-                            onManual = { manualIngredient = ing }
+                            onManual = { manualIngredient = ing },
+                            onHistory = {
+                                val id = ing.id ?: return@IngredientCard
+                                viewModel.loadIngredientMovements(id, selectedDate)
+                            }
                         )
                     }
                 }
@@ -297,6 +323,71 @@ fun ManageInventoryScreen(
             onDismiss = { viewModel.onLowStockDialogDismissed() }
         )
     }
+
+    if (uiState.showMovementsDialog) {
+        MovementsDialog(
+            items = uiState.movementsForIngredient,
+            onDismiss = { viewModel.dismissMovementsDialog() }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MovementsDialog(
+    items: List<com.swadratna.swadratna_admin.data.model.InventoryMovement>,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Movement History") },
+        text = {
+            LazyColumn(
+                modifier = Modifier.heightIn(max = 420.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(items) { m ->
+                    Card {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(m.ingredientName ?: "")
+                                Text((m.type ?: "").uppercase())
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Qty: ${m.quantity ?: 0} ${m.ingredientUnit ?: ""}")
+                                val total = m.totalCost ?: ((m.quantity ?: 0) * (m.costPerUnit ?: 0.0))
+                                Text("₹${String.format("%.2f", total)}")
+                            }
+                            if (!m.reason.isNullOrBlank()) {
+                                Text("Reason: ${m.reason}")
+                            }
+                            if (!m.vendorName.isNullOrBlank()) {
+                                Text("Vendor: ${m.vendorName}")
+                            }
+                            if (!m.invoiceNumber.isNullOrBlank()) {
+                                Text("Invoice: ${m.invoiceNumber}")
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Before: ${m.stockBefore ?: 0}")
+                                Text("After: ${m.stockAfter ?: 0}")
+                            }
+                            Text(m.createdAt?.substringBefore("T") ?: "")
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { Button(onClick = onDismiss) { Text("Close") } }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -478,7 +569,8 @@ fun IngredientCard(
     onStockIn: () -> Unit,
     onStockOut: () -> Unit,
     onWastage: () -> Unit,
-    onManual: () -> Unit
+    onManual: () -> Unit,
+    onHistory: () -> Unit
 ) {
     Card(elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -542,11 +634,18 @@ fun IngredientCard(
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Wastage")
                 }
-    FilledTonalButton(onClick = onManual) {
-        Icon(Icons.Filled.Build, contentDescription = null)
-        Spacer(modifier = Modifier.width(6.dp))
-        Text("Manual")
-    }
+                FilledTonalButton(onClick = onManual) {
+                    Icon(Icons.Filled.Build, contentDescription = null)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Manual")
+                }
+
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            FilledTonalButton(onClick = onHistory) {
+                Icon(Icons.Filled.ExitToApp, contentDescription = null)
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("History")
             }
         }
     }

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swadratna.swadratna_admin.data.model.CreateIngredientRequest
 import com.swadratna.swadratna_admin.data.model.Ingredient
+import com.swadratna.swadratna_admin.data.model.InventoryMovement
 import com.swadratna.swadratna_admin.data.model.StockInRequest
 import com.swadratna.swadratna_admin.data.model.StockOutRequest
 import com.swadratna.swadratna_admin.data.model.WastageRequest
@@ -20,7 +21,15 @@ data class InventoryUiState(
     val error: String? = null,
     val ingredients: List<Ingredient> = emptyList(),
     val lowStock: List<Ingredient> = emptyList(),
-    val shouldPromptLowStock: Boolean = false
+    val shouldPromptLowStock: Boolean = false,
+    val dailyAddedValue: Double = 0.0,
+    val dailySpentValue: Double = 0.0,
+    val dailyInCost: Double = 0.0,
+    val dailyOutCost: Double = 0.0,
+    val dailyWastageCost: Double = 0.0,
+    val dailyAdjustmentNetCost: Double = 0.0,
+    val movementsForIngredient: List<InventoryMovement> = emptyList(),
+    val showMovementsDialog: Boolean = false
 )
 
 @HiltViewModel
@@ -227,5 +236,86 @@ class InventoryViewModel @Inject constructor(
 
     fun onLowStockDialogDismissed() {
         _uiState.value = _uiState.value.copy(shouldPromptLowStock = false)
+    }
+
+    fun loadDailySummary(date: java.time.LocalDate) {
+        viewModelScope.launch {
+            val result = repository.getMovements(page = 1, limit = 500)
+            result.fold(
+                onSuccess = { list ->
+                    val target = date.format(java.time.format.DateTimeFormatter.ISO_DATE)
+                    var added = 0.0
+                    var spent = 0.0
+                    var inCost = 0.0
+                    var outCost = 0.0
+                    var wastageCost = 0.0
+                    var adjustmentNet = 0.0
+                    list.forEach { m ->
+                        val d = m.createdAt?.take(10)
+                        if (d == target) {
+                            val qty = m.quantity ?: 0
+                            val ingredientCost = uiState.value.ingredients.firstOrNull { it.id == m.ingredientId }?.costPerUnit ?: 0.0
+                            val cpu = m.costPerUnit ?: ingredientCost
+                            val total = m.totalCost ?: (qty * cpu)
+                            when (m.type?.lowercase()) {
+                                "in" -> {
+                                    inCost += total
+                                    added += total
+                                }
+                                "out" -> {
+                                    outCost += total
+                                    spent += total
+                                }
+                                "wastage" -> {
+                                    wastageCost += total
+                                    spent += total
+                                }
+                                "adjustment" -> {
+                                    if (qty >= 0) {
+                                        adjustmentNet += total
+                                        added += total
+                                    } else {
+                                        adjustmentNet -= kotlin.math.abs(total)
+                                        spent += kotlin.math.abs(total)
+                                    }
+                                }
+                                else -> {}
+                            }
+                        }
+                    }
+                    _uiState.value = _uiState.value.copy(
+                        dailyAddedValue = added,
+                        dailySpentValue = spent,
+                        dailyInCost = inCost,
+                        dailyOutCost = outCost,
+                        dailyWastageCost = wastageCost,
+                        dailyAdjustmentNetCost = adjustmentNet
+                    )
+                },
+                onFailure = {
+                    _uiState.value = _uiState.value.copy(error = it.message)
+                }
+            )
+        }
+    }
+
+    fun loadIngredientMovements(ingredientId: Int, date: java.time.LocalDate) {
+        viewModelScope.launch {
+            val result = repository.getMovements(page = 1, limit = 500)
+            result.fold(
+                onSuccess = { list ->
+                    val target = date.format(java.time.format.DateTimeFormatter.ISO_DATE)
+                    val filtered = list.filter { it.ingredientId == ingredientId && (it.createdAt?.take(10) == target) }
+                    _uiState.value = _uiState.value.copy(movementsForIngredient = filtered, showMovementsDialog = true)
+                },
+                onFailure = {
+                    _uiState.value = _uiState.value.copy(error = it.message)
+                }
+            )
+        }
+    }
+
+    fun dismissMovementsDialog() {
+        _uiState.value = _uiState.value.copy(showMovementsDialog = false)
     }
 }

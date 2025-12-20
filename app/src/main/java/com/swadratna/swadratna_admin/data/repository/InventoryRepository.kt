@@ -13,6 +13,9 @@ import com.swadratna.swadratna_admin.data.model.WastageRequest
 import com.swadratna.swadratna_admin.data.model.AdjustmentRequest
 import com.swadratna.swadratna_admin.data.remote.StockOperationResponse
 import com.swadratna.swadratna_admin.utils.NetworkErrorHandler
+import com.swadratna.swadratna_admin.data.remote.InventoryMovementsResponse
+import com.swadratna.swadratna_admin.data.remote.InventoryMovementDto
+import com.swadratna.swadratna_admin.data.model.InventoryMovement
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -99,6 +102,15 @@ class InventoryRepository @Inject constructor(
         try {
             val response = api.getLowStock()
             Result.success((response.lowStockIngredients ?: emptyList()).map { it.toDomain() })
+        } catch (e: Throwable) {
+            Result.failure(Exception(NetworkErrorHandler.getErrorMessage(e), e))
+        }
+    }
+
+    suspend fun getMovements(page: Int = 1, limit: Int = 200): Result<List<InventoryMovement>> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.getMovements(page, limit)
+            Result.success((response.movements ?: emptyList()).map { it.toDomain() })
         } catch (e: Throwable) {
             Result.failure(Exception(NetworkErrorHandler.getErrorMessage(e), e))
         }
