@@ -26,6 +26,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
 import android.widget.Toast
 import androidx.compose.material.icons.filled.Edit
+import com.swadratna.swadratna_admin.ui.inventory.LowStockDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,7 +37,8 @@ fun DashboardScreen(
     onNavigateToNotifications: () -> Unit = {},
     onNavigateToAllStaffManagement: () -> Unit = {},
     onNavigateToSaleList: () -> Unit = {},
-    onNavigateToUserAccount: () -> Unit = {}
+    onNavigateToUserAccount: () -> Unit = {},
+    onNavigateToOverallReport: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -121,25 +123,57 @@ fun DashboardScreen(
                         .padding(paddingValues),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    item { StatisticsSection(uiState, onNavigateToSaleList, onNavigateToUserAccount) }
-                    item { RecentActivitySection(uiState.recentActivities, onNavigateToNotifications) }
+                    item { StatisticsSection(uiState, onNavigateToSaleList, onNavigateToUserAccount, onNavigateToOverallReport) }
                     item { TopPerformingStoreSection(uiState.topStore) }
                 }
             }
         }
     }
+
+    if (uiState.shouldPromptLowStock && uiState.lowStock.isNotEmpty()) {
+        LowStockDialog(
+            items = uiState.lowStock,
+            onDismiss = { viewModel.onLowStockDialogDismissed() }
+        )
+    }
+
+    
 }
-
-
 
 @Composable
 fun StatisticsSection(
     uiState: DashboardUiState,
     onNavigateToSaleList: () -> Unit,
-    onNavigateToUserAccount: () -> Unit
+    onNavigateToUserAccount: () -> Unit,
+    onNavigateToOverallReport: () -> Unit
 ) {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         
+        Card(
+            onClick = onNavigateToOverallReport,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Overall Report",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowRight,
+                    contentDescription = null
+                )
+            }
+        }
         Card(
             onClick = onNavigateToUserAccount,
             modifier = Modifier
@@ -196,7 +230,7 @@ fun StatisticsSection(
             )
             StatCard(
                 title = "Total Sales",
-                value = uiState.totalSales,
+                value = formatToTwoDecimal(uiState.totalSales),
                 change = uiState.salesChange,
                 modifier = Modifier
                     .weight(1f)
@@ -205,6 +239,56 @@ fun StatisticsSection(
             )
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun OverallReportDialog(
+    period: String,
+    sales: Double,
+    salary: Double,
+    inventory: Double,
+    extras: Double,
+    finalEarning: Double,
+    onExtrasChange: (Double) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var extrasInput by remember { mutableStateOf(if (extras == 0.0) "" else String.format("%.2f", extras)) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Overall Report (${period.uppercase()})") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Total Sales")
+                    Text("₹${String.format("%.2f", sales)}")
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Total Salary")
+                    Text("₹${String.format("%.2f", salary)}")
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Inventory Expenditure")
+                    Text("₹${String.format("%.2f", inventory)}")
+                }
+                OutlinedTextField(
+                    value = extrasInput,
+                    onValueChange = {
+                        extrasInput = it
+                        val v = it.toDoubleOrNull() ?: 0.0
+                        onExtrasChange(v)
+                    },
+                    label = { Text("Extras (optional)") }
+                )
+                Divider()
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Final Earning")
+                    Text("₹${String.format("%.2f", finalEarning)}", fontWeight = FontWeight.Bold)
+                }
+            }
+        },
+        confirmButton = { Button(onClick = onDismiss) { Text("Close") } }
+    )
 }
 
 @Composable
@@ -280,6 +364,16 @@ fun StatCard(
         }
     }
 }
+
+fun formatToTwoDecimal(value: String): String {
+    return try {
+        val number = value.toDouble()
+        String.format("%.2f", number)
+    } catch (e: Exception) {
+        value
+    }
+}
+
 
 @Composable
 fun RecentActivitySection(activities: List<ActivityItem>, onNavigateToNotifications: () -> Unit) {

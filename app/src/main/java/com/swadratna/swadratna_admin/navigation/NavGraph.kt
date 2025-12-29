@@ -110,6 +110,9 @@ fun NavGraph(
                 },
                 onNavigateToUserAccount = {
                     navController.navigate(NavRoute.UserAccount.route)
+                },
+                onNavigateToOverallReport = {
+                    navController.navigate(NavRoute.OverallReport.route)
                 }
             )
         }
@@ -219,7 +222,21 @@ fun NavGraph(
                 },
                 onNavigateToAttendance = { selectedStoreId ->
                     navController.navigate(NavRoute.AttendancePayment.createRoute(selectedStoreId))
+                },
+                onNavigateToInventory = { selectedStoreId ->
+                    navController.navigate(NavRoute.ManageInventory.createRoute(selectedStoreId))
                 }
+            )
+        }
+
+        composable(
+            route = NavRoute.ManageInventory.route,
+            arguments = listOf(navArgument("storeId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val storeId = backStackEntry.arguments?.getString("storeId") ?: ""
+            com.swadratna.swadratna_admin.ui.inventory.ManageInventoryScreen(
+                storeId = storeId,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
@@ -520,6 +537,12 @@ fun NavGraph(
 
         composable(NavRoute.Referral.route) {
             com.swadratna.swadratna_admin.ui.referral.ReferralScreen()
+        }
+
+        composable(NavRoute.OverallReport.route) {
+            com.swadratna.swadratna_admin.ui.dashboard.OverallReportScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }

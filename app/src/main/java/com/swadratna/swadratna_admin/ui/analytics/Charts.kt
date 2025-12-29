@@ -1,9 +1,17 @@
 package com.swadratna.swadratna_admin.ui.analytics
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.github.mikephil.charting.animation.Easing
 import com.github.mikephil.charting.charts.BarChart
@@ -151,59 +159,94 @@ fun DonutChartView(
     modifier: Modifier = Modifier,
     textColor: Int = Color.Black.toArgb()
 ) {
-    AndroidView(
-        modifier = modifier,
-        factory = { ctx ->
-            PieChart(ctx).apply {
-                description.isEnabled = false
-                isDrawHoleEnabled = true
-                holeRadius = 65f
-                setUsePercentValues(true)
-                
-                // Set hole color to transparent or match background if needed, 
-                // but for now we just focus on text
-                setHoleColor(Color.Transparent.toArgb())
+    val chartColors = listOf(
+        Color(0xFF1565C0),
+        Color(0xFF2E7D32),
+        Color(0xFFF9A825),
+        Color(0xFF6D4C41),
+        Color(0xFF653D6E),
+        Color(0xFF78909C)
+    )
 
-                legend.apply {
-                    isEnabled = true
-                    verticalAlignment = Legend.LegendVerticalAlignment.BOTTOM
-                    horizontalAlignment = Legend.LegendHorizontalAlignment.LEFT
-                    orientation = Legend.LegendOrientation.VERTICAL
-                    setDrawInside(false)
-                    xEntrySpace = 8f
-                    yEntrySpace = 4f
-                    textSize = 12f
-                    this.textColor = textColor
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        AndroidView(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(260.dp),
+            factory = { ctx ->
+                PieChart(ctx).apply {
+                    description.isEnabled = false
+                    isDrawHoleEnabled = true
+                    holeRadius = 65f
+                    setUsePercentValues(true)
+                    
+                    // Set hole color to transparent or match background if needed, 
+                    // but for now we just focus on text
+                    setHoleColor(Color.Transparent.toArgb())
+
+                    legend.isEnabled = false // Disable built-in legend
+
+                    setDrawEntryLabels(false)
+                }
+            },
+            update = { chart ->
+                // Update text color
+                chart.legend.textColor = textColor
+                
+                val entries = categories.map { PieEntry(it.percent.toFloat(), it.name) }
+                val ds = PieDataSet(entries, "").apply {
+                    sliceSpace = 2f
+                    colors = chartColors.map { it.toArgb() }
+
+                    valueTextSize = 12f
+                    valueTextColor = Color.White.toArgb()
                 }
 
-                setDrawEntryLabels(false)
+                chart.data = PieData(ds)
+                chart.animateY(600, Easing.EaseInOutQuad)
+                chart.invalidate()
             }
-        },
-        update = { chart ->
-            // Update text color
-            chart.legend.textColor = textColor
-            
-            val entries = categories.map { PieEntry(it.percent.toFloat(), it.name) }
-            val ds = PieDataSet(entries, "").apply {
-                sliceSpace = 2f
-                colors = listOf(
-                    Color(0xFF1565C0).toArgb(),
-                    Color(0xFF2E7D32).toArgb(),
-                    Color(0xFFF9A825).toArgb(),
-                    Color(0xFF6D4C41).toArgb(),
-                    Color(0xFF653D6E).toArgb(),
-                    Color(0xFF78909C).toArgb()
-                )
+        )
 
-                valueTextSize = 12f
-                valueTextColor = Color.White.toArgb()
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Custom Legend
+        val total = categories.sumOf { it.percent }
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            categories.forEachIndexed { index, category ->
+                val percentage = if (total > 0) (category.percent / total) * 100 else 0.0
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .clip(CircleShape)
+                            .background(chartColors.getOrElse(index % chartColors.size) { Color.Gray })
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = category.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(textColor),
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = String.format("%.1f%%", percentage),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(textColor)
+                    )
+                }
             }
-
-            chart.data = PieData(ds)
-            chart.animateY(600, Easing.EaseInOutQuad)
-            chart.invalidate()
         }
-    )
+    }
 }
 
 

@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+import com.swadratna.swadratna_admin.data.model.SalesInfoItem
+
 @HiltViewModel
 class AnalyticsViewModel @Inject constructor(
     private val repo: AnalyticsRepository,
@@ -23,6 +25,7 @@ class AnalyticsViewModel @Inject constructor(
     data class UiState(
         val loading: Boolean = true,
         val analytics: Analytics? = null,
+        val salesInfo: List<SalesInfoItem> = emptyList(),
         val error: String? = null,
         val timeframe: String = "YTD",
         val franchiseFilter: String? = null,
@@ -57,12 +60,27 @@ class AnalyticsViewModel @Inject constructor(
 
     fun refresh() = viewModelScope.launch {
         _state.update { it.copy(loading = true, error = null) }
-        runCatching {
+        
+        // Parallel execution could be better, but sequential is fine for now
+        val dashboardResult = runCatching {
             repo.loadDashboard(franchise = _state.value.franchiseFilter, from = null, to = null)
-        }.onSuccess { data ->
-            _state.update { it.copy(loading = false, analytics = data) }
-        }.onFailure { e ->
-            _state.update { it.copy(loading = false, error = e.message ?: "Unknown error") }
+        }
+        
+        val salesResult = runCatching {
+            // Using the date provided in the example for now
+            repo.getSalesInfo("25-12-2025")
+        }
+
+        if (dashboardResult.isSuccess) {
+            _state.update { 
+                it.copy(
+                    loading = false, 
+                    analytics = dashboardResult.getOrNull(),
+                    salesInfo = salesResult.getOrDefault(emptyList())
+                ) 
+            }
+        } else {
+            _state.update { it.copy(loading = false, error = dashboardResult.exceptionOrNull()?.message ?: "Unknown error") }
         }
     }
 }
