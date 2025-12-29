@@ -102,7 +102,6 @@ fun AdminAnalyticsScreen(
                                 categories = data.topProductCategories,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(280.dp)
                                     .padding(top = 8.dp),
                                 textColor = textColor
                             )
@@ -183,13 +182,13 @@ private fun CardsGrid(cards: Cards) {
             StatCard("Total Sales", cards.totalSales, modifier = Modifier.weight(1f))
 //            StatCard("Total ROI", cards.totalRoi, modifier = Modifier.weight(1f))
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            StatCard("Customer Acquisition", cards.acquisition, modifier = Modifier.weight(1f))
-//            StatCard("Average Order Value", cards.aov, modifier = Modifier.weight(1f))
-        }
+//        Row(
+//            modifier = Modifier.fillMaxWidth(),
+//            horizontalArrangement = Arrangement.spacedBy(8.dp)
+//        ) {
+//            StatCard("Customer Acquisition", cards.acquisition, modifier = Modifier.weight(1f))
+////            StatCard("Average Order Value", cards.aov, modifier = Modifier.weight(1f))
+//        }
     }
 }
 
