@@ -11,4 +11,9 @@ interface AnalyticsApi {
         @Query("from") from: String?,
         @Query("to") to: String?
     ): AdminAnalyticsDto
+
+    @GET("api/v1/admin/dashboard/salesInfo")
+    suspend fun getSalesInfo(
+        @Query("date") date: String
+    ): com.swadratna.swadratna_admin.data.model.SalesInfoResponse
 }

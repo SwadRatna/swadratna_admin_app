@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Info
@@ -24,6 +25,8 @@ import com.swadratna.swadratna_admin.data.model.Cards
 
 import androidx.compose.ui.graphics.toArgb
 
+import com.swadratna.swadratna_admin.data.model.SalesInfoItem
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminAnalyticsScreen(
@@ -32,6 +35,15 @@ fun AdminAnalyticsScreen(
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
     val textColor = MaterialTheme.colorScheme.onSurface.toArgb()
+    var showSalesDialog by remember { mutableStateOf(false) }
+
+    if (showSalesDialog) {
+        SalesDetailsDialog(
+            salesInfo = state.salesInfo,
+            onDismiss = { showSalesDialog = false },
+            textColor = textColor
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -66,7 +78,11 @@ fun AdminAnalyticsScreen(
                         .padding(paddingValues)
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    CardsGrid(data.cards)
+                    CardsGrid(
+                        cards = data.cards,
+                        salesInfo = state.salesInfo,
+                        onSalesCardClick = { showSalesDialog = true }
+                    )
 
 //                    Text(
 //                        "Sales Performance Comparison",
@@ -107,6 +123,18 @@ fun AdminAnalyticsScreen(
                             )
                         }
                     }
+                    
+                    Spacer(Modifier.height(16.dp))
+                    if (state.salesInfo.isNotEmpty()) {
+//                        Text(
+//                            "Item Sales Quantity (25-12-2025)",
+//                            style = MaterialTheme.typography.titleMedium
+//                        )
+//                        Spacer(Modifier.height(8.dp))
+//                        SalesInfoTable(state.salesInfo, textColor)
+//                        Spacer(Modifier.height(16.dp))
+                    }
+
                     Spacer(Modifier.height(12.dp))
                     Button(
                         onClick = {
@@ -173,22 +201,35 @@ fun AdminAnalyticsScreen(
 //}
 
 @Composable
-private fun CardsGrid(cards: Cards) {
+private fun CardsGrid(
+    cards: Cards,
+    salesInfo: List<SalesInfoItem>,
+    onSalesCardClick: () -> Unit
+) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             StatCard("Total Sales", cards.totalSales, modifier = Modifier.weight(1f))
-//            StatCard("Total ROI", cards.totalRoi, modifier = Modifier.weight(1f))
         }
-//        Row(
-//            modifier = Modifier.fillMaxWidth(),
-//            horizontalArrangement = Arrangement.spacedBy(8.dp)
-//        ) {
-//            StatCard("Customer Acquisition", cards.acquisition, modifier = Modifier.weight(1f))
-////            StatCard("Average Order Value", cards.aov, modifier = Modifier.weight(1f))
-//        }
+
+        // Item Sales Card
+        val totalRevenue = salesInfo.sumOf { it.revenue }
+        val totalQty = salesInfo.sumOf { it.qty }
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            ItemSalesCard(
+                totalRevenue = totalRevenue,
+                totalQty = totalQty,
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClick = onSalesCardClick)
+            )
+        }
     }
 }
 
@@ -219,6 +260,109 @@ private fun StatCard(title: String, rows: List<CardRow>, modifier: Modifier = Mo
                         color = color,
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.align(Alignment.CenterVertically)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ItemSalesCard(
+    totalRevenue: Double,
+    totalQty: Int,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        elevation = CardDefaults.cardElevation(1.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 6.dp, horizontal = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Item Sales", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                Icon(Icons.Default.ArrowForward, contentDescription = null, modifier = Modifier.size(16.dp))
+            }
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Revenue", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    Text("₹${String.format("%.0f", totalRevenue)}", style = MaterialTheme.typography.titleMedium)
+                }
+                
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Quantity", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    Text("$totalQty", style = MaterialTheme.typography.titleMedium)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SalesInfoTable(salesInfo: List<SalesInfoItem>, textColor: Int) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Item Name",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = Color(textColor),
+                    modifier = Modifier.weight(2f)
+                )
+                Text(
+                    text = "Qty",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = Color(textColor),
+                    modifier = Modifier.weight(1f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End
+                )
+                Text(
+                    text = "Revenue",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = Color(textColor),
+                    modifier = Modifier.weight(1f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End
+                )
+            }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            salesInfo.forEach { item ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = item.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(textColor),
+                        modifier = Modifier.weight(2f)
+                    )
+                    Text(
+                        text = item.qty.toString(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(textColor),
+                        modifier = Modifier.weight(1f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.End
+                    )
+                    Text(
+                        text = "₹${item.revenue}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(textColor),
+                        modifier = Modifier.weight(1f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.End
                     )
                 }
             }
