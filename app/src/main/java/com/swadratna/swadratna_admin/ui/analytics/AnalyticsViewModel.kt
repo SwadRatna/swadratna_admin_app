@@ -26,6 +26,7 @@ class AnalyticsViewModel @Inject constructor(
         val loading: Boolean = true,
         val analytics: Analytics? = null,
         val salesInfo: List<SalesInfoItem> = emptyList(),
+        val salesInfoDate: String = java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault()).format(java.util.Date()),
         val error: String? = null,
         val timeframe: String = "YTD",
         val franchiseFilter: String? = null,
@@ -60,15 +61,13 @@ class AnalyticsViewModel @Inject constructor(
 
     fun refresh() = viewModelScope.launch {
         _state.update { it.copy(loading = true, error = null) }
-        
-        // Parallel execution could be better, but sequential is fine for now
         val dashboardResult = runCatching {
             repo.loadDashboard(franchise = _state.value.franchiseFilter, from = null, to = null)
         }
         
+        val today = java.text.SimpleDateFormat("dd-MM-yyyy", java.util.Locale.getDefault()).format(java.util.Date())
         val salesResult = runCatching {
-            // Using the date provided in the example for now
-            repo.getSalesInfo("25-12-2025")
+            repo.getSalesInfo(today)
         }
 
         if (dashboardResult.isSuccess) {
@@ -76,11 +75,24 @@ class AnalyticsViewModel @Inject constructor(
                 it.copy(
                     loading = false, 
                     analytics = dashboardResult.getOrNull(),
-                    salesInfo = salesResult.getOrDefault(emptyList())
+                    salesInfo = salesResult.getOrDefault(emptyList()),
+                    salesInfoDate = today
                 ) 
             }
         } else {
             _state.update { it.copy(loading = false, error = dashboardResult.exceptionOrNull()?.message ?: "Unknown error") }
+        }
+    }
+
+    fun fetchSalesInfo(date: String) = viewModelScope.launch {
+        val salesResult = runCatching {
+            repo.getSalesInfo(date)
+        }
+        _state.update {
+            it.copy(
+                salesInfo = salesResult.getOrDefault(emptyList()),
+                salesInfoDate = date
+            )
         }
     }
 }

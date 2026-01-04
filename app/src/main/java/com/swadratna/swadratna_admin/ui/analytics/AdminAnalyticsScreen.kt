@@ -40,7 +40,9 @@ fun AdminAnalyticsScreen(
     if (showSalesDialog) {
         SalesDetailsDialog(
             salesInfo = state.salesInfo,
+            selectedDate = state.salesInfoDate,
             onDismiss = { showSalesDialog = false },
+            onDateSelected = { date -> viewModel.fetchSalesInfo(date) },
             textColor = textColor
         )
     }
