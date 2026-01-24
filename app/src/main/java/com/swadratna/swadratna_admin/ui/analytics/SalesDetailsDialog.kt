@@ -12,6 +12,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.swadratna.swadratna_admin.data.model.SalesInfoItem
 import java.text.SimpleDateFormat
 import java.util.*
@@ -55,23 +57,20 @@ fun SalesDetailsDialog(
         }
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Item Sales Details")
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close")
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(modifier = Modifier.fillMaxWidth(0.95f).fillMaxHeight(0.9f)) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Item Sales Details")
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
                 }
-            }
-        },
-        text = {
-            Column {
-                // Date Selector
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -86,7 +85,7 @@ fun SalesDetailsDialog(
                     )
                     Icon(Icons.Default.DateRange, contentDescription = "Select Date")
                 }
-                
+
                 if (salesInfo.isEmpty()) {
                     Text(
                         "No sell happened on this date",
@@ -97,14 +96,13 @@ fun SalesDetailsDialog(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 400.dp)
+                            .weight(1f)
                             .verticalScroll(rememberScrollState())
                     ) {
                         SalesInfoTable(salesInfo, textColor)
                     }
                 }
             }
-        },
-        confirmButton = {}
-    )
+        }
+    }
 }

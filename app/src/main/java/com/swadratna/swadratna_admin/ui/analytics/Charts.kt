@@ -33,7 +33,9 @@ import com.swadratna.swadratna_admin.data.model.CategoryShare
 import com.swadratna.swadratna_admin.data.model.MonthVolume
 import com.swadratna.swadratna_admin.data.model.Series
 import java.time.LocalDate
+import java.time.Month
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.util.Locale
 
 @Composable
@@ -119,11 +121,49 @@ fun GroupedBarChartView(
             val now = LocalDate.now()
             val fmt = DateTimeFormatter.ofPattern("MMM", Locale.ENGLISH)
             val lastSixLabels = (0..5).map { offset -> now.minusMonths((5 - offset).toLong()).format(fmt) }
-            val filtered = months.filter { m -> lastSixLabels.contains(m.month) }
-                .sortedBy { lastSixLabels.indexOf(it.month) }
 
-            val dineInEntries = filtered.mapIndexed { i, m -> BarEntry(i.toFloat(), m.dineIn.toFloat()) }
-            val deliveryEntries = filtered.mapIndexed { i, m -> BarEntry(i.toFloat(), m.delivery.toFloat()) }
+            fun normalizeMonthAbbrev(value: String): String? {
+                val locale = Locale.ENGLISH
+                val trimmed = value.trim()
+                val fFull = DateTimeFormatter.ofPattern("MMMM", locale)
+                val fShort = DateTimeFormatter.ofPattern("MMM", locale)
+                return try {
+                    Month.from(fFull.parse(trimmed)).getDisplayName(TextStyle.SHORT, locale)
+                } catch (e1: Exception) {
+                    try {
+                        Month.from(fShort.parse(trimmed)).getDisplayName(TextStyle.SHORT, locale)
+                    } catch (e2: Exception) {
+                        val lower = trimmed.lowercase(locale)
+                        when (lower) {
+                            "january", "jan" -> "Jan"
+                            "february", "feb" -> "Feb"
+                            "march", "mar" -> "Mar"
+                            "april", "apr" -> "Apr"
+                            "may" -> "May"
+                            "june", "jun" -> "Jun"
+                            "july", "jul" -> "Jul"
+                            "august", "aug" -> "Aug"
+                            "september", "sep" -> "Sep"
+                            "october", "oct" -> "Oct"
+                            "november", "nov" -> "Nov"
+                            "december", "dec" -> "Dec"
+                            else -> null
+                        }
+                    }
+                }
+            }
+
+            val normalized = months.mapNotNull { m ->
+                val label = normalizeMonthAbbrev(m.month)
+                label?.let { MonthVolume(it, m.dineIn, m.delivery) }
+            }
+            val byLabel = normalized.associateBy { it.month }
+            val dineInEntries = lastSixLabels.mapIndexed { i, label ->
+                BarEntry(i.toFloat(), (byLabel[label]?.dineIn ?: 0.0).toFloat())
+            }
+            val deliveryEntries = lastSixLabels.mapIndexed { i, label ->
+                BarEntry(i.toFloat(), (byLabel[label]?.delivery ?: 0.0).toFloat())
+            }
 
             val ds1 = BarDataSet(dineInEntries, "Dine-In").apply {
                 color = Color(0xFF1565C0).toArgb()
@@ -145,7 +185,7 @@ fun GroupedBarChartView(
             chart.xAxis.setCenterAxisLabels(true)
             val groupWidth = data.getGroupWidth(groupSpace, barSpace)
             chart.xAxis.axisMinimum = 0f
-            chart.xAxis.axisMaximum = 0f + groupWidth * filtered.size
+            chart.xAxis.axisMaximum = 0f + groupWidth * lastSixLabels.size
             chart.groupBars(0f, groupSpace, barSpace)
             chart.invalidate()
             chart.animateY(600)
