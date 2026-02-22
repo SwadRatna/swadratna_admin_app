@@ -200,6 +200,9 @@ fun NavGraph(
                 },
                 onNavigateToEditStore = { storeId ->
                     navController.navigate("${NavRoute.CreateStore.route}/$storeId")
+                },
+                onNavigateToMenuManagement = {
+                    navController.navigate(NavRoute.MenuManagement.route)
                 }
             )
         }
