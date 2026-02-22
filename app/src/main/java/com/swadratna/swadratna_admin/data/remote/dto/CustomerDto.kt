@@ -12,7 +12,9 @@ data class CustomerDto(
 
 data class CustomerListResponse(
     val data: List<CustomerDto>,
-    val pagination: Pagination?
+    val pagination: Pagination?,
+    val date_range: DateRangeDto? = null,
+    val growth: GrowthDto? = null
 )
 
 data class Pagination(
@@ -22,5 +24,17 @@ data class Pagination(
     val total_pages: Int?,
     val has_next: Boolean?,
     val has_prev: Boolean?
+)
+
+data class DateRangeDto(
+    val from_date: String?,
+    val to_date: String?
+)
+
+data class GrowthDto(
+    val current_period_count: Int?,
+    val growth_percentage: Double?,
+    val previous_period: DateRangeDto?,
+    val previous_period_count: Int?
 )
 

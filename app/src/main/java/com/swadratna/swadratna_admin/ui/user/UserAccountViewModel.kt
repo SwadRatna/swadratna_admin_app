@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import java.time.LocalDate
 
 data class UserAccountUiState(
     val isLoading: Boolean = false,
@@ -19,7 +20,11 @@ data class UserAccountUiState(
     val limit: Int? = 20,
     val hasNext: Boolean = false,
     val search: String = "",
-    val status: String? = null
+    val status: String? = null,
+    val fromDate: String? = null,
+    val toDate: String? = null,
+    val dateRangeFromServer: com.swadratna.swadratna_admin.data.remote.dto.DateRangeDto? = null,
+    val growth: com.swadratna.swadratna_admin.data.remote.dto.GrowthDto? = null
 )
 
 @HiltViewModel
@@ -29,12 +34,33 @@ class UserAccountViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(UserAccountUiState())
     val uiState: StateFlow<UserAccountUiState> = _uiState.asStateFlow()
 
+    init {
+        val today = LocalDate.now().toString()
+        _uiState.value = _uiState.value.copy(fromDate = today, toDate = today)
+    }
+
     fun load(reset: Boolean = false) {
         val current = _uiState.value
         val pageToLoad = if (reset) 1 else current.page
         _uiState.value = current.copy(isLoading = true, error = null, page = pageToLoad, customers = if (reset) emptyList() else current.customers)
         viewModelScope.launch {
-            val result = repo.list(pageToLoad, current.limit, current.status, current.search.takeIf { it.isNotBlank() })
+            var effectiveFrom = current.fromDate
+            var effectiveTo = current.toDate
+            val bothPresent = !effectiveFrom.isNullOrBlank() && !effectiveTo.isNullOrBlank()
+            if (bothPresent && (effectiveFrom!! > effectiveTo!!)) {
+                val tmp = effectiveFrom
+                effectiveFrom = effectiveTo
+                effectiveTo = tmp
+            }
+            val useDates = bothPresent
+            val result = repo.list(
+                pageToLoad,
+                current.limit,
+                current.status,
+                current.search.takeIf { it.isNotBlank() },
+                if (useDates) effectiveFrom else null,
+                if (useDates) effectiveTo else null
+            )
             result.fold(
                 onSuccess = { resp ->
                     val newList = if (reset || pageToLoad == 1) resp.data else current.customers + resp.data
@@ -47,7 +73,9 @@ class UserAccountViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         customers = newList,
-                        hasNext = hasNext
+                        hasNext = hasNext,
+                        dateRangeFromServer = resp.date_range,
+                        growth = resp.growth
                     )
                 },
                 onFailure = { e ->
@@ -76,9 +104,11 @@ class UserAccountViewModel @Inject constructor(
             val limit = current.limit
             val status = current.status
             val search = current.search.takeIf { it.isNotBlank() }
+            val fromDate = current.fromDate
+            val toDate = current.toDate
             val all = mutableListOf<CustomerDto>()
             while (true) {
-                val result = repo.list(page, limit, status, search)
+                val result = repo.list(page, limit, status, search, fromDate, toDate)
                 var continueLoading = false
                 result.fold(
                     onSuccess = { resp ->
@@ -89,6 +119,10 @@ class UserAccountViewModel @Inject constructor(
                             p?.total_pages != null && p.page != null -> (p.page ?: 1) < (p.total_pages ?: 1)
                             else -> resp.data.size >= ((p?.limit) ?: (limit ?: 20))
                         }
+                        _uiState.value = _uiState.value.copy(
+                            dateRangeFromServer = resp.date_range ?: _uiState.value.dateRangeFromServer,
+                            growth = resp.growth ?: _uiState.value.growth
+                        )
                     },
                     onFailure = { e ->
                         _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
@@ -100,6 +134,21 @@ class UserAccountViewModel @Inject constructor(
             }
             _uiState.value = _uiState.value.copy(isLoading = false, customers = all, hasNext = false, page = page)
         }
+    }
+
+    fun setFromDate(date: String?) {
+        _uiState.value = _uiState.value.copy(fromDate = date)
+        load(reset = true)
+    }
+
+    fun setToDate(date: String?) {
+        _uiState.value = _uiState.value.copy(toDate = date)
+        load(reset = true)
+    }
+
+    fun clearDates() {
+        _uiState.value = _uiState.value.copy(fromDate = null, toDate = null)
+        load(reset = true)
     }
 
     fun toggleBlock(customer: CustomerDto, block: Boolean) {
