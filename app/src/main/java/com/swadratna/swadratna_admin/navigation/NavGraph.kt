@@ -221,7 +221,7 @@ fun NavGraph(
                     navController.navigate(NavRoute.StaffManagement.createRoute(selectedStoreId))
                 },
                 onNavigateToMenuManagement = { selectedStoreId ->
-                    navController.navigate(NavRoute.MenuManagement.route)
+                    navController.navigate(NavRoute.StoreMenuItems.createRoute(selectedStoreId))
                 },
                 onNavigateToAttendance = { selectedStoreId ->
                     navController.navigate(NavRoute.AttendancePayment.createRoute(selectedStoreId))
@@ -391,6 +391,17 @@ fun NavGraph(
                 onNavigateToAddMenu = { navController.navigate(NavRoute.AddMenu.route) },
                 onNavigateToMenuItems = { navController.navigate(NavRoute.MenuItems.route) },
                 onNavigateToManageCategories = { navController.navigate(NavRoute.ManageCategories.route) }
+            )
+        }
+
+        composable(
+            route = NavRoute.StoreMenuItems.route,
+            arguments = listOf(navArgument("storeId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val storeId = backStackEntry.arguments?.getString("storeId") ?: ""
+            com.swadratna.swadratna_admin.presentation.screens.menu.StoreLocationMenuScreen(
+                storeId = storeId,
+                onBack = { navController.popBackStack() }
             )
         }
 

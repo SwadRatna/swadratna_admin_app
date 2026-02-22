@@ -82,4 +82,12 @@ interface MenuApi {
         @Path("id") id: Int,
         @Body category: UpdateMenuCategoryDto
     ): MenuCategoryResponse
+
+    // Location-specific menu item update
+    @PATCH("api/v1/admin/menu/locations/{locationId}/items/{itemId}")
+    suspend fun updateMenuItemAtLocation(
+        @Path("locationId") locationId: Long,
+        @Path("itemId") itemId: Long,
+        @Body update: com.swadratna.swadratna_admin.data.remote.UpdateLocationMenuItemDto
+    ): MenuItemResponse
 }
