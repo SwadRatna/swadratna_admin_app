@@ -157,7 +157,8 @@ class StoreViewModel @Inject constructor(
                     locationMobileNumber = event.locationMobileNumber,
                     restaurantId = ApiConstants.RESTAURANT_ID,
                     numberOfTables = event.numberOfTables,
-                    name = event.name
+                    name = event.name,
+                    gstRate = event.gstRate
                 )
                 
                 val result = storeRepository.createStore(storeRequest)
@@ -210,7 +211,8 @@ class StoreViewModel @Inject constructor(
                     locationMobileNumber = event.locationMobileNumber,
                     restaurantId = ApiConstants.RESTAURANT_ID,
                     numberOfTables = event.numberOfTables,
-                    name = event.name
+                    name = event.name,
+                    gstRate = event.gstRate
                 )
                 
                 val result = storeRepository.updateStore(event.storeId, storeRequest)
@@ -322,7 +324,8 @@ sealed interface StoreEvent {
         val pincode: String,
         val landmark: String,
         val locationMobileNumber: String,
-        val numberOfTables: Int
+        val numberOfTables: Int,
+        val gstRate: Double
     ) : StoreEvent
     data class UpdateStore(
         val storeId: Int,
@@ -336,7 +339,8 @@ sealed interface StoreEvent {
         val pincode: String,
         val landmark: String,
         val locationMobileNumber: String,
-        val numberOfTables: Int
+        val numberOfTables: Int,
+        val gstRate: Double
     ) : StoreEvent
     data class DeleteStore(val storeId: Int) : StoreEvent
 }
