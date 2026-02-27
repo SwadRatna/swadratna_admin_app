@@ -126,11 +126,11 @@ class DashboardViewModel @Inject constructor(
                         val diff = totalToday - totalYesterday
                         val pct = ((diff / totalYesterday) * 100).roundToInt()
                         val sign = if (pct > 0) "+" else ""
-                        "$sign$pct% change in 24 hours"
+                        "$sign$pct% change since last day"
                     } else if (totalYesterday == 0.0 && totalToday > 0) {
-                        "100% change in 24 hours"
+                        "100% change since last day"
                     } else {
-                        "0% change in 24 hours"
+                        "0% change since last day"
                     }
 
                     _uiState.update { it.copy(totalSales = totalToday.toString(), salesChange = percentText) }
