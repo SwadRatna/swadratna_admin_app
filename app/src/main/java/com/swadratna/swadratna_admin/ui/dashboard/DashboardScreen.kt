@@ -223,7 +223,7 @@ fun StatisticsSection(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             StatCard(
-                title = "New Users",
+                title = "Total Referral",
                 value = uiState.newUsers.toString(),
                 change = uiState.newUsersChange,
                 modifier = Modifier.weight(1f)

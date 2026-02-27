@@ -85,45 +85,57 @@ class DashboardViewModel @Inject constructor(
 
     private fun fetchSalesData() {
         viewModelScope.launch {
-            val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
-            salesRepository.getSales(date = today, fromDate = null, toDate = null, locationIds = null).collect { result ->
-                if (result is Result.Success) {
-                    val response = result.data
-                    val total = response.summary?.totalAmount ?: 0.0
-                    
-                    // Sales change logic
-                    val lastDate = sharedPrefsManager.getLastRecordedDate()
-                    val lastRecordedSales = sharedPrefsManager.getLastRecordedSales()
-                    var baselineSales = sharedPrefsManager.getSalesBaseline()
-
-                    // If date has changed since last record, promote last sales to baseline
-                    if (lastDate != null && lastDate != today) {
-                        baselineSales = lastRecordedSales
-                        sharedPrefsManager.saveSalesBaseline(baselineSales)
-                        sharedPrefsManager.saveLastRecordedDate(today)
-                    } else if (lastDate == null) {
-                        // First run ever
-                        sharedPrefsManager.saveLastRecordedDate(today)
-                    }
-
-                    // Calculate percentage
-                    val percentText = if (baselineSales > 0) {
-                        val diff = total - baselineSales
-                        val pct = ((diff / baselineSales) * 100).roundToInt()
-                        val sign = if (pct > 0) "+" else ""
-                        "$sign$pct% changes"
-                    } else if (baselineSales == 0.0 && total > 0) {
-                        "100% changes"
-                    } else {
-                        "0% changes"
-                    }
-
-                    // Always update current sales as "last recorded" for tomorrow's baseline
-                    sharedPrefsManager.saveLastRecordedSales(total)
-
-                    _uiState.update { it.copy(totalSales = total.toString(), salesChange = percentText) }
-                }
+            val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+            val calToday = java.util.Calendar.getInstance()
+            val todayStart = dateFormat.format(calToday.time)
+            val calTodayEnd = java.util.Calendar.getInstance().apply {
+                add(java.util.Calendar.DAY_OF_YEAR, 1)
             }
+            val todayEnd = dateFormat.format(calTodayEnd.time)
+            val calYesterday = java.util.Calendar.getInstance().apply {
+                add(java.util.Calendar.DAY_OF_YEAR, -1)
+            }
+            val yesterdayStart = dateFormat.format(calYesterday.time)
+            val yesterdayEnd = todayStart
+
+            try {
+                val todayRes = salesRepository.getSales(
+                    date = null,
+                    fromDate = todayStart,
+                    toDate = todayEnd,
+                    locationIds = null
+                ).filter { it !is Result.Loading }.first()
+
+                if (todayRes is Result.Success) {
+                    val totalToday = todayRes.data.summary?.totalAmount ?: 0.0
+
+                    val yesterdayRes = salesRepository.getSales(
+                        date = null,
+                        fromDate = yesterdayStart,
+                        toDate = yesterdayEnd,
+                        locationIds = null
+                    ).filter { it !is Result.Loading }.first()
+
+                    val totalYesterday = if (yesterdayRes is Result.Success) {
+                        yesterdayRes.data.summary?.totalAmount ?: 0.0
+                    } else {
+                        0.0
+                    }
+
+                    val percentText = if (totalYesterday > 0) {
+                        val diff = totalToday - totalYesterday
+                        val pct = ((diff / totalYesterday) * 100).roundToInt()
+                        val sign = if (pct > 0) "+" else ""
+                        "$sign$pct% change in 24 hours"
+                    } else if (totalYesterday == 0.0 && totalToday > 0) {
+                        "100% change in 24 hours"
+                    } else {
+                        "0% change in 24 hours"
+                    }
+
+                    _uiState.update { it.copy(totalSales = totalToday.toString(), salesChange = percentText) }
+                }
+            } catch (_: Exception) { }
         }
     }
 
@@ -157,16 +169,16 @@ class DashboardViewModel @Inject constructor(
                 val newUsersPercentText = if (baselineNewUsers > 0) {
                     val diff = totalReferrals - baselineNewUsers
                     if (diff == 0) {
-                        "0% changes"
+                        "0% change since last day"
                     } else {
                         val pct = ((diff.toDouble() / baselineNewUsers) * 100).roundToInt()
                         val sign = if (pct > 0) "+" else ""
-                        "$sign$pct% changes"
+                        "$sign$pct% change since last day"
                     }
                 } else if (baselineNewUsers == 0 && totalReferrals > 0) {
-                    "100% changes"
+                    "100% change since last day"
                 } else {
-                    "0% changes"
+                    "0% change since last day"
                 }
 
                 _uiState.update {
