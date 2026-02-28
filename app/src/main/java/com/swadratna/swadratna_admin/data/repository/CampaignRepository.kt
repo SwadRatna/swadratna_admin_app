@@ -107,6 +107,16 @@ class CampaignRepository @Inject constructor(
         }
     }
 
+    suspend fun sendCampaignNotification(id: Long): Result<Boolean> = withContext(io) {
+        try {
+            // Using a default body mapOf("key" to "value") as requested
+            val res = api.sendNotification(id)
+            Result.Success(res.success)
+        } catch (e: Throwable) {
+            Result.Error(e.message ?: "Failed to send notification", e)
+        }
+    }
+
     // Public APIs
     suspend fun getActiveCampaigns(storeId: Long? = null, categoryIdsCsv: String? = null): Result<AdminCampaignListResponse> = withContext(io) {
         try {

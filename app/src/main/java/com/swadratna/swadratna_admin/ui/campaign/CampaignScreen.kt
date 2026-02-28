@@ -195,7 +195,9 @@ fun CampaignScreen(
                                             id, status
                                         )
                                     )
-                                })
+                                },
+                                onSendReminder = { viewModel.handleEvent(CampaignEvent.SendNotification(it)) }
+                            )
                         }
                     }
                 }

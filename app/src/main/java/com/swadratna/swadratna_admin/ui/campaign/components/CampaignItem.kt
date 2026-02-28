@@ -25,6 +25,7 @@ fun CampaignItem(
     onEdit: (String) -> Unit = {},
     onDelete: (String) -> Unit = {},
     onChangeStatus: (String, CampaignStatus) -> Unit = { _, _ -> },
+    onSendReminder: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showStatusDialog by remember { mutableStateOf(false) }
@@ -124,17 +125,30 @@ fun CampaignItem(
             // Show "Delete" text button only when the campaign has reached its end date or status is Completed
             val now = LocalDate.now()
             val showDeleteTextButton = (campaign.status == CampaignStatus.COMPLETED) || !now.isBefore(campaign.endDate)
-            if (showDeleteTextButton) {
-                TextButton(
-                    onClick = { onDelete(campaign.id) },
-                    modifier = Modifier.align(Alignment.End)
-                ) {
-                    Text(
-                        text = "Delete",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
-                        textDecoration = TextDecoration.Underline
-                    )
+            Row(modifier = Modifier.align(Alignment.End)) {
+                if (campaign.status == CampaignStatus.ACTIVE) {
+                    TextButton(
+                        onClick = { onSendReminder(campaign.id) }
+                    ) {
+                        Text(
+                            text = "Reminder",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            textDecoration = TextDecoration.Underline
+                        )
+                    }
+                }
+                if (showDeleteTextButton) {
+                    TextButton(
+                        onClick = { onDelete(campaign.id) }
+                    ) {
+                        Text(
+                            text = "Delete",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            textDecoration = TextDecoration.Underline
+                        )
+                    }
                 }
             }
         }
