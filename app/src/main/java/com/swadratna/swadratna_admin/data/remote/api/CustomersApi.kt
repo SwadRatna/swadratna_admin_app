@@ -14,7 +14,9 @@ interface CustomersApi {
         @Query("page") page: Int? = null,
         @Query("limit") limit: Int? = null,
         @Query("status") status: String? = null,
-        @Query("search") search: String? = null
+        @Query("search") search: String? = null,
+        @Query("from_date") fromDate: String? = null,
+        @Query("to_date") toDate: String? = null
     ): CustomerListResponse
 
     @POST("api/v1/admin/customers/{id}/block")

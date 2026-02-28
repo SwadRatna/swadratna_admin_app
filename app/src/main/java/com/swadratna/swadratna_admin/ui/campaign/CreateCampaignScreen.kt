@@ -61,6 +61,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.swadratna.swadratna_admin.R
 import com.swadratna.swadratna_admin.data.model.CampaignStatus
+import com.swadratna.swadratna_admin.ui.assets.AssetUploader
 import com.swadratna.swadratna_admin.ui.menu.MenuCategoriesUiState
 import com.swadratna.swadratna_admin.ui.menu.MenuManagementViewModel
 import com.swadratna.swadratna_admin.ui.store.StoreViewModel
@@ -124,6 +125,8 @@ fun CreateCampaignScreen(
     var showEndDatePicker by remember { mutableStateOf(false) }
     val dateFormatter = remember { DateTimeFormatter.ofPattern("dd MMM yyyy") }
 
+    var imageUrl by remember { mutableStateOf(campaignToEdit?.imageUrl ?: "") }
+
     LaunchedEffect(campaignToEdit, storeUiState.stores) {
         android.util.Log.d("CreateCampaignScreen", "LaunchedEffect triggered with campaignToEdit: ${campaignToEdit?.id}, youtubeVideoUrl: ${campaignToEdit?.youtubeVideoUrl}")
         if (isEditMode && campaignToEdit != null) {
@@ -131,6 +134,7 @@ fun CreateCampaignScreen(
             campaignDescription = campaignToEdit.description
             youtubeVideoUrl = campaignToEdit.youtubeVideoUrl ?: ""
             bannerImageUrl = campaignToEdit.bannerImageUrl ?: ""
+            imageUrl = campaignToEdit.imageUrl ?: ""
             discountType = campaignToEdit.discountType
             discountValue = campaignToEdit.discount.toString()
             minOrderAmount = campaignToEdit.minOrderAmount?.toString() ?: ""
@@ -512,33 +516,13 @@ fun CreateCampaignScreen(
             Text("Terms & Conditions", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(value = termsConditions, onValueChange = { termsConditions = it }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(8.dp))
-            
-            Text("Upload Image (Optional)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-            Spacer(Modifier.height(8.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .border(1.dp, Color.LightGray.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                    .clickable { /* TODO */ },
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_upload),
-                        contentDescription = "Upload Image",
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        modifier = Modifier.size(48.dp)
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = "Tap to upload the offer image.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
+            AssetUploader(
+                context = "campaign",
+                type = "image",
+                onConfirmed = { asset ->
+                    imageUrl = asset.cdnUrl ?: asset.url ?: ""
                 }
-            }
+            )
 
             Spacer(Modifier.height(16.dp))
 
@@ -567,7 +551,7 @@ fun CreateCampaignScreen(
                                 discount = campaignToEdit.discount,
                                 targetCategoryIds = targetCategoryIds,
                                 targetFranchiseIds = targetFranchiseIds,
-                                imageUrl = campaignToEdit.imageUrl,
+                                imageUrl = imageUrl.takeIf { it.isNotBlank() },
                                 youtubeVideoUrl = youtubeVideoUrl,
                                 bannerImageUrl = bannerImageUrl.takeIf { it.isNotBlank() },
                                 discountType = discountType,
@@ -589,7 +573,7 @@ fun CreateCampaignScreen(
                                 endDate = endDate!!,
                                 targetCategoryIds = targetCategoryIds,
                                 targetFranchiseIds = targetFranchiseIds,
-                                imageUrl = null,
+                                imageUrl = imageUrl.takeIf { it.isNotBlank() },
                                 youtubeVideoUrl = youtubeVideoUrl,
                                 bannerImageUrl = bannerImageUrl.takeIf { it.isNotBlank() },
                                 discountType = discountType,

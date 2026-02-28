@@ -110,6 +110,9 @@ fun NavGraph(
                 },
                 onNavigateToUserAccount = {
                     navController.navigate(NavRoute.UserAccount.route)
+                },
+                onNavigateToOverallReport = {
+                    navController.navigate(NavRoute.OverallReport.route)
                 }
             )
         }
@@ -197,6 +200,9 @@ fun NavGraph(
                 },
                 onNavigateToEditStore = { storeId ->
                     navController.navigate("${NavRoute.CreateStore.route}/$storeId")
+                },
+                onNavigateToMenuManagement = {
+                    navController.navigate(NavRoute.MenuManagement.route)
                 }
             )
         }
@@ -215,11 +221,25 @@ fun NavGraph(
                     navController.navigate(NavRoute.StaffManagement.createRoute(selectedStoreId))
                 },
                 onNavigateToMenuManagement = { selectedStoreId ->
-                    navController.navigate(NavRoute.MenuManagement.route)
+                    navController.navigate(NavRoute.StoreMenuItems.createRoute(selectedStoreId))
                 },
                 onNavigateToAttendance = { selectedStoreId ->
                     navController.navigate(NavRoute.AttendancePayment.createRoute(selectedStoreId))
+                },
+                onNavigateToInventory = { selectedStoreId ->
+                    navController.navigate(NavRoute.ManageInventory.createRoute(selectedStoreId))
                 }
+            )
+        }
+
+        composable(
+            route = NavRoute.ManageInventory.route,
+            arguments = listOf(navArgument("storeId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val storeId = backStackEntry.arguments?.getString("storeId") ?: ""
+            com.swadratna.swadratna_admin.ui.inventory.ManageInventoryScreen(
+                storeId = storeId,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
@@ -374,6 +394,17 @@ fun NavGraph(
             )
         }
 
+        composable(
+            route = NavRoute.StoreMenuItems.route,
+            arguments = listOf(navArgument("storeId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val storeId = backStackEntry.arguments?.getString("storeId") ?: ""
+            com.swadratna.swadratna_admin.presentation.screens.menu.StoreLocationMenuScreen(
+                storeId = storeId,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
         composable(NavRoute.ManageCategories.route) {
             val menuManagementViewModel: MenuManagementViewModel = hiltViewModel()
             val needsRefresh by (navController.currentBackStackEntry?.savedStateHandle
@@ -520,6 +551,12 @@ fun NavGraph(
 
         composable(NavRoute.Referral.route) {
             com.swadratna.swadratna_admin.ui.referral.ReferralScreen()
+        }
+
+        composable(NavRoute.OverallReport.route) {
+            com.swadratna.swadratna_admin.ui.dashboard.OverallReportScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }

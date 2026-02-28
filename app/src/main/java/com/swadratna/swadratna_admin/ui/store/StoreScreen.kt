@@ -29,6 +29,7 @@ fun StoreScreen(
     onNavigateToCreateStore: () -> Unit,
     onNavigateToManageStore: (String) -> Unit,
     onNavigateToEditStore: (String) -> Unit,
+    onNavigateToMenuManagement: () -> Unit,
     viewModel: StoreViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -105,6 +106,20 @@ fun StoreScreen(
             }
             
             Spacer(modifier = Modifier.height(16.dp))
+            
+            ElevatedButton(
+                onClick = onNavigateToMenuManagement,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_menu),
+                    contentDescription = "Manage Menu"
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Manage Menu")
+            }
             
             Box(modifier = Modifier.fillMaxSize()) {
                 when {

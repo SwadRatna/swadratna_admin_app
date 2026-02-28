@@ -143,6 +143,15 @@ data class MenuItemResponse(
     val data: MenuItemDto? = null
 )
 
+data class UpdateLocationMenuItemDto(
+    @SerializedName("location_price")
+    val locationPrice: Double? = null,
+    @SerializedName("is_available")
+    val isAvailable: Boolean? = null,
+    @SerializedName("unavailable_reason")
+    val unavailableReason: String? = null
+)
+
 data class MenuItemsListResponse(
     val success: Boolean = true,
     val message: String = "",

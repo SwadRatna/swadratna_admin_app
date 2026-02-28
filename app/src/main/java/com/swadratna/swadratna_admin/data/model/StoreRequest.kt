@@ -8,7 +8,8 @@ data class StoreRequest(
     @SerializedName("location_mobile_number") val locationMobileNumber: String,
     @SerializedName("restaurant_id") val restaurantId: Int,
     @SerializedName("number_of_tables") val numberOfTables: Int,
-    @SerializedName("name") val name: String?
+    @SerializedName("name") val name: String?,
+    @SerializedName("gst_rate") val gstRate: Double
 )
 
 data class StoreAddressRequest(

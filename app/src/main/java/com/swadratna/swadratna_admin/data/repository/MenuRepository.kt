@@ -15,6 +15,7 @@ import com.swadratna.swadratna_admin.data.remote.toDomain
 import com.swadratna.swadratna_admin.data.remote.toCreateDto
 import com.swadratna.swadratna_admin.data.remote.toDto
 import com.swadratna.swadratna_admin.data.remote.toUpdateDto
+import com.swadratna.swadratna_admin.data.remote.UpdateLocationMenuItemDto
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -119,6 +120,25 @@ class MenuRepository @Inject constructor(
     suspend fun updateCategory(id: Int, category: MenuCategory): Result<MenuCategoryResponse> = withContext(Dispatchers.IO) {
         try {
             Result.success(api.updateMenuCategory(id, category.toUpdateDto()))
+        } catch (e: Throwable) {
+            Result.failure(Exception(NetworkErrorHandler.getErrorMessage(e), e))
+        }
+    }
+
+    suspend fun updateMenuItemAtLocation(
+        locationId: Long,
+        itemId: Int,
+        locationPrice: Double?,
+        isAvailable: Boolean?,
+        unavailableReason: String?
+    ): Result<MenuItemResponse> = withContext(Dispatchers.IO) {
+        try {
+            val dto = UpdateLocationMenuItemDto(
+                locationPrice = locationPrice,
+                isAvailable = isAvailable,
+                unavailableReason = unavailableReason
+            )
+            Result.success(api.updateMenuItemAtLocation(locationId, itemId.toLong(), dto))
         } catch (e: Throwable) {
             Result.failure(Exception(NetworkErrorHandler.getErrorMessage(e), e))
         }

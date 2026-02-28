@@ -284,6 +284,27 @@ class CampaignViewModel @Inject constructor(
                     }
                 }
             }
+            is CampaignEvent.SendNotification -> {
+                val idLong = event.campaignId.toLongOrNull()
+                if (idLong == null) {
+                    _uiState.value = _uiState.value.copy(error = "Invalid campaign id")
+                } else {
+                    _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+                    viewModelScope.launch {
+                        when (val res = repository.sendCampaignNotification(idLong)) {
+                            is Result.Success -> {
+                                _uiState.value = _uiState.value.copy(isLoading = false, error = null)
+                            }
+                            is Result.Error -> {
+                                _uiState.value = _uiState.value.copy(isLoading = false, error = res.message)
+                            }
+                            is Result.Loading -> {
+                                _uiState.value = _uiState.value.copy(isLoading = true)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -528,6 +549,7 @@ sealed interface CampaignEvent {
         val termsConditions: String? = null
     ) : CampaignEvent
     data class UpdateCampaignStatus(val campaignId: String, val status: CampaignStatus) : CampaignEvent
+    data class SendNotification(val campaignId: String) : CampaignEvent
 }
 
 private fun parseServerDate(dateStr: String): LocalDate {

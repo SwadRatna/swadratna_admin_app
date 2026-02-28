@@ -96,14 +96,7 @@ fun SaleListScreen(
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 },
-                actions = {
-                    IconButton(onClick = { /* TODO */ }) {
-                        Icon(Icons.Default.Search, contentDescription = "Search")
-                    }
-                    IconButton(onClick = { /* TODO */ }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "Menu")
-                    }
-                }
+                actions = { }
             )
         },
         bottomBar = { }
@@ -434,8 +427,15 @@ fun SummarySection(totalAmount: Double, totalCount: Int) {
             shape = RoundedCornerShape(8.dp)
         ) {
             Column(modifier = Modifier.padding(8.dp)) {
-                Text("Amount", style = MaterialTheme.typography.bodySmall)
-                Text("₹ $totalAmount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Amount",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    text = "₹ ${String.format("%.2f", totalAmount)}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
         Card(
@@ -478,11 +478,8 @@ fun SaleList(sales: List<SaleDto>) {
 
 @Composable
 fun SaleItemRow(item: SaleDto) {
-    // Date parsing
     val displayDate = remember(item.createdAt) {
         try {
-            // Adjust format to handle the Z literal or timezone if needed. 
-            // "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" matches the input literal 'Z'
             val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
             val date = item.createdAt?.let { parser.parse(it) }
             val formatter = SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault())
@@ -508,12 +505,12 @@ fun SaleItemRow(item: SaleDto) {
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                Text(
-                    text = "${item.paymentMode?.uppercase() ?: ""} | $displayDate",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
+            Text(
+                text = "${item.paymentMode?.uppercase() ?: ""} | $displayDate",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Spacer(modifier = Modifier.height(4.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -546,14 +543,6 @@ fun SaleItemRow(item: SaleDto) {
                     fontSize = 10.sp,
                     modifier = Modifier.weight(1f)
                 )
-                OutlinedButton(
-                    onClick = { /* TODO */ },
-                    shape = RoundedCornerShape(4.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                    modifier = Modifier.height(32.dp)
-                ) {
-                    Text("Sale Return", fontSize = 10.sp)
-                }
             }
         }
     }

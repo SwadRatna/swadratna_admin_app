@@ -37,6 +37,7 @@ fun CreateStoreScreen(
     var landmark by remember { mutableStateOf("") }
     var locationMobileNumber by remember { mutableStateOf("") }
     var numberOfTables by remember { mutableStateOf("") }
+    var gstRate by remember { mutableStateOf("") }
     
     // Update form fields when storeToEdit changes
     LaunchedEffect(storeToEdit) {
@@ -52,6 +53,7 @@ fun CreateStoreScreen(
             landmark = storeToEdit.address?.landmark ?: ""
             locationMobileNumber = storeToEdit.locationMobileNumber ?: ""
             numberOfTables = storeToEdit.numberOfTables?.toString() ?: ""
+            gstRate = (storeToEdit as Store).let { it.gstRate?.toString() ?: "" }
 
         } else {
             // Reset form for new store creation
@@ -66,6 +68,7 @@ fun CreateStoreScreen(
             landmark = ""
             locationMobileNumber = ""
             numberOfTables = ""
+            gstRate = ""
             viewModel.onEvent(StoreEvent.ResetEditMode)
         }
     }
@@ -205,6 +208,15 @@ fun CreateStoreScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
             
+            OutlinedTextField(
+                value = gstRate,
+                onValueChange = { gstRate = it },
+                label = { Text("GST Rate (%) *") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+            
             // Error message
             if (uiState.error != null) {
                 Card(
@@ -227,9 +239,10 @@ fun CreateStoreScreen(
             Button(
                 onClick = {
                     val tablesCount = numberOfTables.toIntOrNull()
+                    val gstRateValue = gstRate.toDoubleOrNull()
                     
                     if (branchName.isBlank() || street1.isBlank() || locality.isBlank() || city.isBlank() || 
-                        pincode.isBlank() || locationMobileNumber.isBlank() || tablesCount == null) {
+                        pincode.isBlank() || locationMobileNumber.isBlank() || tablesCount == null || gstRateValue == null) {
                         // Show validation error
                         return@Button
                     }
@@ -249,7 +262,8 @@ fun CreateStoreScreen(
                                 pincode = pincode,
                                 landmark = landmark,
                                 locationMobileNumber = locationMobileNumber,
-                                numberOfTables = tablesCount
+                                numberOfTables = tablesCount,
+                                gstRate = gstRateValue
                             )
                         )
                     } else {
@@ -266,7 +280,8 @@ fun CreateStoreScreen(
                                 pincode = pincode,
                                 landmark = landmark,
                                 locationMobileNumber = locationMobileNumber,
-                                numberOfTables = tablesCount
+                                numberOfTables = tablesCount,
+                                gstRate = gstRateValue
                             )
                         )
                     }
@@ -279,7 +294,7 @@ fun CreateStoreScreen(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !uiState.isLoading && branchName.isNotBlank() && street1.isNotBlank() && locality.isNotBlank() && 
                          city.isNotBlank() && pincode.isNotBlank() && locationMobileNumber.isNotBlank() && 
-                         numberOfTables.toIntOrNull() != null
+                         numberOfTables.toIntOrNull() != null && gstRate.toDoubleOrNull() != null
             ) {
                 if (uiState.isLoading) {
                     CircularProgressIndicator(

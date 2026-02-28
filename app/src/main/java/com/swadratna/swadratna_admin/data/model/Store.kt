@@ -15,7 +15,8 @@ data class Store(
     val status: String,
     @SerializedName("location_mobile_number") val locationMobileNumber: String,
     @SerializedName("number_of_tables") val numberOfTables: Int,
-    @SerializedName("image_url") val imageUrl: String? = null
+    @SerializedName("image_url") val imageUrl: String? = null,
+    @SerializedName("gst_rate") val gstRate: Double? = null
 ) {
     fun getFormattedCreationDate(): String {
         return createdAt.split("T")[0]

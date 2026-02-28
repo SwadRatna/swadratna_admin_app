@@ -49,6 +49,12 @@ interface CampaignApi {
     @DELETE("api/v1/admin/campaigns/{id}")
     suspend fun deleteAdminCampaign(@Path("id") id: Long): AdminDeleteResponse
 
+    @POST("api/v1/admin/campaigns/{id}/send-notification")
+    suspend fun sendNotification(
+        @Path("id") id: Long,
+        @Body body: Map<String, String> = mapOf("key" to "value")
+    ): SendNotificationResponse
+
     // Public APIs
     @GET("api/v1/campaigns/active")
     suspend fun getActiveCampaigns(
@@ -176,4 +182,9 @@ interface CampaignApi {
     @SerializedName("discount_type") val discountType: String? = null,
     @SerializedName("discount_value") val discountValue: Int? = null,
     @SerializedName("max_discount_amount") val maxDiscountAmount: Int? = null
+)
+
+ data class SendNotificationResponse(
+    @SerializedName("success") val success: Boolean = true,
+    @SerializedName("message") val message: String? = null
 )
